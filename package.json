@@ -1,0 +1,36 @@
+{
+  "name": "velog-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "velopert <public.velopert@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@types/aws-lambda": "^8.10.17",
+    "@types/dotenv": "^6.1.0",
+    "@types/koa": "^2.0.48",
+    "@types/koa-bodyparser": "^4.2.1",
+    "@types/koa-router": "^7.0.38",
+    "@types/node": "^10.12.18",
+    "apollo-server-koa": "^2.3.1",
+    "dotenv": "^6.2.0",
+    "graphql": "^14.1.1",
+    "koa": "^2.6.2",
+    "koa-bodyparser": "^4.2.1",
+    "koa-router": "^7.4.0",
+    "serverless-http": "^1.9.0",
+    "serverless-offline": "^4.1.4",
+    "serverless-webpack": "^5.2.0",
+    "source-map-support": "^0.5.10",
+    "ts-loader": "^5.3.3",
+    "ts-node-dev": "^1.0.0-pre.32",
+    "tslint": "^5.12.1",
+    "tslint-config-airbnb": "^5.11.1",
+    "tslint-config-prettier": "^1.17.0",
+    "typescript": "^3.2.4",
+    "webpack": "^4.29.0"
+  },
+  "scripts": {
+    "offline": "sls offline --port 5001",
+    "dev": "ts-node-dev --respawn ./src/server.ts"
+  }
+}
