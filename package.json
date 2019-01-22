@@ -26,11 +26,12 @@
     "tslint": "^5.12.1",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.17.0",
+    "typeorm": "^0.2.12",
     "typescript": "^3.2.4",
     "webpack": "^4.29.0"
   },
   "scripts": {
     "offline": "sls offline --port 5001",
-    "dev": "ts-node-dev --respawn ./src/server.ts"
+    "dev": "NODE_ENV=development ts-node-dev --respawn ./src/server.ts"
   }
 }

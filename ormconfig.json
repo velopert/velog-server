@@ -1,0 +1,10 @@
+{
+  "type": "postgres",
+  "host": "localhost",
+  "port": 5432,
+  "username": "velognext",
+  "password": "velognext",
+  "database": "velognext",
+  "synchronize": true,
+  "logging": true
+}
