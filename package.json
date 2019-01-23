@@ -17,6 +17,7 @@
     "koa": "^2.6.2",
     "koa-bodyparser": "^4.2.1",
     "koa-router": "^7.4.0",
+    "pg": "^7.8.0",
     "serverless-http": "^1.9.0",
     "serverless-offline": "^4.1.4",
     "serverless-webpack": "^5.2.0",
