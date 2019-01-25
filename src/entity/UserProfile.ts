@@ -33,7 +33,7 @@ export class UserProfile {
   updated_at!: Date;
 
   @OneToOne(type => User, { cascade: true })
-  @JoinColumn({ name: 'fk_user_id ' })
+  @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 
   @Column({
