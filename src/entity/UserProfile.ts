@@ -8,10 +8,10 @@ import {
   OneToOne,
   JoinColumn
 } from 'typeorm';
-import { User } from './User';
+import User from './User';
 
 @Entity('user_profiles')
-export class UserProfile {
+export default class UserProfile {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

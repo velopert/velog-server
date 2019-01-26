@@ -9,10 +9,10 @@ import {
   JoinColumn,
   ManyToOne
 } from 'typeorm';
-import { User } from './User';
+import User from './User';
 
 @Entity('posts')
-export class Post {
+export default class Post {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
