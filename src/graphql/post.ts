@@ -17,11 +17,13 @@ export const typeDef = gql`
     meta: JSON
     views: Int
     is_private: Boolean
-    released_at: String
-    created_at: String
+    released_at: Date
+    created_at: Date
+    updated_at: Date
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
+    posts(cursor: ID, limit: Int): [Post]
   }
 `;
 
@@ -33,7 +35,7 @@ export const resolvers: IResolvers = {
     }
   },
   Query: {
-    post: async (parent: any, { id, username, url_slug }) => {
+    post: async (parent: any, { id, username, url_slug }: any, ctx: any) => {
       try {
         if (id) {
           const post = await getRepository(Post).findOne({
@@ -49,8 +51,21 @@ export const resolvers: IResolvers = {
           .leftJoinAndSelect('post.user', 'user')
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
           .getOne();
+        if (!post) return null;
+        if ((post.is_temp || post.is_private === true) && post.fk_user_id !== ctx.user_id) {
+          return null;
+        }
         return post;
       } catch (e) {}
+    },
+    posts: async (parent: any, { cusor, limit = 20 }: any, context: any) => {
+      const posts = await getManager()
+        .createQueryBuilder(Post, 'post')
+        .limit(limit)
+        .orderBy('post.released_at', 'DESC')
+        .leftJoinAndSelect('post.user', 'user')
+        .getMany();
+      return posts;
     }
   }
 };

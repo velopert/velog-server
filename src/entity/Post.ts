@@ -35,6 +35,9 @@ export default class Post {
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 
+  @Column('uuid')
+  fk_user_id!: string;
+
   @Index()
   @Column({ length: 255 })
   url_slug!: string;

@@ -36,6 +36,9 @@ export default class UserProfile {
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 
+  @Column('uuid')
+  fk_user_id!: string;
+
   @Column({
     default: {},
     type: 'jsonb'
