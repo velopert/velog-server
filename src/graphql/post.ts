@@ -1,4 +1,4 @@
-import { gql, IResolvers } from 'apollo-server-koa';
+import { gql, IResolvers, ApolloError } from 'apollo-server-koa';
 import Post from '../entity/Post';
 import { getRepository, getManager } from 'typeorm';
 import User from '../entity/User';
@@ -23,7 +23,7 @@ export const typeDef = gql`
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
-    posts(cursor: ID, limit: Int): [Post]
+    posts(cursor: ID, limit: Int, username: String): [Post]
   }
 `;
 
@@ -58,13 +58,42 @@ export const resolvers: IResolvers = {
         return post;
       } catch (e) {}
     },
-    posts: async (parent: any, { cusor, limit = 20 }: any, context: any) => {
-      const posts = await getManager()
+    posts: async (parent: any, { cursor, limit = 20, username }: any, context: any) => {
+      const query = getManager()
         .createQueryBuilder(Post, 'post')
         .limit(limit)
         .orderBy('post.released_at', 'DESC')
+        .addOrderBy('post.id', 'DESC')
         .leftJoinAndSelect('post.user', 'user')
-        .getMany();
+        .where('post.is_temp = false AND is_private = false');
+
+      if (username) {
+        query.andWhere('user.username = :username', { username });
+      }
+
+      if (cursor) {
+        const post = await getRepository(Post).findOne({
+          id: cursor
+        });
+        if (!post) {
+          throw new ApolloError('invalid cursor');
+        }
+        query.andWhere('post.released_at < :date', {
+          date: post.released_at,
+          id: post.id
+        });
+        query.orWhere('post.released_at = :date AND post.id < :id', {
+          date: post.released_at,
+          id: post.id
+        });
+      }
+
+      if (context.user_id) {
+        query.orWhere('post.is_private = true and post.fk_user_id = :id', {
+          id: context.user_id
+        });
+      }
+      const posts = await query.getMany();
       return posts;
     }
   }
