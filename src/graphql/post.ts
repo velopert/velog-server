@@ -24,6 +24,7 @@ export const typeDef = gql`
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String): [Post]
+    trendingPosts(cursor: ID, limit: Int): [Post]
   }
 `;
 
@@ -95,6 +96,7 @@ export const resolvers: IResolvers = {
       }
       const posts = await query.getMany();
       return posts;
-    }
+    },
+    trendingPosts: async (parent: any, { cursor, limit }) => {}
   }
 };
