@@ -2,3 +2,4 @@
 .serverless
 .webpack
 node_modules
+ormconfig.json

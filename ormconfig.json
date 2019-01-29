@@ -4,7 +4,21 @@
   "port": 5432,
   "username": "velognext",
   "password": "velognext",
-  "database": "velognext",
-  "synchronize": true,
-  "logging": true
+  "database": "velogsync",
+  "synchronize": false,
+  "logging": true,
+  "entities": [
+     "src/entity/**/*.ts"
+  ],
+  "migrations": [
+     "src/migration/**/*.ts"
+  ],
+  "subscribers": [
+     "src/subscriber/**/*.ts"
+  ],
+  "cli": {
+     "entitiesDir": "src/entity",
+     "migrationsDir": "src/migration",
+     "subscribersDir": "src/subscriber"
+  }
 }

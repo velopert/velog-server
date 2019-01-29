@@ -10,7 +10,9 @@ import {
 } from 'typeorm';
 import User from './User';
 
-@Entity('user_profiles')
+@Entity('user_profiles', {
+  synchronize: false
+})
 export default class UserProfile {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

@@ -11,7 +11,9 @@ import {
 } from 'typeorm';
 import User from './User';
 
-@Entity('posts')
+@Entity('posts', {
+  synchronize: false
+})
 export default class Post {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

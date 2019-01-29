@@ -12,8 +12,8 @@ import {
 import User from './User';
 import Post from './Post';
 
-@Entity('random_name', {
-  synchronize: true
+@Entity('post_scores', {
+  synchronize: false
 })
 export default class UserProfile {
   @PrimaryGeneratedColumn('uuid')
