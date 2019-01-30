@@ -1,5 +1,5 @@
 Arguments: 
-  /Users/velopert/.nvm/versions/node/v10.13.0/bin/node /usr/local/Cellar/yarn/1.12.3/libexec/bin/yarn.js add @type/graphql
+  /Users/velopert/.nvm/versions/node/v10.13.0/bin/node /usr/local/Cellar/yarn/1.12.3/libexec/bin/yarn.js add @types/strip-markdown
 
 PATH: 
   /Users/velopert/.yarn/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/velopert/.yarn/bin:/Users/velopert/.nvm/versions/node/v10.13.0/bin
@@ -14,7 +14,7 @@ Platform:
   darwin x64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/@type%2fgraphql: Not found
+  Error: https://registry.yarnpkg.com/@types%2fstrip-markdown: Not found
       at Request.params.callback [as _callback] (/usr/local/Cellar/yarn/1.12.3/libexec/lib/cli.js:65894:18)
       at Request.self.callback (/usr/local/Cellar/yarn/1.12.3/libexec/lib/cli.js:129018:22)
       at Request.emit (events.js:182:13)
@@ -36,6 +36,7 @@ npm manifest:
     "dependencies": {
       "@types/aws-lambda": "^8.10.17",
       "@types/dotenv": "^6.1.0",
+      "@types/graphql": "^14.0.5",
       "@types/koa": "^2.0.48",
       "@types/koa-bodyparser": "^4.2.1",
       "@types/koa-router": "^7.0.38",
@@ -54,8 +55,11 @@ npm manifest:
       "serverless-offline": "^4.1.4",
       "serverless-webpack": "^5.2.0",
       "source-map-support": "^0.5.10",
+      "strip-markdown": "^3.0.3",
       "ts-loader": "^5.3.3",
+      "ts-node": "^8.0.2",
       "ts-node-dev": "^1.0.0-pre.32",
+      "tsconfig-paths": "^3.7.0",
       "tslint": "^5.12.1",
       "tslint-config-airbnb": "^5.11.1",
       "tslint-config-prettier": "^1.17.0",
@@ -65,7 +69,8 @@ npm manifest:
     },
     "scripts": {
       "offline": "sls offline --port 5001",
-      "dev": "NODE_ENV=development ts-node-dev --respawn ./src/server.ts"
+      "dev": "NODE_ENV=development ts-node-dev --respawn ./src/server.ts",
+      "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
     }
   }
 
@@ -242,10 +247,20 @@ Lockfile:
       "@types/express-serve-static-core" "*"
       "@types/serve-static" "*"
   
+  "@types/graphql@^14.0.5":
+    version "14.0.5"
+    resolved "https://registry.yarnpkg.com/@types/graphql/-/graphql-14.0.5.tgz#e696292fd2d77dc168b5b791710f83463aa39abd"
+    integrity sha512-bwGYLE0SRy5ZraC91dqI2bxbspfm10kyJ2Yjuvk4OjdGznh7fkoWW+xXZHfFydJaqu9syZi099cpiZw3GlPDiA==
+  
   "@types/http-assert@*":
     version "1.4.0"
     resolved "https://registry.yarnpkg.com/@types/http-assert/-/http-assert-1.4.0.tgz#41d173466e396e99a14d75f7160cc997f2f9ed8b"
     integrity sha512-TZDqvFW4nQwL9DVSNJIJu4lPLttKgzRF58COa7Vs42Ki/MrhIqUbeIw0MWn4kGLiZLXB7oCBibm7nkSjPkzfKQ==
+  
+  "@types/json5@^0.0.29":
+    version "0.0.29"
+    resolved "https://registry.yarnpkg.com/@types/json5/-/json5-0.0.29.tgz#ee28707ae94e11d2b827bcbe5270bcea7f3e71ee"
+    integrity sha1-7ihweulOEdK4J7y+UnC86n8+ce4=
   
   "@types/keygrip@*":
     version "1.0.1"
@@ -787,6 +802,11 @@ Lockfile:
     dependencies:
       delegates "^1.0.0"
       readable-stream "^2.0.6"
+  
+  arg@^4.1.0:
+    version "4.1.0"
+    resolved "https://registry.yarnpkg.com/arg/-/arg-4.1.0.tgz#583c518199419e0037abb74062c37f8519e575f0"
+    integrity sha512-ZWc51jO3qegGkVh8Hwpv636EkbesNV5ZNQPCtRa+0qytRYPEs9IYT9qITY9buezqUH5uqyzlWLcufrzU2rffdg==
   
   argparse@^1.0.7:
     version "1.0.10"
@@ -1687,6 +1707,11 @@ Lockfile:
     version "0.6.0"
     resolved "https://registry.yarnpkg.com/deep-extend/-/deep-extend-0.6.0.tgz#c4fa7c95404a17a9c3e8ca7e1537312b736330ac"
     integrity sha512-LOHxIOaPYdHlJRtCQfDIVZtfw/ufM8+rVj649RIHzcm/vGwQRXFt6OPqIFWsm2XEMrNIEtWR64sY1LEKD2vAOA==
+  
+  deepmerge@^2.0.1:
+    version "2.2.1"
+    resolved "https://registry.yarnpkg.com/deepmerge/-/deepmerge-2.2.1.tgz#5d3ff22a01c00f645405a2fbc17d0778a1801170"
+    integrity sha512-R9hc1Xa/NOBi9WRVUWg19rl1UB7Tt4kuPd+thNJgFZoxXsTz7ncaPaeIm+40oSGuP33DfMb4sZt1QIGiJzC4EA==
   
   define-properties@^1.1.2:
     version "1.1.3"
@@ -4909,6 +4934,11 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
     integrity sha1-PFMZQukIwml8DsNEhYwobHygpgo=
   
+  strip-markdown@^3.0.3:
+    version "3.0.3"
+    resolved "https://registry.yarnpkg.com/strip-markdown/-/strip-markdown-3.0.3.tgz#93b4526abe32a1d69e5ca943f4d9ba25c01a4d48"
+    integrity sha512-G2DSM9wy3PWxY3miAibWpsTqZgXLXgRoq0yVyaVs9O7FDGEwPO6pmSE8CyzHhU88Z2w1dkFqFmWUklFNsQKwqg==
+  
   subscriptions-transport-ws@^0.9.11:
     version "0.9.15"
     resolved "https://registry.yarnpkg.com/subscriptions-transport-ws/-/subscriptions-transport-ws-0.9.15.tgz#68a8b7ba0037d8c489fb2f5a102d1494db297d0d"
@@ -5167,6 +5197,28 @@ Lockfile:
       tsconfig "^6.0.0"
       v8flags "^3.0.0"
       yn "^2.0.0"
+  
+  ts-node@^8.0.2:
+    version "8.0.2"
+    resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-8.0.2.tgz#9ecdf8d782a0ca4c80d1d641cbb236af4ac1b756"
+    integrity sha512-MosTrinKmaAcWgO8tqMjMJB22h+sp3Rd1i4fdoWY4mhBDekOwIAKI/bzmRi7IcbCmjquccYg2gcF6NBkLgr0Tw==
+    dependencies:
+      arg "^4.1.0"
+      diff "^3.1.0"
+      make-error "^1.1.1"
+      source-map-support "^0.5.6"
+      yn "^3.0.0"
+  
+  tsconfig-paths@^3.7.0:
+    version "3.7.0"
+    resolved "https://registry.yarnpkg.com/tsconfig-paths/-/tsconfig-paths-3.7.0.tgz#02ae978db447b22e09dafcd4198be95c4885ceb2"
+    integrity sha512-7iE+Q/2E1lgvxD+c0Ot+GFFmgmfIjt/zCayyruXkXQ84BLT85gHXy0WSoQSiuFX9+d+keE/jiON7notV74ZY+A==
+    dependencies:
+      "@types/json5" "^0.0.29"
+      deepmerge "^2.0.1"
+      json5 "^1.0.1"
+      minimist "^1.2.0"
+      strip-bom "^3.0.0"
   
   tsconfig@^6.0.0:
     version "6.0.0"
@@ -5680,6 +5732,11 @@ Lockfile:
     version "2.0.0"
     resolved "https://registry.yarnpkg.com/yn/-/yn-2.0.0.tgz#e5adabc8acf408f6385fc76495684c88e6af689a"
     integrity sha1-5a2ryKz0CPY4X8dklWhMiOavaJo=
+  
+  yn@^3.0.0:
+    version "3.0.0"
+    resolved "https://registry.yarnpkg.com/yn/-/yn-3.0.0.tgz#0073c6b56e92aed652fbdfd62431f2d6b9a7a091"
+    integrity sha512-+Wo/p5VRfxUgBUGy2j/6KX2mj9AYJWOHuhMjMcbBFc3y54o9/4buK1ksBvuiK01C3kby8DH9lSmJdSxw+4G/2Q==
   
   zen-observable-ts@^0.8.13:
     version "0.8.13"

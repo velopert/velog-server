@@ -15,7 +15,7 @@ import Post from './Post';
 @Entity('post_scores', {
   synchronize: false
 })
-export default class UserProfile {
+export default class PostScore {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

@@ -2,6 +2,9 @@ import { gql, IResolvers, ApolloError } from 'apollo-server-koa';
 import Post from '../entity/Post';
 import { getRepository, getManager } from 'typeorm';
 import User from '../entity/User';
+import PostScore from '../entity/PostScore';
+import { normalize } from '../lib/utils';
+import removeMd from 'remove-markdown';
 
 export const typeDef = gql`
   type Post {
@@ -20,11 +23,12 @@ export const typeDef = gql`
     released_at: Date
     created_at: Date
     updated_at: Date
+    short_description: String
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String): [Post]
-    trendingPosts(cursor: ID, limit: Int): [Post]
+    trendingPosts(offset: Int, limit: Int): [Post]
   }
 `;
 
@@ -33,6 +37,13 @@ export const resolvers: IResolvers = {
     user: (parent: Post) => {
       // TODO: fetch user if null
       return parent.user;
+    },
+    short_description: (parent: Post) => {
+      if (parent.meta.short_description) {
+        return parent.meta.short_description;
+      }
+      const removed = removeMd(parent.body);
+      return removed.slice(0, 200) + (removed.length > 200 ? '...' : '');
     }
   },
   Query: {
@@ -97,6 +108,30 @@ export const resolvers: IResolvers = {
       const posts = await query.getMany();
       return posts;
     },
-    trendingPosts: async (parent: any, { cursor, limit }) => {}
+    trendingPosts: async (parent: any, { offset = 0, limit = 20 }) => {
+      const query = getRepository(PostScore)
+        .createQueryBuilder()
+        .select('fk_post_id')
+        .addSelect('SUM(score)', 'score')
+        .where('created_at > now()::DATE - 14 AND fk_post_id IS NOT NULL')
+        .groupBy('fk_post_id')
+        .orderBy('score', 'DESC')
+        .addOrderBy('fk_post_id', 'DESC')
+        .limit(limit);
+
+      if (offset) {
+        query.offset(offset);
+      }
+
+      const rows = (await query.getRawMany()) as { fk_post_id: string; score: number }[];
+      const ids = rows.map(row => row.fk_post_id);
+      console.log(ids);
+      const posts = await getRepository(Post).findByIds(ids);
+      const normalized = normalize(posts);
+      const ordered = ids.map(id => normalized[id]);
+
+      return ordered;
+      return [];
+    }
   }
 };
