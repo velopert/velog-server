@@ -24,6 +24,7 @@ export const typeDef = gql`
     created_at: Date
     updated_at: Date
     short_description: String
+    comments: [Comment]
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
@@ -50,23 +51,31 @@ export const resolvers: IResolvers = {
     post: async (parent: any, { id, username, url_slug }: any, ctx: any) => {
       try {
         if (id) {
-          const post = await getRepository(Post).findOne({
-            loadEagerRelations: true,
-            where: {
-              id
-            }
-          });
+          const post = await getManager()
+            .createQueryBuilder(Post, 'post')
+            .leftJoinAndSelect('post.user', 'user')
+            .leftJoinAndSelect('post.comments', 'comment')
+            .where('post.id = :id', { id })
+            .orderBy({
+              'comment.created_at': 'ASC'
+            })
+            .getOne();
           return post;
         }
         const post = await getManager()
           .createQueryBuilder(Post, 'post')
           .leftJoinAndSelect('post.user', 'user')
+          .leftJoinAndSelect('post.comments', 'comment')
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
+          .orderBy({
+            'comment.created_at': 'ASC'
+          })
           .getOne();
         if (!post) return null;
         if ((post.is_temp || post.is_private === true) && post.fk_user_id !== ctx.user_id) {
           return null;
         }
+
         return post;
       } catch (e) {}
     },

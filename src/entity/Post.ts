@@ -7,9 +7,11 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
-  ManyToOne
+  ManyToOne,
+  OneToMany
 } from 'typeorm';
 import User from './User';
+import Comment from './Comment';
 
 @Entity('posts', {
   synchronize: false
@@ -59,6 +61,7 @@ export default class Post {
   @Column({ default: true })
   is_private!: boolean;
 
+  @Index()
   @Column({
     type: 'timestamptz',
     default: () => 'now()',
@@ -76,4 +79,7 @@ export default class Post {
 
   @Column('tsvector')
   tsv!: any;
+
+  @OneToMany(type => Comment, comment => comment.post)
+  comments!: Comment[];
 }
