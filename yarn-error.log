@@ -1,8 +1,8 @@
 Arguments: 
-  /Users/velopert/.nvm/versions/node/v10.13.0/bin/node /usr/local/Cellar/yarn/1.12.3/libexec/bin/yarn.js add @types/strip-markdown
+  /Users/velopert/.nvm/versions/node/v10.13.0/bin/node /usr/local/Cellar/yarn/1.12.3/libexec/bin/yarn.js add @types/dataloader
 
 PATH: 
-  /Users/velopert/.yarn/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/velopert/.yarn/bin:/Users/velopert/.nvm/versions/node/v10.13.0/bin
+  /Users/velopert/.yarn/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/velopert/.yarn/bin:/Users/velopert/.nvm/versions/node/v10.13.0/bin:/Users/velopert/Library/Android/sdk/emulator:/Users/velopert/Library/Android/sdk/tools:/Users/velopert/Library/Android/sdk/tools/bin:/Users/velopert/Library/Android/sdk/platform-tools:/Users/velopert/Library/Android/sdk/emulator:/Users/velopert/Library/Android/sdk/tools:/Users/velopert/Library/Android/sdk/tools/bin:/Users/velopert/Library/Android/sdk/platform-tools
 
 Yarn version: 
   1.12.3
@@ -14,7 +14,7 @@ Platform:
   darwin x64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/@types%2fstrip-markdown: Not found
+  Error: https://registry.yarnpkg.com/@types%2fdataloader: Not found
       at Request.params.callback [as _callback] (/usr/local/Cellar/yarn/1.12.3/libexec/lib/cli.js:65894:18)
       at Request.self.callback (/usr/local/Cellar/yarn/1.12.3/libexec/lib/cli.js:129018:22)
       at Request.emit (events.js:182:13)
@@ -42,7 +42,9 @@ npm manifest:
       "@types/koa-router": "^7.0.38",
       "@types/lodash": "^4.14.120",
       "@types/node": "^10.12.18",
+      "@types/remove-markdown": "^0.1.1",
       "apollo-server-koa": "^2.3.1",
+      "dataloader": "^1.4.0",
       "dotenv": "^6.2.0",
       "graphql": "^14.1.1",
       "graphql-iso-date": "^3.6.1",
@@ -51,11 +53,11 @@ npm manifest:
       "koa-router": "^7.4.0",
       "pg": "^7.8.0",
       "remove": "^0.1.5",
+      "remove-markdown": "^0.3.0",
       "serverless-http": "^1.9.0",
       "serverless-offline": "^4.1.4",
       "serverless-webpack": "^5.2.0",
       "source-map-support": "^0.5.10",
-      "strip-markdown": "^3.0.3",
       "ts-loader": "^5.3.3",
       "ts-node": "^8.0.2",
       "ts-node-dev": "^1.0.0-pre.32",
@@ -336,6 +338,11 @@ Lockfile:
     version "1.2.3"
     resolved "https://registry.yarnpkg.com/@types/range-parser/-/range-parser-1.2.3.tgz#7ee330ba7caafb98090bece86a5ee44115904c2c"
     integrity sha512-ewFXqrQHlFsgc09MK5jP5iR7vumV/BYayNC6PgJO2LPe8vrnNFyjQjSppfEngITi0qvfKtzFvgKymGheFM9UOA==
+  
+  "@types/remove-markdown@^0.1.1":
+    version "0.1.1"
+    resolved "https://registry.yarnpkg.com/@types/remove-markdown/-/remove-markdown-0.1.1.tgz#c79d3000df412526186b2af3808b85bee68bc907"
+    integrity sha512-SCYOFMHUqyiJU5M0V2gBB6UDdBhPwma34j0vYX0JgWaqp/74ila2Ops1jt5tB/C1UQXVXqK+is61884bITn3LQ==
   
   "@types/serve-static@*":
     version "1.13.2"
@@ -1648,6 +1655,11 @@ Lockfile:
     version "0.2.2"
     resolved "https://registry.yarnpkg.com/cyclist/-/cyclist-0.2.2.tgz#1b33792e11e914a2fd6d6ed6447464444e5fa640"
     integrity sha1-GzN5LhHpFKL9bW7WRHRkRE5fpkA=
+  
+  dataloader@^1.4.0:
+    version "1.4.0"
+    resolved "https://registry.yarnpkg.com/dataloader/-/dataloader-1.4.0.tgz#bca11d867f5d3f1b9ed9f737bd15970c65dff5c8"
+    integrity sha512-68s5jYdlvasItOJnCuI2Q9s4q98g0pCyL3HrcKJu8KNugUl8ahgmZYg38ysLTgQjjXX3H8CJLkAvWrclWfcalw==
   
   date-now@^0.1.4:
     version "0.1.4"
@@ -4409,6 +4421,11 @@ Lockfile:
       extend-shallow "^3.0.2"
       safe-regex "^1.1.0"
   
+  remove-markdown@^0.3.0:
+    version "0.3.0"
+    resolved "https://registry.yarnpkg.com/remove-markdown/-/remove-markdown-0.3.0.tgz#5e4b667493a93579728f3d52ecc1db9ca505dc98"
+    integrity sha1-XktmdJOpNXlyjz1S7MHbnKUF3Jg=
+  
   remove-trailing-separator@^1.0.1:
     version "1.1.0"
     resolved "https://registry.yarnpkg.com/remove-trailing-separator/-/remove-trailing-separator-1.1.0.tgz#c24bce2a283adad5bc3f58e0d48249b92379d8ef"
@@ -4933,11 +4950,6 @@ Lockfile:
     version "2.0.1"
     resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-2.0.1.tgz#3c531942e908c2697c0ec344858c286c7ca0a60a"
     integrity sha1-PFMZQukIwml8DsNEhYwobHygpgo=
-  
-  strip-markdown@^3.0.3:
-    version "3.0.3"
-    resolved "https://registry.yarnpkg.com/strip-markdown/-/strip-markdown-3.0.3.tgz#93b4526abe32a1d69e5ca943f4d9ba25c01a4d48"
-    integrity sha512-G2DSM9wy3PWxY3miAibWpsTqZgXLXgRoq0yVyaVs9O7FDGEwPO6pmSE8CyzHhU88Z2w1dkFqFmWUklFNsQKwqg==
   
   subscriptions-transport-ws@^0.9.11:
     version "0.9.15"

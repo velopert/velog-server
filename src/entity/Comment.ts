@@ -7,10 +7,13 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
-  ManyToOne
+  ManyToOne,
+  getRepository,
+  getManager
 } from 'typeorm';
 import User from './User';
 import Post from './Post';
+import DataLoader from 'dataloader';
 
 @Entity('comments', {
   synchronize: false
@@ -61,4 +64,19 @@ export default class Comment {
   @ManyToOne(type => Post, post => post.comments)
   @JoinColumn({ name: 'fk_post_id' })
   post!: Post;
+
+  subcomments!: Comment[];
 }
+
+export const commentsLoader: DataLoader<string, Comment[]> = new DataLoader(async postIds => {
+  const posts = await getManager()
+    .createQueryBuilder(Post, 'post')
+    .leftJoinAndSelect('post.comments', 'comment')
+    .whereInIds(postIds)
+    .andWhere('level = 0')
+    .orderBy({
+      'comment.created_at': 'ASC'
+    })
+    .getMany();
+  return posts.map(post => post.comments);
+});

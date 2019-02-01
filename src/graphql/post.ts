@@ -5,6 +5,7 @@ import User from '../entity/User';
 import PostScore from '../entity/PostScore';
 import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
+import { commentsLoader } from '../entity/Comment';
 
 export const typeDef = gql`
   type Post {
@@ -45,6 +46,10 @@ export const resolvers: IResolvers = {
       }
       const removed = removeMd(parent.body);
       return removed.slice(0, 200) + (removed.length > 200 ? '...' : '');
+    },
+    comments: (parent: Post) => {
+      if (parent.comments) return parent.comments;
+      return commentsLoader.load(parent.id);
     }
   },
   Query: {
@@ -56,6 +61,7 @@ export const resolvers: IResolvers = {
             .leftJoinAndSelect('post.user', 'user')
             .leftJoinAndSelect('post.comments', 'comment')
             .where('post.id = :id', { id })
+            .andWhere('comment.level = 0')
             .orderBy({
               'comment.created_at': 'ASC'
             })
@@ -67,6 +73,7 @@ export const resolvers: IResolvers = {
           .leftJoinAndSelect('post.user', 'user')
           .leftJoinAndSelect('post.comments', 'comment')
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
+          .andWhere('comment.level = 0')
           .orderBy({
             'comment.created_at': 'ASC'
           })

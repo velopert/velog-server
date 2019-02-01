@@ -15,6 +15,7 @@
     "@types/node": "^10.12.18",
     "@types/remove-markdown": "^0.1.1",
     "apollo-server-koa": "^2.3.1",
+    "dataloader": "^1.4.0",
     "dotenv": "^6.2.0",
     "graphql": "^14.1.1",
     "graphql-iso-date": "^3.6.1",
