@@ -1,7 +1,7 @@
 import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
 import User from '../entity/User';
 import { getManager, getRepository } from 'typeorm';
-import UserProfile from '../entity/UserProfile';
+import UserProfile, { userProfileLoader } from '../entity/UserProfile';
 
 export const typeDef = gql`
   type User {
@@ -31,11 +31,7 @@ export const typeDef = gql`
 export const resolvers: IResolvers = {
   User: {
     profile: async (parent: User) => {
-      const profile = await getManager()
-        .createQueryBuilder(UserProfile, 'user_profile')
-        .where('fk_user_id = :id', { id: parent.id })
-        .getOne();
-      return profile;
+      return userProfileLoader.load(parent.id);
     },
     email: (parent: User, _: any, context: any) => {
       if (context.user_id !== parent.id) {

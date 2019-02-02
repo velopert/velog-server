@@ -4,7 +4,7 @@
   "port": 5432,
   "username": "velognext",
   "password": "velognext",
-  "database": "velogsync",
+  "database": "vel",
   "synchronize": false,
   "logging": true,
   "entities": [

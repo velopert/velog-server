@@ -6,9 +6,12 @@ import {
   UpdateDateColumn,
   CreateDateColumn,
   OneToOne,
-  JoinColumn
+  JoinColumn,
+  getRepository
 } from 'typeorm';
 import User from './User';
+import DataLoader from 'dataloader';
+import { normalize } from '../lib/utils';
 
 @Entity('user_profiles', {
   synchronize: false
@@ -50,3 +53,15 @@ export default class UserProfile {
   @Column('text')
   about!: string;
 }
+
+export const userProfileLoader: DataLoader<string, UserProfile> = new DataLoader(async ids => {
+  const repo = getRepository(UserProfile);
+  const profiles = await repo
+    .createQueryBuilder('user_profiles')
+    .where('fk_user_id IN (:...ids)', { ids })
+    .getMany();
+
+  const normalized = normalize(profiles, profile => profile.fk_user_id);
+  const ordered = ids.map(id => normalized[id]);
+  return ordered;
+});

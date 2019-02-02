@@ -26,6 +26,7 @@ export const typeDef = gql`
     updated_at: Date
     short_description: String
     comments: [Comment]
+    tags: [String]
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
@@ -50,6 +51,12 @@ export const resolvers: IResolvers = {
     comments: (parent: Post) => {
       if (parent.comments) return parent.comments;
       return commentsLoader.load(parent.id);
+    },
+    tags: (parent: Post) => {
+      if (parent.tags) {
+        return parent.tags.map(tag => tag.name);
+      }
+      return [];
     }
   },
   Query: {
@@ -60,18 +67,21 @@ export const resolvers: IResolvers = {
             .createQueryBuilder(Post, 'post')
             .leftJoinAndSelect('post.user', 'user')
             .leftJoinAndSelect('post.comments', 'comment')
+            .leftJoinAndSelect('post.tags', 'tag')
             .where('post.id = :id', { id })
             .andWhere('comment.level = 0')
             .orderBy({
               'comment.created_at': 'ASC'
             })
             .getOne();
+
           return post;
         }
         const post = await getManager()
           .createQueryBuilder(Post, 'post')
           .leftJoinAndSelect('post.user', 'user')
           .leftJoinAndSelect('post.comments', 'comment')
+          .leftJoinAndSelect('post.tags', 'tag')
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
           .andWhere('comment.level = 0')
           .orderBy({
@@ -84,7 +94,9 @@ export const resolvers: IResolvers = {
         }
 
         return post;
-      } catch (e) {}
+      } catch (e) {
+        console.log(e);
+      }
     },
     posts: async (parent: any, { cursor, limit = 20, username }: any, context: any) => {
       const query = getManager()
@@ -141,7 +153,6 @@ export const resolvers: IResolvers = {
 
       const rows = (await query.getRawMany()) as { fk_post_id: string; score: number }[];
       const ids = rows.map(row => row.fk_post_id);
-      console.log(ids);
       const posts = await getRepository(Post).findByIds(ids);
       const normalized = normalize(posts);
       const ordered = ids.map(id => normalized[id]);
