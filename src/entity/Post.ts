@@ -8,10 +8,13 @@ import {
   OneToOne,
   JoinColumn,
   ManyToOne,
-  OneToMany
+  OneToMany,
+  ManyToMany,
+  JoinTable
 } from 'typeorm';
 import User from './User';
 import Comment from './Comment';
+import Tag from './Tag';
 
 @Entity('posts', {
   synchronize: false
@@ -82,4 +85,16 @@ export default class Post {
 
   @OneToMany(type => Comment, comment => comment.post)
   comments!: Comment[];
+
+  @ManyToMany(type => Tag)
+  @JoinTable({
+    name: 'post_tags',
+    joinColumn: {
+      name: 'fk_post_id'
+    },
+    inverseJoinColumn: {
+      name: 'fk_tag_id'
+    }
+  })
+  tags!: Tag[];
 }
