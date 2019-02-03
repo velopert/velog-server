@@ -2,6 +2,7 @@ import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
 import User from '../entity/User';
 import { getManager, getRepository } from 'typeorm';
 import UserProfile, { userProfileLoader } from '../entity/UserProfile';
+import { seriesListLoader } from '../entity/Series';
 
 export const typeDef = gql`
   type User {
@@ -12,6 +13,7 @@ export const typeDef = gql`
     updated_at: Date
     is_certified: Boolean
     profile: UserProfile
+    series_list: [Series]
   }
   type UserProfile {
     id: ID!
@@ -38,6 +40,9 @@ export const resolvers: IResolvers = {
         throw new AuthenticationError('No permission to read email address');
       }
       return parent.email;
+    },
+    series_list: (parent: User) => {
+      return seriesListLoader.load(parent.id);
     }
   },
   Query: {
