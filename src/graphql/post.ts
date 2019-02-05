@@ -6,6 +6,7 @@ import PostScore from '../entity/PostScore';
 import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import { commentsLoader } from '../entity/Comment';
+import { tagsLoader } from '../entity/PostsTags';
 
 export const typeDef = gql`
   type Post {
@@ -52,11 +53,9 @@ export const resolvers: IResolvers = {
       if (parent.comments) return parent.comments;
       return commentsLoader.load(parent.id);
     },
-    tags: (parent: Post) => {
-      if (parent.tags) {
-        return parent.tags.map(tag => tag.name);
-      }
-      return [];
+    tags: async (parent: Post) => {
+      const tags = await tagsLoader.load(parent.id);
+      return tags.map(tag => tag.name);
     }
   },
   Query: {
@@ -67,7 +66,6 @@ export const resolvers: IResolvers = {
             .createQueryBuilder(Post, 'post')
             .leftJoinAndSelect('post.user', 'user')
             .leftJoinAndSelect('post.comments', 'comment')
-            .leftJoinAndSelect('post.tags', 'tag')
             .where('post.id = :id', { id })
             .andWhere('comment.level = 0')
             .orderBy({
@@ -81,7 +79,6 @@ export const resolvers: IResolvers = {
           .createQueryBuilder(Post, 'post')
           .leftJoinAndSelect('post.user', 'user')
           .leftJoinAndSelect('post.comments', 'comment')
-          .leftJoinAndSelect('post.tags', 'tag')
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
           .andWhere('comment.level = 0')
           .orderBy({

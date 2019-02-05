@@ -22,7 +22,8 @@ const apollo = new ApolloServer({
     return {
       user_id: sp[1]
     };
-  }
+  },
+  tracing: process.env.NODE_ENV === 'development'
 });
 apollo.applyMiddleware({ app });
 

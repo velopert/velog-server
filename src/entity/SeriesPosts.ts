@@ -57,7 +57,7 @@ export const seriesPostsLoader: DataLoader<string, SeriesPosts[]> = new DataLoad
       .createQueryBuilder('series_posts')
       .where('fk_series_id IN (:...seriesIds)', { seriesIds })
       .leftJoinAndSelect('series_posts.post', 'post')
-      .orderBy('seriesIds', 'ASC')
+      .orderBy('fk_series_id', 'ASC')
       .orderBy('index', 'ASC')
       .getMany();
 

@@ -4,22 +4,25 @@ import {
   Column,
   Index,
   UpdateDateColumn,
-  CreateDateColumn,
-  OneToOne,
-  JoinColumn,
-  ManyToOne
+  CreateDateColumn
 } from 'typeorm';
 
-@Entity('tags', {
+@Entity('email_auth', {
   synchronize: false
 })
-export default class Tag {
+export default class EmailAuth {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Index()
   @Column({ length: 255 })
-  name!: string;
+  code!: string;
+
+  @Column({ length: 255 })
+  email!: string;
+
+  @Column({ default: false })
+  logged!: boolean;
 
   @Column('timestampz')
   @CreateDateColumn()
