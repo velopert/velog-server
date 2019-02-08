@@ -25,11 +25,11 @@ export const generateToken = (payload: any, options: SignOptions): Promise<strin
   });
 };
 
-export const decodeToken = (token: string): Promise<any> => {
+export const decodeToken = <T = any>(token: string): Promise<T> => {
   return new Promise((resolve, reject) => {
     jwt.verify(token, SECRET_KEY, (err, decoded) => {
       if (err) reject(err);
-      resolve(decoded);
+      resolve(decoded as any);
     });
   });
 };
