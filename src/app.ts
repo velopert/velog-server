@@ -2,6 +2,7 @@ import Koa, { Context } from 'koa';
 import bodyParser from 'koa-bodyparser';
 import { ApolloServer } from 'apollo-server-koa';
 import { createConnection } from 'typeorm';
+import logger from 'koa-logger';
 import routes from './routes';
 import schema from './graphql/schema';
 
@@ -10,7 +11,9 @@ const app = new Koa();
 /* setup middlewares */
 app.use(bodyParser());
 app.use(routes.routes()).use(routes.allowedMethods());
-
+if (process.env.NODE_ENV === 'development') {
+  app.use(logger());
+}
 const apollo = new ApolloServer({
   schema,
   context: ({ ctx }: { ctx: Context }) => {

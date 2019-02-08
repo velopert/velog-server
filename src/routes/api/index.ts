@@ -1,14 +1,7 @@
 import Router from 'koa-router';
-import auth from './auth/auth';
+import v2 from './v2';
 
 const api = new Router();
-
-api.get('/check', ctx => {
-  ctx.body = {
-    version: 'v2.0'
-  };
-});
-
-api.use('/auth', auth.routes());
+api.use('/v2', v2.routes());
 
 export default api;
