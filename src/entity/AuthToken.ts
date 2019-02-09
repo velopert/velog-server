@@ -32,7 +32,7 @@ export default class AuthToken {
   @Column({ default: false })
   disabled!: boolean;
 
-  @ManyToOne(type => User, { cascade: true, eager: true })
+  @ManyToOne(type => User, user => user.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 }

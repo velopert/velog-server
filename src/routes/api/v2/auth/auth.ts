@@ -1,3 +1,4 @@
+import { Context } from 'koa';
 import Router from 'koa-router';
 import Joi from 'joi';
 import social from './social';
@@ -13,6 +14,21 @@ import { decode } from 'punycode';
 import UserProfile from '../../../../entity/UserProfile';
 
 const auth = new Router();
+
+function setTokenCookie(ctx: Context, tokens: { accessToken: string; refreshToken: string }) {
+  // set cookie
+  ctx.cookies.set('access_token', tokens.accessToken, {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60,
+    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
+  });
+
+  ctx.cookies.set('refresh_token', tokens.accessToken, {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 30,
+    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
+  });
+}
 
 /* LOCAL AUTH */
 
@@ -91,6 +107,7 @@ auth.get('/code/:code', async ctx => {
       return;
     }
     const { email } = emailAuth;
+
     // check user with code
     const user = await getRepository(User).findOne({
       email
@@ -111,7 +128,24 @@ auth.get('/code/:code', async ctx => {
         register_token: registerToken
       };
     } else {
-      // generate user token
+      const profile = await getRepository(UserProfile).findOne({
+        fk_user_id: user.id
+      });
+      if (!profile) return;
+      const tokens = await user.generateUserToken();
+      setTokenCookie(ctx, tokens);
+      emailAuth.logged = true;
+      ctx.body = {
+        ...user,
+        profile,
+        tokens: {
+          access_token: tokens.accessToken,
+          refresh_token: tokens.refreshToken
+        }
+      };
+      setImmediate(() => {
+        getRepository(EmailAuth).save(emailAuth);
+      });
     }
   } catch (e) {
     ctx.throw(500, e);
@@ -224,16 +258,20 @@ auth.post('/register/local', async ctx => {
   await userRepo.save(user);
 
   const profile = new UserProfile();
-  profile.user = user;
+  profile.fk_user_id = user.id;
   profile.display_name = display_name;
   profile.short_bio = short_bio;
   await getRepository(UserProfile).save(profile);
-  const profileJSON = { ...profile };
-  delete profileJSON.user;
-  delete profileJSON.fk_user_id;
+
+  const tokens = await user.generateUserToken();
+  setTokenCookie(ctx, tokens);
   ctx.body = {
     ...user,
-    profile: profileJSON
+    profile,
+    tokens: {
+      access_token: tokens.accessToken,
+      refresh_token: tokens.refreshToken
+    }
   };
 });
 

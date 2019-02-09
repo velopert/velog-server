@@ -9,6 +9,8 @@ import {
   getRepository
 } from 'typeorm';
 import DataLoader from 'dataloader';
+import { generateToken } from '../lib/token';
+import AuthToken from './AuthToken';
 
 @Entity('users', {
   synchronize: false
@@ -35,6 +37,39 @@ export default class User {
 
   @Column({ default: false })
   is_certified!: boolean;
+
+  async generateUserToken() {
+    const authToken = new AuthToken();
+    authToken.fk_user_id = this.id;
+    await getRepository(AuthToken).save(authToken);
+
+    // refresh token is valid for 30days
+    const refreshToken = await generateToken(
+      {
+        user_id: this.id
+      },
+      {
+        subject: 'refresh_token',
+        expiresIn: '30d',
+        jwtid: authToken.id
+      }
+    );
+
+    const accessToken = await generateToken(
+      {
+        user_id: this.id
+      },
+      {
+        subject: 'access_token',
+        expiresIn: '1h'
+      }
+    );
+
+    return {
+      refreshToken,
+      accessToken
+    };
+  }
 }
 
 export const userLoader: DataLoader<string, User> = new DataLoader<string, User>(ids => {
