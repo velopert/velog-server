@@ -9,26 +9,11 @@ import EmailAuth from '../../../../entity/EmailAuth';
 import shortid = require('shortid');
 import { createAuthEmail } from '../../../../etc/emailTemplates';
 import sendMail from '../../../../lib/sendMail';
-import { generateToken, decodeToken } from '../../../../lib/token';
+import { generateToken, decodeToken, setTokenCookie } from '../../../../lib/token';
 import { decode } from 'punycode';
 import UserProfile from '../../../../entity/UserProfile';
 
 const auth = new Router();
-
-function setTokenCookie(ctx: Context, tokens: { accessToken: string; refreshToken: string }) {
-  // set cookie
-  ctx.cookies.set('access_token', tokens.accessToken, {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60,
-    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
-  });
-
-  ctx.cookies.set('refresh_token', tokens.accessToken, {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 30,
-    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
-  });
-}
 
 /* LOCAL AUTH */
 
