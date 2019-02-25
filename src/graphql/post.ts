@@ -28,6 +28,7 @@ export const typeDef = gql`
     short_description: String
     comments: [Comment]
     tags: [String]
+    comments_count: Int
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
@@ -52,6 +53,11 @@ export const resolvers: IResolvers = {
     comments: (parent: Post) => {
       if (parent.comments) return parent.comments;
       return commentsLoader.load(parent.id);
+    },
+    comments_count: async (parent: Post) => {
+      if (parent.comments) return parent.comments.length;
+      const comments = await commentsLoader.load(parent.id);
+      return comments.length;
     },
     tags: async (parent: Post) => {
       const tags = await tagsLoader.load(parent.id);
