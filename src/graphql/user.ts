@@ -1,5 +1,5 @@
 import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
-import User from '../entity/User';
+import User, { userLoader } from '../entity/User';
 import { getManager, getRepository } from 'typeorm';
 import UserProfile, { userProfileLoader } from '../entity/UserProfile';
 import { seriesListLoader } from '../entity/Series';
@@ -27,6 +27,7 @@ export const typeDef = gql`
   }
   extend type Query {
     user(id: ID, username: String): User
+    auth: User
   }
 `;
 
@@ -64,6 +65,10 @@ export const resolvers: IResolvers = {
       } catch (e) {
         console.log(e);
       }
+    },
+    auth: async (parent: any, params: any, ctx: any) => {
+      if (!ctx.user_id) return null;
+      return userLoader.load(ctx.user_id);
     }
   }
 };
