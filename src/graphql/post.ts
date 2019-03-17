@@ -47,7 +47,13 @@ export const resolvers: IResolvers = {
       if (parent.meta.short_description) {
         return parent.meta.short_description;
       }
-      const removed = removeMd(parent.body);
+
+      const removed = removeMd(
+        parent.body
+          .replace(/```([\s\S]*?)```/g, '')
+          .replace(/~~~([\s\S]*?)~~~/g, '')
+          .slice(0, 500)
+      );
       return removed.slice(0, 200) + (removed.length > 200 ? '...' : '');
     },
     comments: (parent: Post) => {
