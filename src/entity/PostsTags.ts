@@ -13,7 +13,7 @@ import {
 import Tag from './Tag';
 import Post from './Post';
 import DataLoader from 'dataloader';
-import { groupById } from '../lib/utils';
+import { groupById, normalize } from '../lib/utils';
 
 @Entity('posts_tags', {
   synchronize: false
@@ -45,6 +45,36 @@ export default class PostsTags {
   @ManyToOne(type => Post, { cascade: true })
   @JoinColumn({ name: 'fk_post_id' })
   post!: Post;
+
+  static async syncPostTags(postId: string, tags: Tag[]) {
+    const repo = getRepository(PostsTags);
+
+    // get current post tags
+    const prevPostTags = await repo.find({
+      where: {
+        fk_post_id: postId
+      }
+    });
+
+    const normalized = {
+      prev: normalize(prevPostTags, postTag => postTag.fk_tag_id),
+      current: normalize(tags)
+    };
+
+    // removes tags that are missing
+    const missing = prevPostTags.filter(postTag => !normalized.current[postTag.fk_tag_id]);
+    missing.forEach(tag => repo.remove(tag));
+
+    // adds tags that are new
+    const tagsToAdd = tags.filter(tag => !normalized.prev[tag.id]);
+    const postTags = tagsToAdd.map(tag => {
+      const postTag = new PostsTags();
+      postTag.fk_post_id = postId;
+      postTag.fk_tag_id = tag.id;
+      return postTag;
+    });
+    return repo.save(postTags);
+  }
 }
 
 export const tagsLoader: DataLoader<string, Tag[]> = new DataLoader(async postIds => {

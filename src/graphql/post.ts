@@ -1,12 +1,13 @@
-import { gql, IResolvers, ApolloError } from 'apollo-server-koa';
+import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import { getRepository, getManager } from 'typeorm';
-import User from '../entity/User';
+import { getRepository, getManager, getConnectionManager } from 'typeorm';
 import PostScore from '../entity/PostScore';
 import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import { commentsLoader } from '../entity/Comment';
 import { tagsLoader } from '../entity/PostsTags';
+import { userLoader } from '../entity/User';
+import Tag from '../entity/Tag';
 
 export const typeDef = gql`
   type Post {
@@ -35,11 +36,37 @@ export const typeDef = gql`
     posts(cursor: ID, limit: Int, username: String): [Post]
     trendingPosts(offset: Int, limit: Int): [Post]
   }
+  extend type Mutation {
+    writePost(
+      title: String
+      body: String
+      tags: [String]
+      is_markdown: Boolean
+      is_temp: Boolean
+      url_slug: String
+      thumbnail: String
+      meta: JSON
+    ): Post
+  }
 `;
+
+type WritePostArgs = {
+  title: string;
+  body: string;
+  tags: string[];
+  is_markdown: boolean;
+  is_temp: boolean;
+  url_slug: string;
+  thumbnail: string | null;
+  meta: any;
+};
 
 export const resolvers: IResolvers = {
   Post: {
     user: (parent: Post) => {
+      if (!parent.user) {
+        return userLoader.load(parent.fk_user_id);
+      }
       // TODO: fetch user if null
       return parent.user;
     },
@@ -167,7 +194,30 @@ export const resolvers: IResolvers = {
       const ordered = ids.map(id => normalized[id]);
 
       return ordered;
-      return [];
+    }
+  },
+  Mutation: {
+    writePost: async (parent: any, args, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+      const post = new Post();
+      const data = args as WritePostArgs;
+      post.fk_user_id = ctx.user_id;
+      post.title = data.title;
+      post.body = data.body;
+      post.is_temp = data.is_temp;
+      post.is_markdown = data.is_markdown;
+      post.meta = data.meta;
+      post.thumbnail = data.thumbnail;
+      post.url_slug = data.url_slug;
+
+      const postRepo = getRepository(Post);
+      const tagsData = await Promise.all(data.tags.map(Tag.findOrCreate));
+      await postRepo.save(post);
+
+      post.tags = tagsData;
+      return post;
     }
   }
 };

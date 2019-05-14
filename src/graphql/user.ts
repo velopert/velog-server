@@ -51,14 +51,14 @@ export const resolvers: IResolvers = {
       const repo = getRepository(User);
       try {
         if (username) {
-          const user = repo.findOne({
+          const user = await repo.findOne({
             where: {
               username
             }
           });
           return user;
         }
-        const user = repo.findOne({
+        const user = await repo.findOne({
           id
         });
         return user;

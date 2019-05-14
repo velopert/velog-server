@@ -29,8 +29,8 @@ export default class Post {
   @Column('text')
   body!: string;
 
-  @Column({ length: 255, nullable: true })
-  thumbnail!: string;
+  @Column({ length: 255, nullable: true, type: 'varchar' })
+  thumbnail!: string | null;
 
   @Column()
   is_markdown!: boolean;

@@ -99,12 +99,10 @@ export const consumeUser = async (ctx: Context) => {
     accessToken = authorization.split(' ')[1];
   }
 
-  if (!accessToken) {
-    ctx.state.user_id = null;
-    return;
-  }
-
   try {
+    if (!accessToken) {
+      throw new Error('NoAccessToken');
+    }
     const accessTokenData = await decodeToken<AccessTokenData>(accessToken);
     ctx.state.user_id = accessTokenData.user_id;
     // refresh token when life < 30mins
