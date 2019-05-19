@@ -1,5 +1,5 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { Context } from 'koa';
+import { Context, Middleware } from 'koa';
 import { getRepository } from 'typeorm';
 import User from '../entity/User';
 
@@ -89,7 +89,7 @@ export const refresh = async (ctx: Context, refreshToken: string) => {
   }
 };
 
-export const consumeUser = async (ctx: Context) => {
+export const consumeUser: Middleware = async (ctx: Context, next) => {
   let accessToken: string | undefined = ctx.cookies.get('access_token');
   const refreshToken: string | undefined = ctx.cookies.get('refresh_token');
 
@@ -112,11 +112,13 @@ export const consumeUser = async (ctx: Context) => {
     }
   } catch (e) {
     // invalid token! try token refresh...
-    if (!refreshToken) return;
+    if (!refreshToken) return next();
     try {
       const userId = await refresh(ctx, refreshToken);
       // set user_id if succeeds
       ctx.state.user_id = userId;
     } catch (e) {}
   }
+
+  return next();
 };

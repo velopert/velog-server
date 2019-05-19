@@ -5,7 +5,7 @@ import PostScore from '../entity/PostScore';
 import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import { commentsLoader } from '../entity/Comment';
-import { tagsLoader } from '../entity/PostsTags';
+import PostsTags, { tagsLoader } from '../entity/PostsTags';
 import { userLoader } from '../entity/User';
 import Tag from '../entity/Tag';
 
@@ -46,6 +46,7 @@ export const typeDef = gql`
       url_slug: String
       thumbnail: String
       meta: JSON
+      is_private: Boolean
     ): Post
   }
 `;
@@ -215,6 +216,7 @@ export const resolvers: IResolvers = {
       const postRepo = getRepository(Post);
       const tagsData = await Promise.all(data.tags.map(Tag.findOrCreate));
       await postRepo.save(post);
+      PostsTags.syncPostTags(post.id, tagsData);
 
       post.tags = tagsData;
       return post;

@@ -1,6 +1,7 @@
 import Router from 'koa-router';
 import auth from './auth/auth';
 import { consumeUser } from '../../../lib/token';
+import files from './files/files';
 
 const v2 = new Router();
 
@@ -11,12 +12,12 @@ v2.get('/check', ctx => {
 });
 
 v2.get('/test', async ctx => {
-  await consumeUser(ctx);
   ctx.body = {
     user_id: ctx.state.user_id
   };
 });
 
 v2.use('/auth', auth.routes());
+v2.use('/files', files.routes());
 
 export default v2;

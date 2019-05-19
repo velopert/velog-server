@@ -3,3 +3,4 @@
 .webpack
 node_modules
 ormconfig.json
+.env.development

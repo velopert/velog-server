@@ -264,7 +264,9 @@ auth.post('/register/local', async ctx => {
 auth.use('/social', social.routes());
 
 /* GENERAL */
-auth.get('/check', async ctx => {});
+auth.get('/check', async ctx => {
+  ctx.body = { user_id: ctx.state.user_id };
+});
 auth.post('/logout', async ctx => {
   // clears cookies
   ctx.cookies.set('access_token', undefined, {
