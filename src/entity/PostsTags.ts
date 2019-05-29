@@ -77,17 +77,18 @@ export default class PostsTags {
   }
 }
 
-export const tagsLoader: DataLoader<string, Tag[]> = new DataLoader(async postIds => {
-  const repo = getRepository(PostsTags);
-  const postsTags = await repo
-    .createQueryBuilder('posts_tags')
-    .where('fk_post_id IN (:...postIds)', { postIds })
-    .leftJoinAndSelect('posts_tags.tag', 'tag')
-    .orderBy('fk_post_id', 'ASC')
-    .orderBy('tag.name', 'ASC')
-    .getMany();
+export const createTagsLoader = () =>
+  new DataLoader<string, Tag[]>(async postIds => {
+    const repo = getRepository(PostsTags);
+    const postsTags = await repo
+      .createQueryBuilder('posts_tags')
+      .where('fk_post_id IN (:...postIds)', { postIds })
+      .leftJoinAndSelect('posts_tags.tag', 'tag')
+      .orderBy('fk_post_id', 'ASC')
+      .orderBy('tag.name', 'ASC')
+      .getMany();
 
-  return groupById<PostsTags>(postIds, postsTags, pt => pt.fk_post_id).map(array =>
-    array.map(pt => pt.tag)
-  );
-});
+    return groupById<PostsTags>(postIds, postsTags, pt => pt.fk_post_id).map(array =>
+      array.map(pt => pt.tag)
+    );
+  });

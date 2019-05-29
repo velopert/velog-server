@@ -1,6 +1,6 @@
 import { gql, IResolvers } from 'apollo-server-koa';
 import Series from '../entity/Series';
-import { seriesPostsLoader } from '../entity/SeriesPosts';
+import { ApolloContext } from '../app';
 
 export const typeDef = gql`
   type Series {
@@ -22,10 +22,10 @@ export const typeDef = gql`
     series(series_id: String, username: String, url_slug: String): Series
   }
 `;
-export const resolvers: IResolvers = {
+export const resolvers: IResolvers<any, ApolloContext> = {
   Series: {
-    series_posts: async (parent: Series) => {
-      return seriesPostsLoader.load(parent.id);
+    series_posts: async (parent: Series, _: any, { loaders }) => {
+      return loaders.seriesPosts.load(parent.id);
     }
   },
   Query: {}

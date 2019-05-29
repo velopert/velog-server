@@ -1,12 +1,11 @@
+import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
 import { getRepository, getManager, getConnectionManager } from 'typeorm';
 import PostScore from '../entity/PostScore';
 import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
-import { commentsLoader } from '../entity/Comment';
-import PostsTags, { tagsLoader } from '../entity/PostsTags';
-import { userLoader } from '../entity/User';
+import PostsTags from '../entity/PostsTags';
 import Tag from '../entity/Tag';
 
 export const typeDef = gql`
@@ -62,11 +61,11 @@ type WritePostArgs = {
   meta: any;
 };
 
-export const resolvers: IResolvers = {
+export const resolvers: IResolvers<any, ApolloContext> = {
   Post: {
-    user: (parent: Post) => {
+    user: (parent: Post, _: any, { loaders }) => {
       if (!parent.user) {
-        return userLoader.load(parent.fk_user_id);
+        return loaders.user.load(parent.fk_user_id);
       }
       // TODO: fetch user if null
       return parent.user;
@@ -84,17 +83,17 @@ export const resolvers: IResolvers = {
       );
       return removed.slice(0, 200) + (removed.length > 200 ? '...' : '');
     },
-    comments: (parent: Post) => {
+    comments: (parent: Post, _: any, { loaders }) => {
       if (parent.comments) return parent.comments;
-      return commentsLoader.load(parent.id);
+      return loaders.comments.load(parent.id);
     },
-    comments_count: async (parent: Post) => {
+    comments_count: async (parent: Post, _: any, { loaders }) => {
       if (parent.comments) return parent.comments.length;
-      const comments = await commentsLoader.load(parent.id);
+      const comments = await loaders.comments.load(parent.id);
       return comments.length;
     },
-    tags: async (parent: Post) => {
-      const tags = await tagsLoader.load(parent.id);
+    tags: async (parent: Post, _: any, { loaders }) => {
+      const tags = await loaders.tags.load(parent.id);
       return tags.map(tag => tag.name);
     }
   },

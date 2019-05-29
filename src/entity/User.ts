@@ -104,8 +104,9 @@ export default class User {
   }
 }
 
-export const userLoader: DataLoader<string, User> = new DataLoader<string, User>(ids => {
-  const repo = getRepository(User);
-  const users = repo.findByIds(ids);
-  return users;
-});
+export const createUserLoader = () =>
+  new DataLoader<string, User>(ids => {
+    const repo = getRepository(User);
+    const users = repo.findByIds(ids);
+    return users;
+  });

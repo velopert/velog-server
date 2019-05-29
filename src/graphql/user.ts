@@ -1,8 +1,7 @@
+import { ApolloContext } from './../app';
 import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
-import User, { userLoader } from '../entity/User';
-import { getManager, getRepository } from 'typeorm';
-import UserProfile, { userProfileLoader } from '../entity/UserProfile';
-import { seriesListLoader } from '../entity/Series';
+import User from '../entity/User';
+import { getRepository } from 'typeorm';
 
 export const typeDef = gql`
   type User {
@@ -13,6 +12,7 @@ export const typeDef = gql`
     updated_at: Date
     is_certified: Boolean
     profile: UserProfile
+    velog_config: VelogConfig
     series_list: [Series]
   }
   type UserProfile {
@@ -25,16 +25,24 @@ export const typeDef = gql`
     about: String
     profile_links: JSON
   }
+  type VelogConfig {
+    id: ID!
+    title: String
+  }
   extend type Query {
     user(id: ID, username: String): User
     auth: User
   }
 `;
 
-export const resolvers: IResolvers = {
+export const resolvers: IResolvers<any, ApolloContext> = {
   User: {
-    profile: async (parent: User) => {
-      return userProfileLoader.load(parent.id);
+    profile: async (parent: User, _: any, { loaders }: ApolloContext) => {
+      return loaders.userProfile.load(parent.id);
+    },
+    velog_config: async (parent: User, _: any, context: ApolloContext) => {
+      const { loaders }: ApolloContext = context;
+      return loaders.velogConfig.load(parent.id);
     },
     email: (parent: User, _: any, context: any) => {
       if (context.user_id !== parent.id) {
@@ -42,8 +50,8 @@ export const resolvers: IResolvers = {
       }
       return parent.email;
     },
-    series_list: (parent: User) => {
-      return seriesListLoader.load(parent.id);
+    series_list: (parent: User, _: any, { loaders }) => {
+      return loaders.seriesList.load(parent.id);
     }
   },
   Query: {
@@ -66,9 +74,9 @@ export const resolvers: IResolvers = {
         console.log(e);
       }
     },
-    auth: async (parent: any, params: any, ctx: any) => {
+    auth: async (parent: any, params: any, ctx) => {
       if (!ctx.user_id) return null;
-      return userLoader.load(ctx.user_id);
+      return ctx.loaders.user.load(ctx.user_id);
     }
   }
 };

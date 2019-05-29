@@ -48,19 +48,20 @@ export default class Series {
   user!: User;
 }
 
-export const seriesListLoader: DataLoader<string, Series[]> = new DataLoader(async userIds => {
-  const repo = getRepository(Series);
-  const seriesList = await repo
-    .createQueryBuilder('series')
-    .where('fk_user_id IN (:...userIds)', { userIds })
-    .getMany();
-  const seriesListMap: {
-    [key: string]: Series[];
-  } = {};
-  userIds.forEach(userId => (seriesListMap[userId] = []));
-  seriesList.forEach(series => {
-    seriesListMap[series.fk_user_id].push(series);
+export const createSeriesListLoader = () =>
+  new DataLoader<string, Series[]>(async userIds => {
+    const repo = getRepository(Series);
+    const seriesList = await repo
+      .createQueryBuilder('series')
+      .where('fk_user_id IN (:...userIds)', { userIds })
+      .getMany();
+    const seriesListMap: {
+      [key: string]: Series[];
+    } = {};
+    userIds.forEach(userId => (seriesListMap[userId] = []));
+    seriesList.forEach(series => {
+      seriesListMap[series.fk_user_id].push(series);
+    });
+    const ordered = userIds.map(userId => seriesListMap[userId]);
+    return ordered;
   });
-  const ordered = userIds.map(userId => seriesListMap[userId]);
-  return ordered;
-});

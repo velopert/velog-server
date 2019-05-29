@@ -54,14 +54,15 @@ export default class UserProfile {
   about!: string;
 }
 
-export const userProfileLoader: DataLoader<string, UserProfile> = new DataLoader(async ids => {
-  const repo = getRepository(UserProfile);
-  const profiles = await repo
-    .createQueryBuilder('user_profiles')
-    .where('fk_user_id IN (:...ids)', { ids })
-    .getMany();
+export const createUserProfileLoader = () =>
+  new DataLoader<string, UserProfile>(async userIds => {
+    const repo = getRepository(UserProfile);
+    const profiles = await repo
+      .createQueryBuilder('user_profiles')
+      .where('fk_user_id IN (:...userIds)', { userIds })
+      .getMany();
 
-  const normalized = normalize(profiles, profile => profile.fk_user_id);
-  const ordered = ids.map(id => normalized[id]);
-  return ordered;
-});
+    const normalized = normalize(profiles, profile => profile.fk_user_id);
+    const ordered = userIds.map(id => normalized[id]);
+    return ordered;
+  });

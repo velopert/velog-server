@@ -12,6 +12,7 @@ import sendMail from '../../../../lib/sendMail';
 import { generateToken, decodeToken, setTokenCookie } from '../../../../lib/token';
 import { decode } from 'punycode';
 import UserProfile from '../../../../entity/UserProfile';
+import VelogConfig from '../../../../entity/VelogConfig';
 
 const auth = new Router();
 
@@ -247,6 +248,10 @@ auth.post('/register/local', async ctx => {
   profile.display_name = display_name;
   profile.short_bio = short_bio;
   await getRepository(UserProfile).save(profile);
+
+  const velogConfig = new VelogConfig();
+  velogConfig.fk_user_id = user.id;
+  await getRepository(VelogConfig).save(velogConfig);
 
   const tokens = await user.generateUserToken();
   setTokenCookie(ctx, tokens);

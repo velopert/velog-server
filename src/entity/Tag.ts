@@ -59,6 +59,3 @@ export default class Tag {
     return freshTag;
   }
 }
-
-/*
- */

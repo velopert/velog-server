@@ -5,9 +5,9 @@ import { validateBody } from '../../../../lib/utils';
 import AWS from 'aws-sdk';
 import mime from 'mime-types';
 import authorized from '../../../../lib/middlewares/authorized';
-import { userLoader } from '../../../../entity/User';
 import UserImage from '../../../../entity/UserImage';
 import { getRepository } from 'typeorm';
+import createLoaders from '../../../../lib/createLoader';
 
 const BUCKET_NAME = 's3.images.velog.io';
 
@@ -67,7 +67,7 @@ files.post('/create-url', authorized, async ctx => {
   const { type, filename, refId } = ctx.request.body as RequestBody;
 
   try {
-    const user = await userLoader.load(ctx.state.user_id);
+    const user = await createLoaders().user.load(ctx.state.user_id);
     const userImage = new UserImage();
     userImage.fk_user_id = user.id;
     userImage.type = type;

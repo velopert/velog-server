@@ -6,6 +6,7 @@ import logger from 'koa-logger';
 import routes from './routes';
 import schema from './graphql/schema';
 import { consumeUser } from './lib/token';
+import createLoaders, { Loaders } from './lib/createLoader';
 
 const app = new Koa();
 
@@ -16,13 +17,20 @@ app.use(routes.routes()).use(routes.allowedMethods());
 if (process.env.NODE_ENV === 'development') {
   app.use(logger());
 }
+
+export type ApolloContext = {
+  user_id: string | null;
+  loaders: Loaders;
+};
+
 const apollo = new ApolloServer({
   schema,
   context: async ({ ctx }: { ctx: Context }) => {
     try {
       // await consumeUser(ctx);
       return {
-        user_id: ctx.state.user_id
+        user_id: ctx.state.user_id,
+        loaders: createLoaders()
       };
     } catch (e) {
       return {};

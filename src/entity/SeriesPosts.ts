@@ -50,8 +50,8 @@ export default class SeriesPosts {
   series!: Series;
 }
 
-export const seriesPostsLoader: DataLoader<string, SeriesPosts[]> = new DataLoader(
-  async seriesIds => {
+export const createSeriesPostsLoader = () =>
+  new DataLoader<string, SeriesPosts[]>(async seriesIds => {
     const repo = getRepository(SeriesPosts);
     const seriesPosts = await repo
       .createQueryBuilder('series_posts')
@@ -70,5 +70,4 @@ export const seriesPostsLoader: DataLoader<string, SeriesPosts[]> = new DataLoad
     });
     const ordered = seriesIds.map(seriesId => postsMap[seriesId]);
     return ordered;
-  }
-);
+  });

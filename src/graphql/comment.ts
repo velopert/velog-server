@@ -1,7 +1,7 @@
+import { ApolloContext } from './../app';
 import { gql, IResolvers } from 'apollo-server-koa';
 import Comment from '../entity/Comment';
 import { getRepository } from 'typeorm';
-import User, { userLoader } from '../entity/User';
 
 export const typeDef = gql`
   type Comment {
@@ -21,7 +21,7 @@ export const typeDef = gql`
   }
 `;
 
-export const resolvers: IResolvers = {
+export const resolvers: IResolvers<any, ApolloContext> = {
   Comment: {
     text: (parent: Comment) => {
       if (parent.deleted) {
@@ -29,10 +29,10 @@ export const resolvers: IResolvers = {
       }
       return parent.text;
     },
-    user: (parent: Comment) => {
+    user: (parent: Comment, _: any, { loaders }) => {
       if (parent.deleted) return null;
       if (parent.user) return parent.user;
-      const user = userLoader.load(parent.fk_user_id);
+      const user = loaders.user.load(parent.fk_user_id);
       return user;
     }
   },

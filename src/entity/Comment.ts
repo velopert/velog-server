@@ -69,19 +69,19 @@ export default class Comment {
   subcomments!: Comment[];
 }
 
-export const commentsLoader: DataLoader<string, Comment[]> = new DataLoader(async postIds => {
-  const posts = await getManager()
-    .createQueryBuilder(Post, 'post')
-    .leftJoinAndSelect('post.comments', 'comment')
-    .whereInIds(postIds)
-    .andWhere('level = 0')
-    .orderBy({
-      'comment.created_at': 'ASC'
-    })
-    .getMany();
+export const createCommentsLoader = () =>
+  new DataLoader<string, Comment[]>(async postIds => {
+    const posts = await getManager()
+      .createQueryBuilder(Post, 'post')
+      .leftJoinAndSelect('post.comments', 'comment')
+      .whereInIds(postIds)
+      .andWhere('level = 0')
+      .orderBy({
+        'comment.created_at': 'ASC'
+      })
+      .getMany();
 
-  const normalized = normalize<Post>(posts);
-  const commentsGroups = postIds.map(id => (normalized[id] ? normalized[id].comments : []));
-  return commentsGroups;
-  // return posts.map(post => post.comments);
-});
+    const normalized = normalize<Post>(posts);
+    const commentsGroups = postIds.map(id => (normalized[id] ? normalized[id].comments : []));
+    return commentsGroups;
+  });
