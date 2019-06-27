@@ -25,7 +25,8 @@ export const typeDef = gql`
 
   extend type Mutation {
     writeComment(post_id: ID!, text: String!, comment_id: ID): Comment
-    removeComment(id: ID): Boolean
+    removeComment(id: ID!): Boolean
+    editComment(id: ID!, text: String!): Comment
   }
 `;
 
@@ -145,6 +146,22 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       comment.deleted = true;
       await commentRepo.save(comment);
       return true;
+    },
+    editComment: async (parent: any, { id, text }: any, ctx) => {
+      const commentRepo = getRepository(Comment);
+      const comment = await commentRepo.findOne(id);
+      if (!comment) {
+        throw new ApolloError('Comment not found');
+      }
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+      if (ctx.user_id !== comment.fk_user_id) {
+        throw new ApolloError('No permission');
+      }
+      comment.text = text;
+      await commentRepo.save(comment);
+      return comment;
     }
   }
 };
