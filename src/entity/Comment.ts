@@ -76,12 +76,14 @@ export const createCommentsLoader = () =>
       .leftJoinAndSelect('post.comments', 'comment')
       .whereInIds(postIds)
       .andWhere('level = 0')
+      .andWhere('deleted = false or has_replies = true')
       .orderBy({
         'comment.created_at': 'ASC'
       })
       .getMany();
 
     const normalized = normalize<Post>(posts);
+
     const commentsGroups = postIds.map(id => (normalized[id] ? normalized[id].comments : []));
     return commentsGroups;
   });

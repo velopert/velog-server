@@ -1,7 +1,8 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
 import User from '../entity/User';
-import { getRepository } from 'typeorm';
+import { getRepository, getManager } from 'typeorm';
+import VelogConfig from '../entity/VelogConfig';
 
 export const typeDef = gql`
   type User {
@@ -28,9 +29,11 @@ export const typeDef = gql`
   type VelogConfig {
     id: ID!
     title: String
+    logo_image: String
   }
   extend type Query {
     user(id: ID, username: String): User
+    velog_config(username: String): VelogConfig
     auth: User
   }
 `;
@@ -73,6 +76,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       } catch (e) {
         console.log(e);
       }
+    },
+    velog_config: async (parent: any, { username }: any) => {
+      const repo = getRepository(VelogConfig);
+      const velogConfig = repo
+        .createQueryBuilder('velog_config')
+        .leftJoinAndSelect('velog_config.user', 'user')
+        .where('user.username = :username', { username })
+        .getOne();
+      return velogConfig;
     },
     auth: async (parent: any, params: any, ctx) => {
       if (!ctx.user_id) return null;
