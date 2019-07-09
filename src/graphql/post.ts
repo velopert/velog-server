@@ -8,6 +8,9 @@ import removeMd from 'remove-markdown';
 import PostsTags from '../entity/PostsTags';
 import Tag from '../entity/Tag';
 import Comment from '../entity/Comment';
+import Series from '../entity/Series';
+import { text } from 'body-parser';
+import SeriesPosts from '../entity/SeriesPosts';
 
 export const typeDef = gql`
   type Post {
@@ -47,6 +50,7 @@ export const typeDef = gql`
       thumbnail: String
       meta: JSON
       is_private: Boolean
+      series_id: ID
     ): Post
   }
 `;
@@ -60,6 +64,7 @@ type WritePostArgs = {
   url_slug: string;
   thumbnail: string | null;
   meta: any;
+  series_id?: string;
 };
 
 export const resolvers: IResolvers<any, ApolloContext> = {
@@ -209,12 +214,46 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.is_markdown = data.is_markdown;
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
+      // TODO: CHECK FOR URL_SLUG DUP
       post.url_slug = data.url_slug;
 
       const postRepo = getRepository(Post);
+      const seriesRepo = getRepository(Series);
+      const seriesPostsRepo = getRepository(SeriesPosts);
+
+      // Check series
+      let series: Series | undefined;
+      let nextIndex = 1;
+
+      if (data.series_id) {
+        series = await seriesRepo.findOne(data.series_id);
+        if (!series) {
+          throw new ApolloError('Series not found', 'NOT_FOUND');
+        }
+        if (series.fk_user_id !== ctx.user_id) {
+          throw new ApolloError('This series is not yours', 'NO_PERMISSION');
+        }
+        const postsCount = await seriesPostsRepo.count({
+          where: {
+            fk_series_id: data.series_id
+          }
+        });
+        nextIndex = postsCount + 1;
+      }
+
       const tagsData = await Promise.all(data.tags.map(Tag.findOrCreate));
       await postRepo.save(post);
+
       PostsTags.syncPostTags(post.id, tagsData);
+
+      // Link to series
+      if (data.series_id) {
+        const seriesPosts = new SeriesPosts();
+        seriesPosts.fk_post_id = post.id;
+        seriesPosts.fk_series_id = data.series_id;
+        seriesPosts.index = nextIndex;
+        await seriesPostsRepo.save(seriesPosts);
+      }
 
       post.tags = tagsData;
       return post;

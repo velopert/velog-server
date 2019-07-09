@@ -22,10 +22,11 @@ export const typeDef = gql`
   }
   extend type Query {
     series(series_id: String, username: String, url_slug: String): Series
+    seriesList(username: String): [Series]
   }
   extend type Mutation {
     createSeries(name: String!, url_slug: String!): Series
-    appendToSeries(series_id: ID!, post_id: ID!): Boolean
+    appendToSeries(series_id: ID!, post_id: ID!): Int
   }
 `;
 
@@ -45,7 +46,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return loaders.seriesPosts.load(parent.id);
     }
   },
-  Query: {},
+  Query: {
+    seriesList: async (parent: any, { username }: any, ctx: any) => {
+      const seriesRepo = getRepository(Series);
+      const seriesList = await seriesRepo
+        .createQueryBuilder('series')
+        .leftJoinAndSelect('series.user', 'user')
+        .where('user.username = :username', { username })
+        .orderBy('name')
+        .getMany();
+      return seriesList;
+    }
+  },
   Mutation: {
     createSeries: async (parent: any, args, ctx) => {
       if (!ctx.user_id) {
@@ -102,8 +114,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         seriesPostsList.length === 0 ? 1 : seriesPostsList[seriesPostsList.length - 1].index + 1;
 
       // create new seriesPost
+      const seriesPosts = new SeriesPosts();
+      seriesPosts.fk_post_id = post_id;
+      seriesPosts.fk_series_id = series_id;
+      seriesPosts.index = nextIndex;
+
       // save
-      // return true
+      await seriesPostsRepo.save(seriesPosts);
+      return nextIndex;
     }
   }
 };
