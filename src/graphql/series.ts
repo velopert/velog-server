@@ -21,7 +21,7 @@ export const typeDef = gql`
     post: Post
   }
   extend type Query {
-    series(series_id: String, username: String, url_slug: String): Series
+    series(id: ID, username: String, url_slug: String): Series
     seriesList(username: String): [Series]
   }
   extend type Mutation {
@@ -47,6 +47,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     }
   },
   Query: {
+    series: async (parent: any, { id }: any, ctx) => {
+      const seriesRepo = getRepository(Series);
+      const series = await seriesRepo.findOne(id);
+      console.log(series);
+      return series;
+    },
     seriesList: async (parent: any, { username }: any, ctx: any) => {
       const seriesRepo = getRepository(Series);
       const seriesList = await seriesRepo

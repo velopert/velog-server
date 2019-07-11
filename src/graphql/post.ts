@@ -3,14 +3,14 @@ import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server
 import Post from '../entity/Post';
 import { getRepository, getManager, getConnectionManager } from 'typeorm';
 import PostScore from '../entity/PostScore';
-import { normalize } from '../lib/utils';
+import { normalize, escapeForUrl } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import PostsTags from '../entity/PostsTags';
 import Tag from '../entity/Tag';
 import Comment from '../entity/Comment';
 import Series from '../entity/Series';
-import { text } from 'body-parser';
 import SeriesPosts from '../entity/SeriesPosts';
+import generate from 'nanoid/generate';
 
 export const typeDef = gql`
   type Post {
@@ -33,6 +33,7 @@ export const typeDef = gql`
     comments: [Comment]
     tags: [String]
     comments_count: Int
+    series: Series
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
@@ -109,6 +110,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     tags: async (parent: Post, _: any, { loaders }) => {
       const tags = await loaders.tags.load(parent.id);
       return tags.map(tag => tag.name);
+    },
+    series: async (parent: Post) => {
+      const seriesPostsRepo = getRepository(SeriesPosts);
+      const seriesPost = await seriesPostsRepo
+        .createQueryBuilder('series_posts')
+        .leftJoinAndSelect('series_posts.series', 'series')
+        .where('series_posts.fk_post_id = :id', { id: parent.id })
+        .getOne();
+      if (!seriesPost) return null;
+      return seriesPost.series;
     }
   },
   Query: {
@@ -129,7 +140,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
           .getOne();
         if (!post) return null;
-        if ((post.is_temp || post.is_private === true) && post.fk_user_id !== ctx.user_id) {
+        if ((post.is_temp || post.is_private) && post.fk_user_id !== ctx.user_id) {
           return null;
         }
 
@@ -202,6 +213,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
   },
   Mutation: {
     writePost: async (parent: any, args, ctx) => {
+      const postRepo = getRepository(Post);
+      const seriesRepo = getRepository(Series);
+      const seriesPostsRepo = getRepository(SeriesPosts);
+
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
       }
@@ -215,11 +230,19 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
       // TODO: CHECK FOR URL_SLUG DUP
-      post.url_slug = data.url_slug;
+      let processedUrlSlug = escapeForUrl(data.url_slug);
+      const urlSlugDuplicate = await postRepo.findOne({
+        where: {
+          fk_user_id: ctx.user_id,
+          url_slug: processedUrlSlug
+        }
+      });
+      if (urlSlugDuplicate) {
+        const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
+        processedUrlSlug += `-${randomString}`;
+      }
 
-      const postRepo = getRepository(Post);
-      const seriesRepo = getRepository(Series);
-      const seriesPostsRepo = getRepository(SeriesPosts);
+      post.url_slug = processedUrlSlug;
 
       // Check series
       let series: Series | undefined;
