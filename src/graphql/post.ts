@@ -53,6 +53,8 @@ export const typeDef = gql`
       is_private: Boolean
       series_id: ID
     ): Post
+
+    removePost(id: ID!): Boolean
   }
 `;
 
@@ -280,6 +282,19 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       post.tags = tagsData;
       return post;
+    },
+    removePost: async (parent: any, args, ctx) => {
+      const { id } = args as { id: string };
+      const postRepo = getRepository(Post);
+      const post = await postRepo.findOne(id);
+      if (!post) {
+        throw new ApolloError('Post not found', 'NOT_FOUND');
+      }
+      if (post.fk_user_id !== ctx.user_id) {
+        throw new ApolloError('This post is not yours', 'NO_PERMISSION');
+      }
+      await postRepo.remove(post);
+      return true;
     }
   }
 };
