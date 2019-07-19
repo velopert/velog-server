@@ -182,8 +182,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       if (context.user_id) {
-        query.orWhere('post.is_private = true and post.fk_user_id = :id', {
-          id: context.user_id
+        query.orWhere('post.is_private = true and post.fk_user_id = :user_id', {
+          user_id: context.user_id
         });
       }
       const posts = await query.getMany();
