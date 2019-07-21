@@ -247,7 +247,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.is_markdown = data.is_markdown;
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
-      // TODO: CHECK FOR URL_SLUG DUP
+
       let processedUrlSlug = escapeForUrl(data.url_slug);
       const urlSlugDuplicate = await postRepo.findOne({
         where: {
@@ -349,7 +349,19 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.thumbnail = thumbnail;
 
       // TODO: if url_slug changes, create url_slug_alias
-      post.url_slug = url_slug;
+      let processedUrlSlug = escapeForUrl(url_slug);
+      const urlSlugDuplicate = await postRepo.findOne({
+        where: {
+          fk_user_id: ctx.user_id,
+          url_slug: processedUrlSlug
+        }
+      });
+      if (urlSlugDuplicate) {
+        const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
+        processedUrlSlug += `-${randomString}`;
+      }
+
+      post.url_slug = processedUrlSlug;
 
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
       await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
