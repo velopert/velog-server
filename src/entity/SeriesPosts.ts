@@ -71,3 +71,30 @@ export const createSeriesPostsLoader = () =>
     const ordered = seriesIds.map(seriesId => postsMap[seriesId]);
     return ordered;
   });
+
+export const subtractIndexAfter = async (seriesId: string, afterIndex: number) => {
+  const repo = getRepository(SeriesPosts);
+  return repo
+    .createQueryBuilder()
+    .update(SeriesPosts)
+    .set({ index: () => 'index - 1' })
+    .where('fk_series_id = :seriesId', { seriesId })
+    .andWhere('index > :afterIndex', { afterIndex })
+    .execute();
+};
+
+export const appendToSeries = async (seriesId: string, postId: string) => {
+  const repo = getRepository(SeriesPosts);
+  const postsCount = await repo.count({
+    where: {
+      fk_series_id: seriesId
+    }
+  });
+  const nextIndex = postsCount + 1;
+
+  const seriesPosts = new SeriesPosts();
+  seriesPosts.fk_post_id = postId;
+  seriesPosts.fk_series_id = seriesId;
+  seriesPosts.index = nextIndex;
+  return repo.save(seriesPosts);
+};

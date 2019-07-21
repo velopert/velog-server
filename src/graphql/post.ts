@@ -9,7 +9,7 @@ import PostsTags from '../entity/PostsTags';
 import Tag from '../entity/Tag';
 import Comment from '../entity/Comment';
 import Series from '../entity/Series';
-import SeriesPosts from '../entity/SeriesPosts';
+import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
 import generate from 'nanoid/generate';
 
 export const typeDef = gql`
@@ -53,6 +53,19 @@ export const typeDef = gql`
       is_private: Boolean
       series_id: ID
     ): Post
+    editPost(
+      id: ID!
+      title: String
+      body: String
+      tags: [String]
+      is_markdown: Boolean
+      is_temp: Boolean
+      url_slug: String
+      thumbnail: String
+      meta: JSON
+      is_private: Boolean
+      series_id: ID
+    ): Post
 
     removePost(id: ID!): Boolean
   }
@@ -68,6 +81,9 @@ type WritePostArgs = {
   thumbnail: string | null;
   meta: any;
   series_id?: string;
+};
+type EditPostArgs = WritePostArgs & {
+  id: string;
 };
 
 export const resolvers: IResolvers<any, ApolloContext> = {
@@ -248,8 +264,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // Check series
       let series: Series | undefined;
-      let nextIndex = 1;
-
       if (data.series_id) {
         series = await seriesRepo.findOne(data.series_id);
         if (!series) {
@@ -258,12 +272,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if (series.fk_user_id !== ctx.user_id) {
           throw new ApolloError('This series is not yours', 'NO_PERMISSION');
         }
-        const postsCount = await seriesPostsRepo.count({
-          where: {
-            fk_series_id: data.series_id
-          }
-        });
-        nextIndex = postsCount + 1;
       }
 
       const tagsData = await Promise.all(data.tags.map(Tag.findOrCreate));
@@ -273,14 +281,79 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // Link to series
       if (data.series_id) {
-        const seriesPosts = new SeriesPosts();
-        seriesPosts.fk_post_id = post.id;
-        seriesPosts.fk_series_id = data.series_id;
-        seriesPosts.index = nextIndex;
-        await seriesPostsRepo.save(seriesPosts);
+        appendToSeries(data.series_id, post.id);
       }
 
       post.tags = tagsData;
+      return post;
+    },
+    editPost: async (parent: any, args, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+
+      const {
+        id,
+        title,
+        body,
+        is_temp,
+        is_markdown,
+        meta,
+        thumbnail,
+        series_id,
+        url_slug,
+        tags
+      } = args as EditPostArgs;
+      const postRepo = getRepository(Post);
+      const seriesRepo = getRepository(Series);
+      const seriesPostsRepo = getRepository(SeriesPosts);
+
+      const post = await postRepo.findOne(id);
+      if (!post) {
+        throw new ApolloError('Post not found', 'NOT_FOUND');
+      }
+      if (post.fk_user_id !== ctx.user_id) {
+        throw new ApolloError('This post is not yours', 'NO_PERMISSION');
+      }
+
+      const prevSeriesPost = await seriesPostsRepo.findOne({
+        fk_post_id: post.id
+      });
+
+      if (prevSeriesPost && prevSeriesPost.id !== series_id) {
+        if (series_id) {
+          // append series
+          const series = await seriesRepo.findOne({
+            id: series_id
+          });
+          if (!series) {
+            throw new ApolloError('Series not found', 'NOT_FOUND');
+          }
+          if (series.fk_user_id !== ctx.user_id) {
+            throw new ApolloError('This series is not yours', 'NO_PERMISSION');
+          }
+          await appendToSeries(series_id, post.id);
+        }
+        // remove series
+        await Promise.all([
+          subtractIndexAfter(prevSeriesPost.fk_series_id, prevSeriesPost.index),
+          seriesPostsRepo.remove(prevSeriesPost)
+        ]);
+      }
+
+      post.title = title;
+      post.body = body;
+      post.is_temp = is_temp;
+      post.is_markdown = is_markdown;
+      post.meta = meta;
+      post.thumbnail = thumbnail;
+
+      // TODO: if url_slug changes, create url_slug_alias
+      post.url_slug = url_slug;
+
+      const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
+      await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
+
       return post;
     },
     removePost: async (parent: any, args, ctx) => {
@@ -293,7 +366,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (post.fk_user_id !== ctx.user_id) {
         throw new ApolloError('This post is not yours', 'NO_PERMISSION');
       }
+      // check series
+      const seriesPostsRepo = getRepository(SeriesPosts);
+      const seriesPost = await seriesPostsRepo.findOne({
+        fk_post_id: post.id
+      });
       await postRepo.remove(post);
+      if (seriesPost) {
+        subtractIndexAfter(seriesPost.fk_series_id, seriesPost.index);
+      }
       return true;
     }
   }
