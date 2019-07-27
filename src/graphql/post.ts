@@ -11,6 +11,7 @@ import Comment from '../entity/Comment';
 import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
 import generate from 'nanoid/generate';
+import PostLike from '../entity/PostLike';
 
 export const typeDef = gql`
   type Post {
@@ -34,6 +35,7 @@ export const typeDef = gql`
     tags: [String]
     comments_count: Int
     series: Series
+    liked: Boolean
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
@@ -68,6 +70,8 @@ export const typeDef = gql`
     ): Post
 
     removePost(id: ID!): Boolean
+    likePost(id: ID!): Post
+    unlikePost(id: ID!): Post
   }
 `;
 
@@ -138,6 +142,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .getOne();
       if (!seriesPost) return null;
       return seriesPost.series;
+    },
+    liked: async (parent: Post, args: any, { user_id }) => {
+      const postLikeRepo = getRepository(PostLike);
+      if (!user_id) return false;
+      const liked = await postLikeRepo.findOne({
+        fk_post_id: parent.id,
+        fk_user_id: user_id
+      });
+      return !!liked;
     }
   },
   Query: {
@@ -388,6 +401,96 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         subtractIndexAfter(seriesPost.fk_series_id, seriesPost.index);
       }
       return true;
+    },
+    likePost: async (parent: any, args, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+
+      // find post
+      const postRepo = getRepository(Post);
+      const post = await postRepo.findOne(args.id);
+
+      if (!post) {
+        throw new ApolloError('Post not found', 'NOT_FOUND');
+      }
+
+      // check already liked
+      const postLikeRepo = getRepository(PostLike);
+      const alreadyLiked = await postLikeRepo.findOne({
+        where: {
+          fk_post_id: args.id,
+          fk_user_id: ctx.user_id
+        }
+      });
+
+      // exists
+      if (alreadyLiked) {
+        return post;
+      }
+
+      const postLike = new PostLike();
+      postLike.fk_post_id = args.id;
+      postLike.fk_user_id = ctx.user_id;
+
+      try {
+        await postLikeRepo.save(postLike);
+      } catch (e) {
+        return post;
+      }
+
+      const count = await postLikeRepo.count({
+        where: {
+          fk_post_id: args.id
+        }
+      });
+
+      post.likes = count;
+
+      await postRepo.save(post);
+
+      return post;
+    },
+    unlikePost: async (parent: any, args, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+
+      // find post
+      const postRepo = getRepository(Post);
+      const post = await postRepo.findOne(args.id);
+
+      if (!post) {
+        throw new ApolloError('Post not found', 'NOT_FOUND');
+      }
+
+      // check already liked
+      const postLikeRepo = getRepository(PostLike);
+      const postLike = await postLikeRepo.findOne({
+        where: {
+          fk_post_id: args.id,
+          fk_user_id: ctx.user_id
+        }
+      });
+
+      // not exists
+      if (!postLike) {
+        return post;
+      }
+
+      await postLikeRepo.remove(postLike);
+
+      const count = await postLikeRepo.count({
+        where: {
+          fk_post_id: args.id
+        }
+      });
+
+      post.likes = count;
+
+      await postRepo.save(post);
+
+      return post;
     }
   }
 };
