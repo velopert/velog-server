@@ -14,6 +14,10 @@ import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
 
 export const typeDef = gql`
+  type LinkedPosts {
+    previous: Post
+    next: Post
+  }
   type Post {
     id: ID!
     title: String
@@ -36,6 +40,7 @@ export const typeDef = gql`
     comments_count: Int
     series: Series
     liked: Boolean
+    linked_posts: LinkedPosts
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
@@ -151,6 +156,68 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         fk_user_id: user_id
       });
       return !!liked;
+    },
+    linked_posts: async (parent: Post, args: any) => {
+      const seriesPostsRepo = getRepository(SeriesPosts);
+
+      const seriesPost = await seriesPostsRepo.findOne({
+        where: {
+          fk_post_id: parent.id
+        }
+      });
+
+      // is in series: show prev & next series post
+      if (seriesPost) {
+        const { index } = seriesPost;
+        const seriesPosts = await seriesPostsRepo
+          .createQueryBuilder('series_posts')
+          .leftJoinAndSelect('series_posts.post', 'post')
+          .where('fk_series_id = :seriesId', { seriesId: seriesPost.fk_series_id })
+          .andWhere('(index = :prevIndex OR index = :nextIndex)', {
+            prevIndex: index - 1,
+            nextIndex: index + 1
+          })
+          .getMany();
+
+        // only one post is found
+        if (seriesPosts.length === 1) {
+          return seriesPosts[0].index > index // compare series index
+            ? {
+                next: seriesPosts[0].post // is next post
+              }
+            : {
+                previous: seriesPosts[0].post // is prev post
+              };
+        }
+
+        return {
+          previous: seriesPosts[0] && seriesPosts[0].post,
+          next: seriesPosts[1] && seriesPosts[1].post
+        };
+      }
+
+      // is not in series: show prev & next in time order
+      const postRepo = getRepository(Post);
+
+      const [previous, next] = await Promise.all([
+        postRepo
+          .createQueryBuilder('posts')
+          .where('fk_user_id = :userId', { userId: parent.fk_user_id })
+          .andWhere('released_at < :releasedAt', { releasedAt: parent.released_at })
+          .orderBy('released_at', 'DESC')
+          .getOne(),
+        postRepo
+          .createQueryBuilder('posts')
+          .where('fk_user_id = :userId', { userId: parent.fk_user_id })
+          .andWhere('released_at > :releasedAt', { releasedAt: parent.released_at })
+          .orderBy('released_at', 'ASC')
+          .getOne()
+      ]);
+
+      return {
+        previous,
+        next
+      };
     }
   },
   Query: {
