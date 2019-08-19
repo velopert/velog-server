@@ -177,6 +177,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             prevIndex: index - 1,
             nextIndex: index + 1
           })
+          .orderBy('index', 'ASC')
           .getMany();
 
         // only one post is found
@@ -199,6 +200,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       // is not in series: show prev & next in time order
       const postRepo = getRepository(Post);
 
+      // TODO: handle private & temp posts
+
       const [previous, next] = await Promise.all([
         postRepo
           .createQueryBuilder('posts')
@@ -210,6 +213,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .createQueryBuilder('posts')
           .where('fk_user_id = :userId', { userId: parent.fk_user_id })
           .andWhere('released_at > :releasedAt', { releasedAt: parent.released_at })
+          .andWhere('id != :postId', { postId: parent.id })
           .orderBy('released_at', 'ASC')
           .getOne()
       ]);
@@ -400,7 +404,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         fk_post_id: post.id
       });
 
-      if (prevSeriesPost && prevSeriesPost.id !== series_id) {
+      if (prevSeriesPost && prevSeriesPost.fk_series_id !== series_id) {
         if (series_id) {
           // append series
           const series = await seriesRepo.findOne({

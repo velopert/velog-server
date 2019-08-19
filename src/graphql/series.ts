@@ -3,6 +3,7 @@ import Series from '../entity/Series';
 import { ApolloContext } from '../app';
 import { getRepository } from 'typeorm';
 import SeriesPosts from '../entity/SeriesPosts';
+import Post from '../entity/Post';
 
 export const typeDef = gql`
   type Series {
@@ -14,6 +15,8 @@ export const typeDef = gql`
     created_at: Date
     updated_at: Date
     series_posts: [SeriesPost]
+    thumbnail: String
+    posts_count: Int
   }
   type SeriesPost {
     id: ID!
@@ -44,6 +47,29 @@ export const resolvers: IResolvers<any, ApolloContext> = {
   Series: {
     series_posts: async (parent: Series, _: any, { loaders }) => {
       return loaders.seriesPosts.load(parent.id);
+    },
+    user: async (parent: Series, _: any, { loaders }) => {
+      return loaders.user.load(parent.fk_user_id);
+    },
+    thumbnail: async (parent: Series) => {
+      const seriesPostRepo = getRepository(SeriesPosts);
+      const seriesPost = await seriesPostRepo
+        .createQueryBuilder('series_post')
+        .leftJoinAndSelect('series_post.post', 'post')
+        .where('series_post.index = 1')
+        .andWhere('series_post.fk_series_id = :seriesId', { seriesId: parent.id })
+        .getOne();
+      if (!seriesPost) return null;
+      return seriesPost.post.thumbnail;
+    },
+    posts_count: async (parent: Series) => {
+      const repo = getRepository(SeriesPosts);
+      const count = await repo.count({
+        where: {
+          fk_series_id: parent.id
+        }
+      });
+      return count;
     }
   },
   Query: {

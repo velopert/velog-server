@@ -85,12 +85,21 @@ export const subtractIndexAfter = async (seriesId: string, afterIndex: number) =
 
 export const appendToSeries = async (seriesId: string, postId: string) => {
   const repo = getRepository(SeriesPosts);
+  const seriesRepo = getRepository(Series);
   const postsCount = await repo.count({
     where: {
       fk_series_id: seriesId
     }
   });
   const nextIndex = postsCount + 1;
+  const series = await seriesRepo.findOne(seriesId);
+  if (!series) return;
+
+  await seriesRepo
+    .createQueryBuilder()
+    .update(Series)
+    .where('id = :id', { id: seriesId })
+    .execute();
 
   const seriesPosts = new SeriesPosts();
   seriesPosts.fk_post_id = postId;

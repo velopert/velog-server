@@ -3,6 +3,7 @@ import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
 import User from '../entity/User';
 import { getRepository, getManager } from 'typeorm';
 import VelogConfig from '../entity/VelogConfig';
+import Series from '../entity/Series';
 
 export const typeDef = gql`
   type User {
@@ -53,8 +54,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
       return parent.email;
     },
-    series_list: (parent: User, _: any, { loaders }) => {
-      return loaders.seriesList.load(parent.id);
+    series_list: async (parent: User, _: any, { loaders }) => {
+      const seriesRepo = getRepository(Series);
+      const seriesList = await seriesRepo.find({
+        where: {
+          fk_user_id: parent.id
+        },
+        order: {
+          updated_at: 'DESC'
+        }
+      });
+      return seriesList;
     }
   },
   Query: {

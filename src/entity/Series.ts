@@ -35,10 +35,12 @@ export default class Series {
   @Column({ length: 255 })
   url_slug!: string;
 
+  @Index()
   @Column('timestampz')
   @CreateDateColumn()
   created_at!: Date;
 
+  @Index()
   @Column('timestamptz')
   @UpdateDateColumn()
   updated_at!: Date;
