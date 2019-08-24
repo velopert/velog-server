@@ -73,10 +73,20 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     }
   },
   Query: {
-    series: async (parent: any, { id }: any, ctx) => {
+    series: async (parent: any, { id, username, url_slug }: any, ctx) => {
       const seriesRepo = getRepository(Series);
-      const series = await seriesRepo.findOne(id);
-      console.log(series);
+      if (id) {
+        const series = await seriesRepo.findOne(id);
+        return series;
+      }
+
+      const series = await seriesRepo
+        .createQueryBuilder('series')
+        .leftJoinAndSelect('series.user', 'user')
+        .where('user.username = :username', { username })
+        .andWhere('series.url_slug = :url_slug', { url_slug })
+        .getOne();
+
       return series;
     },
     seriesList: async (parent: any, { username }: any, ctx: any) => {
