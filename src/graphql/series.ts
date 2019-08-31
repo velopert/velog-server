@@ -4,6 +4,8 @@ import { ApolloContext } from '../app';
 import { getRepository } from 'typeorm';
 import SeriesPosts from '../entity/SeriesPosts';
 import Post from '../entity/Post';
+import { normalize } from '../lib/utils';
+import { number } from 'joi';
 
 export const typeDef = gql`
   type Series {
@@ -30,6 +32,7 @@ export const typeDef = gql`
   extend type Mutation {
     createSeries(name: String!, url_slug: String!): Series
     appendToSeries(series_id: ID!, post_id: ID!): Int
+    editSeries(id: ID!, name: String!, series_order: [ID]): Series
   }
 `;
 
@@ -42,6 +45,28 @@ type AppendToSeriesArgs = {
   post_id: string;
   series_id: string;
 };
+
+type EditSeriesArgs = {
+  id: string;
+  name: string;
+  series_order: string[];
+};
+
+async function getSeriesIfValid(seriesId: string, userId: string | null) {
+  if (!userId) {
+    throw new AuthenticationError('Not Logged In');
+  }
+  const seriesRepo = getRepository(Series);
+  const series = await seriesRepo.findOne(seriesId);
+  if (!series) {
+    throw new ApolloError('Series not found', 'NOT_FOUND');
+  }
+  if (series.fk_user_id !== userId) {
+    throw new ApolloError('This series is not yours', 'NO_PERMISSION');
+  }
+
+  return series;
+}
 
 export const resolvers: IResolvers<any, ApolloContext> = {
   Series: {
@@ -123,19 +148,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return series;
     },
     appendToSeries: async (parent, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
       const { series_id, post_id } = args as AppendToSeriesArgs;
-
-      const seriesRepo = getRepository(Series);
-      const series = await seriesRepo.findOne(series_id);
-      if (!series) {
-        throw new ApolloError('Series not found', 'NOT_FOUND');
-      }
-      if (series.fk_user_id !== ctx.user_id) {
-        throw new ApolloError('This series is not yours', 'NO_PERMISSION');
-      }
+      await getSeriesIfValid(series_id, ctx.user_id);
 
       const seriesPostsRepo = getRepository(SeriesPosts);
       const seriesPostsList = await seriesPostsRepo.find({
@@ -164,6 +178,51 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       // save
       await seriesPostsRepo.save(seriesPosts);
       return nextIndex;
+    },
+    editSeries: async (parent, args, ctx) => {
+      const { id, name, series_order } = args as EditSeriesArgs;
+      const series = await getSeriesIfValid(id, ctx.user_id);
+      // update series name
+      if (name !== series.name) {
+        const seriesRepo = getRepository(Series);
+        series.name = name;
+        await seriesRepo.save(series);
+      }
+
+      // reorder series
+      // validate series order
+      const seriesPostsRepo = getRepository(SeriesPosts);
+      const seriesPosts = await seriesPostsRepo.find({
+        where: {
+          fk_series_id: id
+        }
+      });
+
+      const valid =
+        seriesPosts.every(sp => series_order.includes(sp.id)) &&
+        seriesPosts.length === series_order.length;
+      if (!valid) {
+        throw new ApolloError('series_order is invalid', 'BAD_REQUEST');
+      }
+
+      const seriesPostsById = normalize(seriesPosts, sp => sp.id);
+      type Update = { id: string; index: number };
+      const updates = series_order.reduce<Update[]>((acc, current, index) => {
+        const sp = seriesPostsById[current];
+        if (sp.index !== index + 1) {
+          console.log(index, sp.index);
+          acc.push({
+            id: current,
+            index: index + 1
+          });
+          return acc;
+        }
+        return [];
+      }, []);
+
+      console.log(updates);
+
+      return series;
     }
   }
 };
