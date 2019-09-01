@@ -205,12 +205,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('series_order is invalid', 'BAD_REQUEST');
       }
 
+      // figure out which data to update
       const seriesPostsById = normalize(seriesPosts, sp => sp.id);
       type Update = { id: string; index: number };
       const updates = series_order.reduce<Update[]>((acc, current, index) => {
         const sp = seriesPostsById[current];
         if (sp.index !== index + 1) {
-          console.log(index, sp.index);
+          // index mismatch
           acc.push({
             id: current,
             index: index + 1
@@ -220,7 +221,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         return [];
       }, []);
 
-      console.log(updates);
+      // update every seriesPosts index where needed
+      await Promise.all(
+        updates.map(update => {
+          const sp = seriesPostsById[update.id];
+          sp.index = update.index;
+          return seriesPostsRepo.save(sp);
+        })
+      );
 
       return series;
     }
