@@ -12,6 +12,7 @@ import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
 import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
+import algoliaClient from '../search/algoliaClient';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -42,10 +43,15 @@ export const typeDef = gql`
     liked: Boolean
     linked_posts: LinkedPosts
   }
+  type SearchResult {
+    count: Int
+    posts: [Post]
+  }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String): [Post]
     trendingPosts(offset: Int, limit: Int): [Post]
+    searchPost(keyword: String!, offset: Int): SearchResult
   }
   extend type Mutation {
     writePost(
@@ -94,6 +100,8 @@ type WritePostArgs = {
 type EditPostArgs = WritePostArgs & {
   id: string;
 };
+
+const postsIndex = algoliaClient.initIndex('posts');
 
 export const resolvers: IResolvers<any, ApolloContext> = {
   Post: {
@@ -311,6 +319,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const ordered = ids.map(id => normalized[id]);
 
       return ordered;
+    },
+    searchPost: async (parent: any, { keyword, offset }: any) => {
+      console.log(keyword, offset);
+      const searchResult = await postsIndex.search({
+        query: keyword,
+        page: 2
+      });
+      return {
+        count: searchResult.nbHits,
+        posts: searchResult.hits
+      };
     }
   },
   Mutation: {

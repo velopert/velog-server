@@ -210,6 +210,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       type Update = { id: string; index: number };
       const updates = series_order.reduce<Update[]>((acc, current, index) => {
         const sp = seriesPostsById[current];
+        console.log(sp.index, index + 1);
         if (sp.index !== index + 1) {
           // index mismatch
           acc.push({
@@ -218,8 +219,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           });
           return acc;
         }
-        return [];
+        return acc;
       }, []);
+
+      console.log(updates);
 
       // update every seriesPosts index where needed
       await Promise.all(

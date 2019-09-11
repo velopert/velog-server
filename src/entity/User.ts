@@ -6,11 +6,13 @@ import {
   Unique,
   CreateDateColumn,
   UpdateDateColumn,
-  getRepository
+  getRepository,
+  OneToOne
 } from 'typeorm';
 import DataLoader from 'dataloader';
 import { generateToken } from '../lib/token';
 import AuthToken from './AuthToken';
+import UserProfile from './UserProfile';
 
 @Entity('users', {
   synchronize: false
@@ -37,6 +39,9 @@ export default class User {
 
   @Column({ default: false })
   is_certified!: boolean;
+
+  @OneToOne(type => UserProfile, profile => profile.user)
+  profile!: UserProfile;
 
   async generateUserToken() {
     const authToken = new AuthToken();

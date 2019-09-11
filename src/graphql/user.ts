@@ -1,9 +1,10 @@
 import { ApolloContext } from './../app';
-import { gql, IResolvers, AuthenticationError } from 'apollo-server-koa';
+import { gql, IResolvers, AuthenticationError, ApolloError } from 'apollo-server-koa';
 import User from '../entity/User';
 import { getRepository, getManager } from 'typeorm';
 import VelogConfig from '../entity/VelogConfig';
 import Series from '../entity/Series';
+import UserProfile from '../entity/UserProfile';
 
 export const typeDef = gql`
   type User {
@@ -36,6 +37,9 @@ export const typeDef = gql`
     user(id: ID, username: String): User
     velog_config(username: String): VelogConfig
     auth: User
+  }
+  extend type Mutation {
+    update_about(about: String!): UserProfile
   }
 `;
 
@@ -99,6 +103,26 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     auth: async (parent: any, params: any, ctx) => {
       if (!ctx.user_id) return null;
       return ctx.loaders.user.load(ctx.user_id);
+    }
+  },
+  Mutation: {
+    update_about: async (parent: any, args: any, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+      const userProfileRepo = getRepository(UserProfile);
+      const profile = await userProfileRepo.findOne({
+        where: {
+          fk_user_id: ctx.user_id
+        }
+      });
+      const { about } = args as { about: string };
+      if (!profile) {
+        throw new ApolloError('Failed to retrieve user profile');
+      }
+      profile.about = about || '';
+      await userProfileRepo.save(profile);
+      return profile;
     }
   }
 };

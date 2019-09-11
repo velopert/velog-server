@@ -5,10 +5,12 @@
   "author": "velopert <public.velopert@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@types/algoliasearch": "^3.30.18",
     "@types/aws-lambda": "^8.10.17",
     "@types/aws-sdk": "^2.7.0",
     "@types/dotenv": "^6.1.0",
     "@types/graphql": "^14.0.5",
+    "@types/inquirer": "^6.5.0",
     "@types/joi": "^14.3.1",
     "@types/jsonwebtoken": "^8.3.0",
     "@types/koa": "^2.0.48",
@@ -19,15 +21,19 @@
     "@types/mime-types": "^2.1.0",
     "@types/nanoid": "^2.0.0",
     "@types/node": "^10.12.18",
+    "@types/ramda": "^0.26.21",
     "@types/remove-markdown": "^0.1.1",
     "@types/sanitize-html": "^1.18.2",
     "@types/shortid": "^0.0.29",
+    "algoliasearch": "^3.34.0",
     "apollo-server-koa": "^2.3.1",
     "aws-sdk": "^2.455.0",
+    "class-transformer": "^0.2.3",
     "dataloader": "^1.4.0",
     "dotenv": "^6.2.0",
     "graphql": "^14.1.1",
     "graphql-iso-date": "^3.6.1",
+    "inquirer": "^7.0.0",
     "joi": "^14.3.1",
     "jsonwebtoken": "^8.4.0",
     "koa": "^2.6.2",
@@ -37,6 +43,7 @@
     "mime-types": "^2.1.24",
     "nanoid": "^2.0.3",
     "pg": "^7.8.0",
+    "ramda": "^0.26.1",
     "remove": "^0.1.5",
     "remove-markdown": "^0.3.0",
     "sanitize-html": "^1.20.0",
@@ -52,7 +59,7 @@
     "tslint": "^5.12.1",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.17.0",
-    "typeorm": "^0.2.12",
+    "typeorm": "^0.2.18",
     "typescript": "^3.2.4",
     "webpack": "^4.29.0"
   },
@@ -60,6 +67,7 @@
     "offline": "sls offline --port 5001",
     "dev": "NODE_ENV=development ts-node-dev --respawn ./src/server.ts",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "dev:sync": "yarn typeorm schema:sync"
+    "dev:sync": "yarn typeorm schema:sync",
+    "search:cli": "NODE_ENV=development ts-node ./src/search/cli"
   }
 }
