@@ -25,8 +25,8 @@ function serializePost(post: Post) {
       'title',
       'body',
       'thumbnail',
-      'fk_user_id',
       'user',
+      'is_private',
       'released_at',
       'likes',
       'views',
@@ -50,7 +50,7 @@ function serializePost(post: Post) {
         thumbnail: picked.user.profile.thumbnail
       }
     },
-    comments: picked.tags.map(t => t.name)
+    tags: picked.tags.map(t => t.name)
   };
 }
 
@@ -67,6 +67,17 @@ async function syncAll() {
   console.log(`Found ${postsCount} posts`);
 
   for (let i = 0; i < queryCount; i += 1) {
+    const postIds = await postRepo
+      .createQueryBuilder('post')
+      .select('post.id')
+      .where('is_temp = false')
+      .orderBy('released_at', 'ASC')
+      .offset(i * limit)
+      .limit(limit)
+      .getMany();
+
+    const idList = postIds.map(p => p.id);
+
     const posts = await postRepo
       .createQueryBuilder('post')
       .select('post.id')
@@ -77,7 +88,8 @@ async function syncAll() {
       .addSelect('post.likes')
       .addSelect('post.views')
       .addSelect('post.meta')
-      .orderBy('released_at', 'ASC')
+      .addSelect('post.fk_user_id')
+      .addSelect('post.is_private')
       .leftJoin('post.user', 'user')
       .addSelect('user.id')
       .addSelect('user.username')
@@ -85,11 +97,9 @@ async function syncAll() {
       .addSelect('profile.id')
       .addSelect('profile.display_name')
       .addSelect('profile.thumbnail')
-      .leftJoin('post.tags', 'tags')
+      .leftJoinAndSelect('post.tags', 'tags')
       .addSelect('tags.name')
-      .where('is_temp = false')
-      .offset(i * limit)
-      .limit(limit)
+      .whereInIds(idList)
       .getMany();
 
     // const posts = await postRepo.find({
@@ -118,7 +128,9 @@ async function syncAll() {
     const serializedPosts = posts.map(serializePost);
 
     try {
-      await postsIndex.addObjects(serializedPosts);
+      const result = await postsIndex.addObjects(serializedPosts);
+      console.log(serializedPosts.length);
+      console.log(result.objectIDs.length);
     } catch (e) {
       console.log(e);
     }
@@ -182,7 +194,8 @@ async function search() {
     }
   ]);
   const result = await postsIndex.search({
-    query: keyword
+    query: keyword,
+    filters: 'user.username:velopert'
   });
   console.log(result);
 }

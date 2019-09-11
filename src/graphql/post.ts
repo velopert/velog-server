@@ -321,10 +321,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return ordered;
     },
     searchPost: async (parent: any, { keyword, offset }: any) => {
-      console.log(keyword, offset);
       const searchResult = await postsIndex.search({
+        offset,
         query: keyword,
-        page: 2
+        length: 20
       });
       return {
         count: searchResult.nbHits,
