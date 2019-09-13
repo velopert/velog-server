@@ -6,8 +6,10 @@ import inquirer from 'inquirer';
 import algoliaClient from './algoliaClient';
 import User from '../entity/User';
 import { pick } from 'ramda';
+import { Client } from '@elastic/elasticsearch';
 
 const postsIndex = algoliaClient.initIndex('posts');
+const client = new Client({ node: 'http://localhost:9200' });
 
 async function initialize() {
   try {
@@ -39,7 +41,8 @@ function serializePost(post: Post) {
 
   return {
     ...picked,
-    objectID: picked.id,
+    _id: picked.id,
+    // objectID: picked.id,
     body: picked.body.slice(0, 3500),
     user: {
       id: picked.user.id,
@@ -128,9 +131,12 @@ async function syncAll() {
     const serializedPosts = posts.map(serializePost);
 
     try {
-      const result = await postsIndex.addObjects(serializedPosts);
-      console.log(serializedPosts.length);
-      console.log(result.objectIDs.length);
+      // const result = await postsIndex.addObjects(serializedPosts);
+      // console.log(serializedPosts.length);
+      // console.log(result.objectIDs.length);
+      const body = serializedPosts.flatMap(doc => [{ index: { _index: 'posts' } }, doc]);
+      const response = await client.bulk({ body, refresh: 'true' });
+      console.log(response.body.errors);
     } catch (e) {
       console.log(e);
     }
