@@ -4,3 +4,4 @@
 node_modules
 ormconfig.json
 .env.development
+dist

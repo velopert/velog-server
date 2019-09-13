@@ -3,13 +3,9 @@ import '../env';
 import Post from '../entity/Post';
 import { classToPlain } from 'class-transformer';
 import inquirer from 'inquirer';
-import algoliaClient from './algoliaClient';
 import User from '../entity/User';
 import { pick } from 'ramda';
-import { Client } from '@elastic/elasticsearch';
-
-const postsIndex = algoliaClient.initIndex('posts');
-const client = new Client({ node: 'http://localhost:9200' });
+import esClient from './esClient';
 
 async function initialize() {
   try {
@@ -41,7 +37,7 @@ function serializePost(post: Post) {
 
   return {
     ...picked,
-    _id: picked.id,
+    // _id: picked.id,
     // objectID: picked.id,
     body: picked.body.slice(0, 3500),
     user: {
@@ -131,12 +127,12 @@ async function syncAll() {
     const serializedPosts = posts.map(serializePost);
 
     try {
-      // const result = await postsIndex.addObjects(serializedPosts);
-      // console.log(serializedPosts.length);
-      // console.log(result.objectIDs.length);
-      const body = serializedPosts.flatMap(doc => [{ index: { _index: 'posts' } }, doc]);
-      const response = await client.bulk({ body, refresh: 'true' });
-      console.log(response.body.errors);
+      const body = serializedPosts.map(doc => [{ index: { _index: 'posts', _id: doc.id } }, doc]);
+      const flat = ([] as any[]).concat(...body);
+      const response = await esClient.bulk({ body: flat });
+      if (response.body.errors) {
+        throw response;
+      }
     } catch (e) {
       console.log(e);
     }
@@ -163,27 +159,6 @@ async function updatePost() {
     .leftJoinAndSelect('post.tags', 'tags')
     .where('post.id = :id', { id: '21fd6700-b354-11e8-ba07-9dd972ee6ad1' })
     .getOne();
-  console.log(post);
-
-  // const userRepo = getRepository(User);
-  // const user = await userRepo.findOne('c76ccc50-b34d-11e8-b01f-598f1220d1c8', {
-  //   relations: ['profile']
-  // });
-  // console.log(user);
-  // const postId = askPostId();
-  // console.log('Update', postId);
-  // const postRepo = getRepository(Post);
-  // const post = await postRepo.findOne('21fd6700-b354-11e8-ba07-9dd972ee6ad1', {
-  //   relations: ['tags', 'user', 'user.profile']
-  // });
-  // console.log(post);
-  // console.log(post!.user.profile);
-  // const post = await postRepo
-  //   .createQueryBuilder('post')
-  //   .leftJoinAndSelect('post.tags', 'tag')
-  //   .where('post.id = :id', { id: '21fd6700-b354-11e8-ba07-9dd972ee6ad1' })
-  //   .getOne();
-  // console.log(post);
 }
 
 async function deletePost() {
@@ -199,11 +174,11 @@ async function search() {
       message: 'Please type the keyword to search'
     }
   ]);
-  const result = await postsIndex.search({
-    query: keyword,
-    filters: 'user.username:velopert'
-  });
-  console.log(result);
+  // const result = await postsIndex.search({
+  //   query: keyword,
+  //   filters: 'user.username:velopert'
+  // });
+  // console.log(result);
 }
 const taskMap = {
   'Sync all posts': syncAll,

@@ -12,7 +12,8 @@ import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
 import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
-import algoliaClient from '../search/algoliaClient';
+import esClient from '../search/esClient';
+import keywordSearch from '../search/keywordSearch';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -100,8 +101,6 @@ type WritePostArgs = {
 type EditPostArgs = WritePostArgs & {
   id: string;
 };
-
-const postsIndex = algoliaClient.initIndex('posts');
 
 export const resolvers: IResolvers<any, ApolloContext> = {
   Post: {
@@ -324,15 +323,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (limit > 100) {
         throw new ApolloError('Limit is too big', 'BAD_REQUEST');
       }
-      const searchResult = await postsIndex.search({
-        offset,
-        query: keyword,
-        length: 20
-      });
-      return {
-        count: searchResult.nbHits,
-        posts: searchResult.hits
-      };
+      const posts = await keywordSearch(keyword, offset, limit);
+
+      return posts;
+      // const searchResult = await postsIndex.search({
+      //   offset,
+      //   query: keyword,
+      //   length: 20
+      // });
+      // return {
+      //   count: searchResult.nbHits,
+      //   posts: searchResult.hits
+      // };
     }
   },
   Mutation: {
