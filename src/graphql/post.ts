@@ -51,7 +51,7 @@ export const typeDef = gql`
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String): [Post]
     trendingPosts(offset: Int, limit: Int): [Post]
-    searchPost(keyword: String!, offset: Int): SearchResult
+    searchPost(keyword: String!, offset: Int, limit: Int): SearchResult
   }
   extend type Mutation {
     writePost(
@@ -320,7 +320,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       return ordered;
     },
-    searchPost: async (parent: any, { keyword, offset }: any) => {
+    searchPost: async (parent: any, { keyword, offset, limit = 20 }: any) => {
+      if (limit > 100) {
+        throw new ApolloError('Limit is too big', 'BAD_REQUEST');
+      }
       const searchResult = await postsIndex.search({
         offset,
         query: keyword,
