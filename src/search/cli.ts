@@ -89,6 +89,7 @@ async function syncAll() {
       .addSelect('post.meta')
       .addSelect('post.fk_user_id')
       .addSelect('post.is_private')
+      .addSelect('post.url_slug')
       .leftJoin('post.user', 'user')
       .addSelect('user.id')
       .addSelect('user.username')

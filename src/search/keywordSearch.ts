@@ -23,7 +23,7 @@ export default async function keywordSearch(keyword: string, from: number = 0, s
                   match_phrase: {
                     'title.raw': {
                       query: keyword,
-                      boost: 5
+                      boost: 15
                     }
                   }
                 },
@@ -53,11 +53,15 @@ export default async function keywordSearch(keyword: string, from: number = 0, s
       }
     }
   });
+
+  const posts = result.body.hits.hits.map((hit: any) => hit._source);
+  posts.forEach((p: any) => {
+    p.released_at = new Date(p.released_at);
+  });
   const data = {
     count: result.body.hits.total.value,
     posts: result.body.hits.hits.map((hit: any) => hit._source)
   };
 
-  console.log(data);
   return data;
 }

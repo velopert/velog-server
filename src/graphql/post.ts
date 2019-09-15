@@ -323,9 +323,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (limit > 100) {
         throw new ApolloError('Limit is too big', 'BAD_REQUEST');
       }
-      const posts = await keywordSearch(keyword, offset, limit);
+      const searchResult = await keywordSearch(keyword, offset, limit);
 
-      return posts;
+      return searchResult;
       // const searchResult = await postsIndex.search({
       //   offset,
       //   query: keyword,
