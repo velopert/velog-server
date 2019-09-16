@@ -15,7 +15,7 @@ export default async function keywordSearch(keyword: string, from: number = 0, s
                   match_phrase: {
                     title: {
                       query: keyword,
-                      boost: 5
+                      boost: 15
                     }
                   }
                 },

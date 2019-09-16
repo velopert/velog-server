@@ -30,7 +30,8 @@ function serializePost(post: Post) {
       'views',
       'meta',
       'user',
-      'tags'
+      'tags',
+      'url_slug'
     ],
     post
   );
