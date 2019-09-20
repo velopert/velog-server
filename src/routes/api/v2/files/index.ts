@@ -1,5 +1,5 @@
 import Koa from 'koa';
-import Router from 'koa-router';
+import Router from '@koa/router';
 import Joi from 'joi';
 import { validateBody } from '../../../../lib/utils';
 import AWS from 'aws-sdk';

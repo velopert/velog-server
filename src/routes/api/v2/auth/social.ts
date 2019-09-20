@@ -1,4 +1,4 @@
-import Router from 'koa-router';
+import Router from '@koa/router';
 import { callbackify } from 'util';
 
 const social = new Router();

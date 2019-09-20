@@ -1,5 +1,5 @@
 import { Context } from 'koa';
-import Router from 'koa-router';
+import Router from '@koa/router';
 import Joi from 'joi';
 import social from './social';
 import { getRepository } from 'typeorm';

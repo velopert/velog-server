@@ -1,4 +1,4 @@
-import Router from 'koa-router';
+import Router from '@koa/router';
 import auth from './auth';
 import { consumeUser } from '../../../lib/token';
 import files from './files';
