@@ -274,10 +274,10 @@ auth.get('/check', async ctx => {
 });
 auth.post('/logout', async ctx => {
   // clears cookies
-  ctx.cookies.set('access_token', undefined, {
+  ctx.cookies.set('access_token', '', {
     domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
   });
-  ctx.cookies.set('refresh_token', undefined, {
+  ctx.cookies.set('refresh_token', '', {
     domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
   });
   ctx.status = 204;
