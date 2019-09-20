@@ -14,6 +14,7 @@ import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
 import esClient from '../search/esClient';
 import keywordSearch from '../search/keywordSearch';
+import searchSync from '../search/searchSync';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -52,7 +53,7 @@ export const typeDef = gql`
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String): [Post]
     trendingPosts(offset: Int, limit: Int): [Post]
-    searchPost(keyword: String!, offset: Int, limit: Int): SearchResult
+    searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
   }
   extend type Mutation {
     writePost(
@@ -61,10 +62,10 @@ export const typeDef = gql`
       tags: [String]
       is_markdown: Boolean
       is_temp: Boolean
+      is_private: Boolean
       url_slug: String
       thumbnail: String
       meta: JSON
-      is_private: Boolean
       series_id: ID
     ): Post
     editPost(
@@ -97,6 +98,7 @@ type WritePostArgs = {
   thumbnail: string | null;
   meta: any;
   series_id?: string;
+  is_private: boolean;
 };
 type EditPostArgs = WritePostArgs & {
   id: string;
@@ -319,11 +321,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       return ordered;
     },
-    searchPost: async (parent: any, { keyword, offset, limit = 20 }: any) => {
+    searchPosts: async (parent: any, { keyword, offset, limit = 20, username }: any, ctx) => {
       if (limit > 100) {
         throw new ApolloError('Limit is too big', 'BAD_REQUEST');
       }
-      const searchResult = await keywordSearch(keyword, offset, limit);
+
+      const searchResult = await keywordSearch({
+        keyword,
+        username,
+        from: offset,
+        size: limit,
+        signedUserId: ctx.user_id
+      });
 
       return searchResult;
       // const searchResult = await postsIndex.search({
@@ -355,6 +364,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.is_markdown = data.is_markdown;
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
+      post.is_private = data.is_private;
 
       let processedUrlSlug = escapeForUrl(data.url_slug);
       const urlSlugDuplicate = await postRepo.findOne({
@@ -393,6 +403,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       post.tags = tagsData;
+
+      searchSync.update(post.id);
       return post;
     },
     editPost: async (parent: any, args, ctx) => {
@@ -410,7 +422,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         thumbnail,
         series_id,
         url_slug,
-        tags
+        tags,
+        is_private
       } = args as EditPostArgs;
       const postRepo = getRepository(Post);
       const seriesRepo = getRepository(Series);
@@ -455,6 +468,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.is_markdown = is_markdown;
       post.meta = meta;
       post.thumbnail = thumbnail;
+      post.is_private = is_private;
 
       // TODO: if url_slug changes, create url_slug_alias
       let processedUrlSlug = escapeForUrl(url_slug);
@@ -474,6 +488,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
       await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
 
+      searchSync.update(post.id);
+
       return post;
     },
     removePost: async (parent: any, args, ctx) => {
@@ -491,10 +507,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const seriesPost = await seriesPostsRepo.findOne({
         fk_post_id: post.id
       });
+
       await postRepo.remove(post);
       if (seriesPost) {
         subtractIndexAfter(seriesPost.fk_series_id, seriesPost.index);
       }
+
+      searchSync.remove(id);
       return true;
     },
     likePost: async (parent: any, args, ctx) => {

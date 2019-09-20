@@ -1,7 +1,7 @@
 import Router from 'koa-router';
-import auth from './auth/auth';
+import auth from './auth';
 import { consumeUser } from '../../../lib/token';
-import files from './files/files';
+import files from './files';
 
 const v2 = new Router();
 

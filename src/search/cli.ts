@@ -4,8 +4,8 @@ import Post from '../entity/Post';
 import { classToPlain } from 'class-transformer';
 import inquirer from 'inquirer';
 import User from '../entity/User';
-import { pick } from 'ramda';
 import esClient from './esClient';
+import { serializePost } from './serializePost';
 
 async function initialize() {
   try {
@@ -14,44 +14,6 @@ async function initialize() {
   } catch (e) {
     console.log(e);
   }
-}
-
-function serializePost(post: Post) {
-  const picked = pick(
-    [
-      'id',
-      'title',
-      'body',
-      'thumbnail',
-      'user',
-      'is_private',
-      'released_at',
-      'likes',
-      'views',
-      'meta',
-      'user',
-      'tags',
-      'url_slug'
-    ],
-    post
-  );
-
-  return {
-    ...picked,
-    // _id: picked.id,
-    // objectID: picked.id,
-    body: picked.body.slice(0, 3500),
-    user: {
-      id: picked.user.id,
-      username: picked.user.username,
-      profile: {
-        id: picked.user.profile.id,
-        display_name: picked.user.profile.display_name,
-        thumbnail: picked.user.profile.thumbnail
-      }
-    },
-    tags: picked.tags.map(t => t.name)
-  };
 }
 
 async function syncAll() {
