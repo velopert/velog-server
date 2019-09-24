@@ -1,11 +1,11 @@
 import Router from '@koa/router';
-import { githubCallback, socialRedirect, getSocialProfile } from './social.ctrl';
+import { githubCallback, socialRedirect, getSocialProfile, socialRegister } from './social.ctrl';
 
 const social = new Router();
 
 /* LOGIN & REGISTER */
 social.post('/verify-social/:provider', async ctx => {});
-social.post('/register', async ctx => {});
+social.post('/register', socialRegister);
 social.post('/login/:provider', async ctx => {});
 
 /* Callback */

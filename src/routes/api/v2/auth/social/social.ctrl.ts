@@ -1,12 +1,14 @@
 import { getRepository } from 'typeorm';
 import SocialAccount from '../../../../../entity/SocialAccount';
 import { Middleware } from '@koa/router';
-import { generateToken, decodeToken } from '../../../../../lib/token';
+import { generateToken, decodeToken, setTokenCookie } from '../../../../../lib/token';
 import { getGithubAccessToken, getGithubProfile } from '../../../../../lib/social/github';
 import User from '../../../../../entity/User';
 import { SocialProvider, generateSocialLoginLink, SocialProfile } from '../../../../../lib/social';
 import Joi from 'joi';
 import { validateBody } from '../../../../../lib/utils';
+import UserProfile from '../../../../../entity/UserProfile';
+import VelogConfig from '../../../../../entity/VelogConfig';
 
 const { GITHUB_ID, GITHUB_SECRET } = process.env;
 
@@ -36,7 +38,7 @@ async function getSocialAccount(params: { uid: number; provider: SocialProvider 
  * POST /api/v2/auth/social/register
  * {
  *   form: {
- *     displayName,
+ *     display_name,
  *     username,
  *     short_bio
  *   }
@@ -102,7 +104,48 @@ export const socialRegister: Middleware = async ctx => {
       return;
     }
 
+    const userProfileRepo = getRepository(UserProfile);
+    const velogConfigRepo = getRepository(VelogConfig);
+
     // create user
+    const user = new User();
+    user.email = email;
+    user.is_certified = true;
+    user.username = username;
+    await userRepo.save(user);
+
+    // create profile
+    const profile = new UserProfile();
+    profile.fk_user_id = user.id;
+    profile.display_name = display_name;
+    profile.short_bio = short_bio;
+
+    if (decoded.profile.thumbnail) {
+      // download image
+      // create user image data
+      // upload image
+      // get link
+      // set profile
+    }
+
+    profile.thumbnail = decoded.profile.thumbnail;
+    await userProfileRepo.save(profile);
+
+    // create velog config
+    const velogConfig = new VelogConfig();
+    velogConfig.fk_user_id = user.id;
+    await velogConfigRepo.save(velogConfig);
+
+    const tokens = await user.generateUserToken();
+    setTokenCookie(ctx, tokens);
+    ctx.body = {
+      ...user,
+      profile,
+      tokens: {
+        access_token: tokens.accessToken,
+        refresh_token: tokens.refreshToken
+      }
+    };
     // create token
     // set token
     // return data

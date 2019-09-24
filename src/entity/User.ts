@@ -26,8 +26,8 @@ export default class User {
   username!: string;
 
   @Index()
-  @Column({ unique: true, length: 255 })
-  email!: string;
+  @Column({ unique: true, length: 255, nullable: true, type: 'varchar' })
+  email!: string | null;
 
   @Column('timestampz')
   @CreateDateColumn()

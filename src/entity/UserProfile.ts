@@ -26,8 +26,8 @@ export default class UserProfile {
   @Column({ length: 255 })
   short_bio!: string;
 
-  @Column({ length: 255, nullable: true })
-  thumbnail!: string;
+  @Column({ length: 255, nullable: true, type: 'varchar' })
+  thumbnail!: string | null;
 
   @Column('timestampz')
   @CreateDateColumn()
