@@ -9,6 +9,15 @@ import Joi from 'joi';
 import { validateBody } from '../../../../../lib/utils';
 import UserProfile from '../../../../../entity/UserProfile';
 import VelogConfig from '../../../../../entity/VelogConfig';
+import downloadFile from '../../../../../lib/downloadFile';
+import UserImage from '../../../../../entity/UserImage';
+import { generateUploadPath } from '../../files';
+import AWS from 'aws-sdk';
+
+const s3 = new AWS.S3({
+  region: 'ap-northeast-2',
+  signatureVersion: 'v4'
+});
 
 const { GITHUB_ID, GITHUB_SECRET } = process.env;
 
@@ -31,6 +40,38 @@ async function getSocialAccount(params: { uid: number; provider: SocialProvider 
     }
   });
   return socialAccount;
+}
+
+async function syncProfileImage(url: string, user: User) {
+  const result = await downloadFile(url);
+  // create userImage
+  const userImageRepo = getRepository(UserImage);
+  const userImage = new UserImage();
+  userImage.fk_user_id = user.id;
+  userImage.type = 'profile';
+  await userImageRepo.save(userImage);
+
+  // generate s3 path
+  const uploadPath = generateUploadPath({
+    id: userImage.id,
+    username: user.username,
+    type: 'profile'
+  });
+  const key = `${uploadPath}/social.${result.extension}`;
+
+  // upload
+  await s3
+    .upload({
+      Bucket: 's3.images.velog.io',
+      Key: key,
+      Body: result.stream,
+      ContentType: result.contentType
+    })
+    .promise();
+
+  result.cleanup();
+
+  return `https://images.velog.io/${key}`;
 }
 
 /**
@@ -121,14 +162,12 @@ export const socialRegister: Middleware = async ctx => {
     profile.short_bio = short_bio;
 
     if (decoded.profile.thumbnail) {
-      // download image
-      // create user image data
-      // upload image
-      // get link
-      // set profile
+      try {
+        const imageUrl = await syncProfileImage(decoded.profile.thumbnail, user);
+        profile.thumbnail = imageUrl;
+      } catch (e) {}
     }
 
-    profile.thumbnail = decoded.profile.thumbnail;
     await userProfileRepo.save(profile);
 
     // create velog config
@@ -192,6 +231,11 @@ export const githubCallback: Middleware = async ctx => {
 
     // Email exists -> Login
     if (user) {
+      const tokens = await user.generateUserToken();
+      setTokenCookie(ctx, tokens);
+      const redirectUrl =
+        process.env.NODE_ENV === 'development' ? 'https://localhost:3000/' : 'https://velog.io/';
+      ctx.redirect(encodeURI(redirectUrl));
       return;
     }
 
@@ -214,7 +258,7 @@ export const githubCallback: Middleware = async ctx => {
     const redirectUrl =
       process.env.NODE_ENV === 'development'
         ? 'https://localhost:3000/register?social=1'
-        : 'https://velog.io/register?social =1';
+        : 'https://velog.io/register?social=1';
     ctx.redirect(encodeURI(redirectUrl));
   } catch (e) {
     ctx.throw(500, e);
@@ -243,12 +287,13 @@ export const getSocialProfile: Middleware = async ctx => {
  */
 export const socialRedirect: Middleware = async ctx => {
   const { provider } = ctx.params;
+  const { next } = ctx.query;
   const validated = ['facebook', 'google', 'github'].includes(provider);
   if (!validated) {
     ctx.status = 400;
     return;
   }
 
-  const loginUrl = generateSocialLoginLink(provider);
+  const loginUrl = generateSocialLoginLink(provider, next);
   ctx.redirect(encodeURI(loginUrl));
 };

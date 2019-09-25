@@ -38,7 +38,7 @@ const generateSignedUrl = (path: string, filename: string) => {
   });
 };
 
-const generateUploadPath = ({
+export const generateUploadPath = ({
   id,
   type,
   username

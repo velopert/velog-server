@@ -9,9 +9,7 @@ social.post('/register', socialRegister);
 social.post('/login/:provider', async ctx => {});
 
 /* Callback */
-
 social.get('/callback/github', githubCallback);
-
 social.get('/callback/google', async () => {});
 social.get('/callback/facebook', async () => {});
 

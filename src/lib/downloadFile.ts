@@ -1,5 +1,4 @@
 import tmp from 'tmp';
-import shortid from 'shortid';
 import axios from 'axios';
 import mimeTypes from 'mime-types';
 import fs from 'fs';
@@ -21,12 +20,17 @@ export default async function downloadFile(url: string) {
     });
   });
 
+  const cleanup = () => {
+    tmpObject.removeCallback();
+  };
+
   const stream = fs.createReadStream(tmpObject.name);
   const stats = fs.statSync(tmpObject.name);
   return {
     stream,
     extension,
     contentType,
-    stats
+    stats,
+    cleanup
   };
 }
