@@ -1,5 +1,13 @@
 import Router from '@koa/router';
-import { githubCallback, socialRedirect, getSocialProfile, socialRegister } from './social.ctrl';
+import {
+  githubCallback,
+  socialRedirect,
+  getSocialProfile,
+  socialRegister,
+  facebookCallback,
+  socialCallback,
+  googleCallback
+} from './social.ctrl';
 
 const social = new Router();
 
@@ -9,9 +17,9 @@ social.post('/register', socialRegister);
 social.post('/login/:provider', async ctx => {});
 
 /* Callback */
-social.get('/callback/github', githubCallback);
-social.get('/callback/google', async () => {});
-social.get('/callback/facebook', async () => {});
+social.get('/callback/github', githubCallback, socialCallback);
+social.get('/callback/google', googleCallback, socialCallback);
+social.get('/callback/facebook', facebookCallback, socialCallback);
 
 /* Login Token */
 social.get('/profile', getSocialProfile);

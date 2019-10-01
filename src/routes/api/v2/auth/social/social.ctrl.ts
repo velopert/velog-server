@@ -4,7 +4,12 @@ import { Middleware } from '@koa/router';
 import { generateToken, decodeToken, setTokenCookie } from '../../../../../lib/token';
 import { getGithubAccessToken, getGithubProfile } from '../../../../../lib/social/github';
 import User from '../../../../../entity/User';
-import { SocialProvider, generateSocialLoginLink, SocialProfile } from '../../../../../lib/social';
+import {
+  SocialProvider,
+  generateSocialLoginLink,
+  SocialProfile,
+  redirectUri
+} from '../../../../../lib/social';
 import Joi from 'joi';
 import { validateBody } from '../../../../../lib/utils';
 import UserProfile from '../../../../../entity/UserProfile';
@@ -13,16 +18,33 @@ import downloadFile from '../../../../../lib/downloadFile';
 import UserImage from '../../../../../entity/UserImage';
 import { generateUploadPath } from '../../files';
 import AWS from 'aws-sdk';
+import { getFacebookAccessToken, getFacebookProfile } from '../../../../../lib/social/facebook';
+import { getGoogleAccessToken, getGoogleProfile } from '../../../../../lib/social/google';
 
 const s3 = new AWS.S3({
   region: 'ap-northeast-2',
   signatureVersion: 'v4'
 });
 
-const { GITHUB_ID, GITHUB_SECRET } = process.env;
+const {
+  GITHUB_ID,
+  GITHUB_SECRET,
+  FACEBOOK_ID,
+  FACEBOOK_SECRET,
+  GOOGLE_ID,
+  GOOGLE_SECRET
+} = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
-  throw new Error('GITHUB_ID, GITHUB_SECRET ENVVAR IS MISSING');
+  throw new Error('GITHUB ENVVAR IS MISSING');
+}
+
+if (!FACEBOOK_ID || !FACEBOOK_SECRET) {
+  throw new Error('FACEBOOK ENVVAR is missing');
+}
+
+if (!GOOGLE_ID || !GOOGLE_SECRET) {
+  throw new Error('GOOGLE ENVVAR is missing');
 }
 
 type SocialRegisterToken = {
@@ -31,7 +53,7 @@ type SocialRegisterToken = {
   accessToken: string;
 };
 
-async function getSocialAccount(params: { uid: number; provider: SocialProvider }) {
+async function getSocialAccount(params: { uid: number | string; provider: SocialProvider }) {
   const socialAccountRepo = getRepository(SocialAccount);
   const socialAccount = await socialAccountRepo.findOne({
     where: {
@@ -132,8 +154,8 @@ export const socialRegister: Middleware = async ctx => {
     // check duplicates
     const exists = await userRepo
       .createQueryBuilder()
-      .where('(email = :email OR username = :username)', { email, username })
-      .andWhere('email != null')
+      .where('username = :username', { username })
+      .orWhere('email = :email AND email != null', { email })
       .getOne();
 
     if (exists) {
@@ -154,6 +176,16 @@ export const socialRegister: Middleware = async ctx => {
     user.is_certified = true;
     user.username = username;
     await userRepo.save(user);
+
+    // create social account
+    const socialAccount = new SocialAccount();
+    socialAccount.access_token = decoded.accessToken;
+    socialAccount.provider = decoded.provider;
+    socialAccount.fk_user_id = user.id;
+    socialAccount.social_id = decoded.profile.uid.toString();
+
+    const socialAccountRepo = getRepository(SocialAccount);
+    await socialAccountRepo.save(socialAccount);
 
     // create profile
     const profile = new UserProfile();
@@ -194,7 +226,7 @@ export const socialRegister: Middleware = async ctx => {
 /**
  * /api/v2/auth/social/callback/github
  */
-export const githubCallback: Middleware = async ctx => {
+export const githubCallback: Middleware = async (ctx, next) => {
   const { code }: { code?: string } = ctx.query;
   if (!code) {
     ctx.status = 400;
@@ -212,22 +244,116 @@ export const githubCallback: Middleware = async ctx => {
       provider: 'github'
     });
 
+    ctx.state.profile = profile;
+    ctx.state.socialAccount = socialAccount;
+    ctx.state.accessToken = accessToken;
+    ctx.state.provider = 'github';
+    return next();
+  } catch (e) {
+    ctx.throw(500, e);
+  }
+};
+
+/**
+ * /api/v2/auth/social/callback/google
+ */
+export const googleCallback: Middleware = async (ctx, next) => {
+  const { code }: { code?: string } = ctx.query;
+  if (!code) {
+    ctx.status = 400;
+    return;
+  }
+  try {
+    const accessToken = await getGoogleAccessToken({
+      code,
+      clientId: GOOGLE_ID,
+      clientSecret: GOOGLE_SECRET,
+      redirectUri: `${redirectUri}google`
+    });
+    const profile = await getGoogleProfile(accessToken);
+    const socialAccount = await getSocialAccount({
+      uid: profile.uid,
+      provider: 'google'
+    });
+
+    ctx.state.profile = profile;
+    ctx.state.socialAccount = socialAccount;
+    ctx.state.accessToken = accessToken;
+    ctx.state.provider = 'google';
+    return next();
+  } catch (e) {
+    ctx.throw(500, e);
+  }
+};
+
+/**
+ * /api/v2/auth/social/callback/facebook
+ */
+export const facebookCallback: Middleware = async (ctx, next) => {
+  const { code } = ctx.query;
+  if (!code) {
+    ctx.status = 401;
+    return;
+  }
+
+  // get token
+  try {
+    const accessToken = await getFacebookAccessToken({
+      code,
+      clientId: FACEBOOK_ID,
+      clientSecret: FACEBOOK_SECRET,
+      redirectUri: `${redirectUri}facebook`
+    });
+    const profile = await getFacebookProfile(accessToken);
+    const socialAccount = await getSocialAccount({
+      uid: profile.uid,
+      provider: 'facebook'
+    });
+
+    ctx.state.profile = profile;
+    ctx.state.socialAccount = socialAccount;
+    ctx.state.accessToken = accessToken;
+    ctx.state.provider = 'facebook';
+    return next();
+  } catch (e) {
+    ctx.throw(500, e);
+  }
+};
+
+export const socialCallback: Middleware = async ctx => {
+  try {
+    const { profile, socialAccount, accessToken, provider } = ctx.state as {
+      profile: SocialProfile;
+      socialAccount: SocialAccount | undefined;
+      accessToken: string;
+      provider: SocialProvider;
+    };
+
+    if (!profile || !accessToken) return;
     // SocialAccount already exists in db
+    const userRepo = getRepository(User);
     if (socialAccount) {
       // login process
+      const user = await userRepo.findOne(socialAccount.fk_user_id);
+      if (!user) {
+        throw new Error('User is missing');
+      }
+      const tokens = await user.generateUserToken();
+      setTokenCookie(ctx, tokens);
+      const redirectUrl =
+        process.env.NODE_ENV === 'development' ? 'https://localhost:3000/' : 'https://velog.io/';
+
+      ctx.redirect(encodeURI(redirectUrl));
       return;
     }
 
-    // SocialAccount has no email -> Register
-    if (!profile.email) {
-      return;
+    // Find by email ONLY when email exists
+    let user: User | undefined = undefined;
+    if (profile.email) {
+      user = await userRepo.findOne({
+        email: profile.email
+      });
     }
-
-    // Checking Email
-    const userRepo = getRepository(User);
-    const user = await userRepo.findOne({
-      email: profile.email
-    });
 
     // Email exists -> Login
     if (user) {
@@ -236,6 +362,8 @@ export const githubCallback: Middleware = async ctx => {
       const redirectUrl =
         process.env.NODE_ENV === 'development' ? 'https://localhost:3000/' : 'https://velog.io/';
       ctx.redirect(encodeURI(redirectUrl));
+      console.log('user');
+      console.log(encodeURI(redirectUrl));
       return;
     }
 
@@ -243,7 +371,7 @@ export const githubCallback: Middleware = async ctx => {
     const registerTokenInfo = {
       profile,
       accessToken,
-      provider: 'github'
+      provider
     };
 
     const registerToken = await generateToken(registerTokenInfo, {
@@ -264,7 +392,6 @@ export const githubCallback: Middleware = async ctx => {
     ctx.throw(500, e);
   }
 };
-
 export const getSocialProfile: Middleware = async ctx => {
   const registerToken = ctx.cookies.get('register_token');
   if (!registerToken) {
@@ -295,5 +422,5 @@ export const socialRedirect: Middleware = async ctx => {
   }
 
   const loginUrl = generateSocialLoginLink(provider, next);
-  ctx.redirect(encodeURI(loginUrl));
+  ctx.redirect(loginUrl);
 };

@@ -17,7 +17,9 @@ export const generateToken = (payload: any, options?: SignOptions): Promise<stri
     expiresIn: '7d',
     ...options
   };
+
   if (!jwtOptions.expiresIn) {
+    // removes expiresIn when expiresIn is given as undefined
     delete jwtOptions.expiresIn;
   }
   return new Promise((resolve, reject) => {
