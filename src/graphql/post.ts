@@ -1,7 +1,7 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import { getRepository, getManager, getConnectionManager } from 'typeorm';
+import { getRepository, getManager } from 'typeorm';
 import PostScore from '../entity/PostScore';
 import { normalize, escapeForUrl } from '../lib/utils';
 import removeMd from 'remove-markdown';
@@ -12,9 +12,10 @@ import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
 import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
-import esClient from '../search/esClient';
 import keywordSearch from '../search/keywordSearch';
 import searchSync from '../search/searchSync';
+import PostHistory from '../entity/PostHistory';
+import User from '../entity/User';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -49,9 +50,17 @@ export const typeDef = gql`
     count: Int
     posts: [Post]
   }
+  type PostHistory {
+    id: ID
+    fk_post_id: ID
+    title: String
+    body: String
+    is_markdown: Boolean
+    created_at: Date
+  }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
-    posts(cursor: ID, limit: Int, username: String): [Post]
+    posts(cursor: ID, limit: Int, username: String, temp_only: Boolean): [Post]
     trendingPosts(offset: Int, limit: Int): [Post]
     searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
   }
@@ -81,12 +90,26 @@ export const typeDef = gql`
       is_private: Boolean
       series_id: ID
     ): Post
+    createPostHistory(
+      post_id: ID!
+      title: String!
+      body: String!
+      is_markdown: Boolean!
+    ): PostHistory
 
     removePost(id: ID!): Boolean
     likePost(id: ID!): Post
     unlikePost(id: ID!): Post
   }
 `;
+
+// cursor: ID, limit: Int, username: String, temp_only: Boolean
+type PostsArgs = {
+  cursor?: string;
+  limit?: number;
+  username?: string;
+  temp_only?: boolean;
+};
 
 type WritePostArgs = {
   title: string;
@@ -99,6 +122,13 @@ type WritePostArgs = {
   meta: any;
   series_id?: string;
   is_private: boolean;
+};
+
+type CreatePostHistoryArgs = {
+  post_id: string;
+  title: string;
+  body: string;
+  is_markdown: boolean;
 };
 type EditPostArgs = WritePostArgs & {
   id: string;
@@ -260,19 +290,37 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         console.log(e);
       }
     },
-    posts: async (parent: any, { cursor, limit = 20, username }: any, context: any) => {
+    posts: async (parent: any, { cursor, limit = 20, username, temp_only }: PostsArgs, context) => {
       const query = getManager()
         .createQueryBuilder(Post, 'post')
         .limit(limit)
         .orderBy('post.released_at', 'DESC')
         .addOrderBy('post.id', 'DESC')
         .leftJoinAndSelect('post.user', 'user')
-        .where('post.is_temp = false AND is_private = false');
+        .where('is_private = false');
+
+      if (temp_only) {
+        if (!username) throw new ApolloError('username is missing', 'BAD_REQUEST');
+        const userRepo = getRepository(User);
+        const user = await userRepo.findOne({
+          where: {
+            username
+          }
+        });
+        if (!user) throw new ApolloError('Invalid username', 'NOT_FOUND');
+        if (user.id !== context.user_id) {
+          throw new ApolloError('You have no permission to load temp posts', 'NO_PERMISSION');
+        }
+        query.andWhere('is_temp = true');
+      } else {
+        query.andWhere('is_temp = false');
+      }
 
       if (username) {
         query.andWhere('user.username = :username', { username });
       }
 
+      // pagination
       if (cursor) {
         const post = await getRepository(Post).findOne({
           id: cursor
@@ -290,6 +338,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         });
       }
 
+      // show private posts
       if (context.user_id) {
         query.orWhere('post.is_private = true and post.fk_user_id = :user_id', {
           user_id: context.user_id
@@ -335,22 +384,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       });
 
       return searchResult;
-      // const searchResult = await postsIndex.search({
-      //   offset,
-      //   query: keyword,
-      //   length: 20
-      // });
-      // return {
-      //   count: searchResult.nbHits,
-      //   posts: searchResult.hits
-      // };
     }
   },
   Mutation: {
     writePost: async (parent: any, args, ctx) => {
       const postRepo = getRepository(Post);
       const seriesRepo = getRepository(Series);
-      const seriesPostsRepo = getRepository(SeriesPosts);
 
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
@@ -382,7 +421,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // Check series
       let series: Series | undefined;
-      if (data.series_id) {
+      if (data.series_id && !data.is_temp) {
         series = await seriesRepo.findOne(data.series_id);
         if (!series) {
           throw new ApolloError('Series not found', 'NOT_FOUND');
@@ -398,14 +437,64 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       PostsTags.syncPostTags(post.id, tagsData);
 
       // Link to series
-      if (data.series_id) {
+      if (data.series_id && !data.is_temp) {
         appendToSeries(data.series_id, post.id);
       }
 
       post.tags = tagsData;
 
-      searchSync.update(post.id);
+      if (!data.is_temp) {
+        searchSync.update(post.id);
+      }
+
       return post;
+    },
+    createPostHistory: async (parent: any, args: CreatePostHistoryArgs, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+
+      // check ownPost
+      const { post_id, title, body, is_markdown } = args;
+
+      const postRepo = getRepository(Post);
+      const post = await postRepo.findOne(post_id);
+
+      if (!post) {
+        throw new ApolloError('Post not found', 'NOT_FOUND');
+      }
+      if (post.fk_user_id !== ctx.user_id) {
+        throw new ApolloError('This post is not yours', 'NO_PERMISSION');
+      }
+
+      // create postHistory
+      const postHistoryRepo = getRepository(PostHistory);
+      const postHistory = new PostHistory();
+      Object.assign(postHistory, { title, body, is_markdown, fk_post_id: post_id });
+
+      await postHistoryRepo.save(postHistory);
+
+      const [data, count] = await postHistoryRepo.findAndCount({
+        where: {
+          fk_post_id: post_id
+        },
+        order: {
+          created_at: 'DESC'
+        }
+      });
+
+      if (count > 10) {
+        await postHistoryRepo
+          .createQueryBuilder('post_history')
+          .delete()
+          .where('fk_post_id = :postId', {
+            postId: post_id
+          })
+          .andWhere('created_at < :createdAt', { createdAt: data[9].created_at })
+          .execute();
+      }
+
+      return postHistory;
     },
     editPost: async (parent: any, args, ctx) => {
       if (!ctx.user_id) {

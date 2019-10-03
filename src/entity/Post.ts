@@ -80,9 +80,6 @@ export default class Post {
   @UpdateDateColumn()
   updated_at!: Date;
 
-  @Column('tsvector')
-  tsv!: any;
-
   @OneToMany(type => Comment, comment => comment.post)
   comments!: Comment[];
 
