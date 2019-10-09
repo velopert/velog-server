@@ -35,6 +35,7 @@ export default class PostHistory {
   @Column()
   is_markdown!: boolean;
 
+  @Index()
   @Column('timestampz')
   @CreateDateColumn()
   created_at!: Date;

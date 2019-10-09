@@ -63,6 +63,8 @@ export const typeDef = gql`
     posts(cursor: ID, limit: Int, username: String, temp_only: Boolean): [Post]
     trendingPosts(offset: Int, limit: Int): [Post]
     searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
+    postHistories(post_id: ID): [PostHistory]
+    lastPostHistory(post_id: ID!): PostHistory
   }
   extend type Mutation {
     writePost(
@@ -384,6 +386,30 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       });
 
       return searchResult;
+    },
+    postHistories: async (parent: any, { post_id }: { post_id: string }, ctx) => {
+      const postHistoryRepo = getRepository(PostHistory);
+      const postHistories = await postHistoryRepo.find({
+        where: {
+          fk_post_id: post_id
+        },
+        order: {
+          created_at: 'DESC'
+        }
+      });
+      return postHistories;
+    },
+    lastPostHistory: async (parent: any, { post_id }: { post_id: string }, ctx) => {
+      const postHistoryRepo = getRepository(PostHistory);
+      const postHistory = await postHistoryRepo.findOne({
+        where: {
+          fk_post_id: post_id
+        },
+        order: {
+          created_at: 'DESC'
+        }
+      });
+      return postHistory;
     }
   },
   Mutation: {
@@ -529,6 +555,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const prevSeriesPost = await seriesPostsRepo.findOne({
         fk_post_id: post.id
       });
+
+      if (!prevSeriesPost && series_id) {
+        await appendToSeries(series_id, post.id);
+      }
 
       if (prevSeriesPost && prevSeriesPost.fk_series_id !== series_id) {
         if (series_id) {
