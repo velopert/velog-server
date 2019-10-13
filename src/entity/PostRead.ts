@@ -12,19 +12,24 @@ import {
 import Post from './Post';
 import User from './User';
 
-@Entity('post_likes', {
+@Entity('post_reads', {
   synchronize: false
 })
-@Index(['fk_post_id', 'fk_user_id'], { unique: true })
-export default class PostLike {
+export default class PostRead {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column('uuid')
-  fk_user_id!: string;
+  @Column('uuid', {
+    nullable: true
+  })
+  fk_user_id!: string | null;
 
   @Column('uuid')
   fk_post_id!: string;
+
+  @Index()
+  @Column({ length: 255 })
+  ip_hash!: string;
 
   @Column('timestampz')
   @CreateDateColumn()

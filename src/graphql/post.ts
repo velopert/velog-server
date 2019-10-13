@@ -16,6 +16,8 @@ import keywordSearch from '../search/keywordSearch';
 import searchSync from '../search/searchSync';
 import PostHistory from '../entity/PostHistory';
 import User from '../entity/User';
+import PostRead from '../entity/PostRead';
+import hash from '../lib/hash';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -102,6 +104,7 @@ export const typeDef = gql`
     removePost(id: ID!): Boolean
     likePost(id: ID!): Post
     unlikePost(id: ID!): Post
+    postView(id: ID!): Boolean
   }
 `;
 
@@ -724,6 +727,24 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       await postRepo.save(post);
 
       return post;
+    },
+    postView: async (parent: any, { id }: { id: string }, ctx) => {
+      const postReadRepo = getRepository(PostRead);
+      const ipHash = hash(ctx.ip);
+      const viewed = postReadRepo
+        .createQueryBuilder('post_read')
+        .where('ip_hash = :hash', { hash })
+        .andWhere('fk_post_id = :postId', { postId: id })
+        .andWhere('created_at > :date', { date: Date.now() - 24 * 60 * 60 * 1000 })
+        .getOne();
+      if (viewed) return false;
+      const postRead = new PostRead();
+      postRead.fk_post_id = id;
+      postRead.fk_user_id = ctx.user_id;
+      await postReadRepo.save(postRead);
+
+      // TODO: increase 1 view to the post
+      return true;
     }
   }
 };

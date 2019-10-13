@@ -21,6 +21,7 @@ if (process.env.NODE_ENV === 'development') {
 export type ApolloContext = {
   user_id: string | null;
   loaders: Loaders;
+  ip: string;
 };
 
 const apollo = new ApolloServer({
@@ -30,7 +31,8 @@ const apollo = new ApolloServer({
       // await consumeUser(ctx);
       return {
         user_id: ctx.state.user_id,
-        loaders: createLoaders()
+        loaders: createLoaders(),
+        ip: ctx.request.ip
       };
     } catch (e) {
       return {};
