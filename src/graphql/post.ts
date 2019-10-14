@@ -746,7 +746,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       await postReadRepo.save(postRead);
 
       const postRepo = getRepository(Post);
-      postRepo
+      const result = await postRepo
         .createQueryBuilder()
         .update()
         .set({
@@ -754,6 +754,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         })
         .where('id = :id', { id })
         .execute();
+
+      const post = await postRepo.findOne(id);
+      if (!post) return false;
+
+      const postScoreRepo = getRepository(PostScore);
+      if (post.views % 10 === 0) {
+        const score = new PostScore();
+        score.fk_post_id = id;
+        score.type = 'READ';
+        score.score = 0.75;
+        postScoreRepo.save(score);
+      }
 
       return true;
     }
