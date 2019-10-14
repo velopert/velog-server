@@ -731,19 +731,30 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     postView: async (parent: any, { id }: { id: string }, ctx) => {
       const postReadRepo = getRepository(PostRead);
       const ipHash = hash(ctx.ip);
-      const viewed = postReadRepo
+
+      const viewed = await postReadRepo
         .createQueryBuilder('post_read')
-        .where('ip_hash = :hash', { hash })
+        .where('ip_hash = :ipHash', { ipHash })
         .andWhere('fk_post_id = :postId', { postId: id })
-        .andWhere('created_at > :date', { date: Date.now() - 24 * 60 * 60 * 1000 })
+        .andWhere("created_at > (NOW() - INTERVAL '24 HOURS')")
         .getOne();
       if (viewed) return false;
       const postRead = new PostRead();
       postRead.fk_post_id = id;
       postRead.fk_user_id = ctx.user_id;
+      postRead.ip_hash = ipHash;
       await postReadRepo.save(postRead);
 
-      // TODO: increase 1 view to the post
+      const postRepo = getRepository(Post);
+      postRepo
+        .createQueryBuilder()
+        .update()
+        .set({
+          views: () => 'views + 1'
+        })
+        .where('id = :id', { id })
+        .execute();
+
       return true;
     }
   }
