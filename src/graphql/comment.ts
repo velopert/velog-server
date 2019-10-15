@@ -3,6 +3,7 @@ import { gql, IResolvers, AuthenticationError, ApolloError } from 'apollo-server
 import Comment from '../entity/Comment';
 import { getRepository } from 'typeorm';
 import Post from '../entity/Post';
+import PostScore from '../entity/PostScore';
 
 export const typeDef = gql`
   type Comment {
@@ -129,11 +130,21 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       comment.fk_post_id = post_id;
 
       await commentRepo.save(comment);
+
+      const postScoreRepo = getRepository(PostScore);
+      const score = new PostScore();
+      score.fk_post_id = post_id;
+      score.fk_user_id = ctx.user_id;
+      score.score = 1;
+      score.type = 'COMMENT';
+      postScoreRepo.save(score);
+
       return comment;
     },
     removeComment: async (parent: any, { id }: any, ctx) => {
       const commentRepo = getRepository(Comment);
       const comment = await commentRepo.findOne(id);
+
       if (!comment) {
         throw new ApolloError('Comment not found');
       }
@@ -143,8 +154,23 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (ctx.user_id !== comment.fk_user_id) {
         throw new ApolloError('No permission');
       }
+
       comment.deleted = true;
       await commentRepo.save(comment);
+
+      const postScoreRepo = getRepository(PostScore);
+      const score = await postScoreRepo
+        .createQueryBuilder()
+        .where('fk_post_id = :postId', { postId: comment.fk_post_id })
+        .andWhere('fk_user_id = :userId', { userId: ctx.user_id })
+        .andWhere("type = 'COMMENT'")
+        .orderBy('created_at', 'DESC')
+        .getOne();
+
+      if (score) {
+        postScoreRepo.delete(score.id);
+      }
+
       return true;
     },
     editComment: async (parent: any, { id, text }: any, ctx) => {

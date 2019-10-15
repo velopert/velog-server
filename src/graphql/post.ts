@@ -685,6 +685,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       await postRepo.save(post);
 
+      const postScoreRepo = getRepository(PostScore);
+      const score = new PostScore();
+      score.type = 'LIKE';
+      score.fk_post_id = args.id;
+      score.score = 5;
+      score.fk_user_id = ctx.user_id;
+      postScoreRepo.save(score);
+
       return post;
     },
     unlikePost: async (parent: any, args, ctx) => {
@@ -726,6 +734,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       await postRepo.save(post);
 
+      const postScoreRepo = getRepository(PostScore);
+      postScoreRepo
+        .createQueryBuilder()
+        .delete()
+        .where('fk_post_id = :postId', { postId: args.id })
+        .andWhere('fk_user_id = :userId', { userId: ctx.user_id })
+        .andWhere("type = 'LIKE'")
+        .execute();
+
       return post;
     },
     postView: async (parent: any, { id }: { id: string }, ctx) => {
@@ -746,7 +763,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       await postReadRepo.save(postRead);
 
       const postRepo = getRepository(Post);
-      const result = await postRepo
+      await postRepo
         .createQueryBuilder()
         .update()
         .set({

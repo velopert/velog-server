@@ -28,6 +28,7 @@ export default class PostScore {
   @Column('uuid')
   fk_post_id!: string;
 
+  @Index()
   @Column('timestampz')
   @CreateDateColumn()
   created_at!: Date;
