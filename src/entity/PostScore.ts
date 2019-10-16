@@ -22,9 +22,11 @@ export default class PostScore {
   @Column({ length: 255 })
   type!: string;
 
+  @Index()
   @Column('uuid')
   fk_user_id!: string;
 
+  @Index()
   @Column('uuid')
   fk_post_id!: string;
 
