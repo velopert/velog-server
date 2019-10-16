@@ -63,7 +63,7 @@ export const typeDef = gql`
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String, temp_only: Boolean): [Post]
-    trendingPosts(offset: Int, limit: Int): [Post]
+    trendingPosts(offset: Int, limit: Int, timeframe: String): [Post]
     searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
     postHistories(post_id: ID): [PostHistory]
     lastPostHistory(post_id: ID!): PostHistory
@@ -352,12 +352,19 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const posts = await query.getMany();
       return posts;
     },
-    trendingPosts: async (parent: any, { offset = 0, limit = 20 }) => {
+    trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'week' }) => {
+      const timeframes: [string, number][] = [['day', 1], ['week', 7], ['month', 30]];
+      const selectedTimeframe = timeframes.find(([text]) => text === timeframe);
+      if (!selectedTimeframe) {
+        throw new ApolloError('Invalid timeframe', 'BAD_REQUEST');
+      }
+      const interval = selectedTimeframe[1];
+
       const query = getRepository(PostScore)
         .createQueryBuilder()
         .select('fk_post_id')
         .addSelect('SUM(score)', 'score')
-        .where('created_at > now()::DATE - 14 AND fk_post_id IS NOT NULL')
+        .where(`created_at > now()::DATE - ${interval} AND fk_post_id IS NOT NULL`)
         .groupBy('fk_post_id')
         .orderBy('score', 'DESC')
         .addOrderBy('fk_post_id', 'DESC')
