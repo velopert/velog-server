@@ -30,6 +30,20 @@ export default class Tag {
   @UpdateDateColumn()
   updated_at!: Date;
 
+  @Column({ length: 255, nullable: true, type: 'varchar' })
+  description!: string | null;
+
+  @Column({ length: 255, nullable: true, type: 'varchar' })
+  thumbnail!: string | null;
+
+  @Index()
+  @Column({ length: 255 })
+  name_filtered!: string;
+
+  @Index()
+  @Column({ default: false })
+  is_alias!: boolean;
+
   static findByName(name: string) {
     const repo = getRepository(Tag);
     return repo
