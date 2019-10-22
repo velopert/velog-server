@@ -8,12 +8,22 @@ import {
   OneToOne,
   JoinColumn,
   ManyToOne,
-  getRepository
+  getRepository,
+  getManager
 } from 'typeorm';
 import Tag from './Tag';
 import Post from './Post';
 import DataLoader from 'dataloader';
 import { groupById, normalize } from '../lib/utils';
+
+type RawTagData = {
+  id: string;
+  name: string;
+  description: string;
+  thumbnail: string;
+  created_at: string;
+  posts_count: string;
+};
 
 @Entity('posts_tags', {
   synchronize: false
@@ -74,6 +84,105 @@ export default class PostsTags {
       return postTag;
     });
     return repo.save(postTags);
+  }
+
+  static async getPostsCount(tagId: string): Promise<number> {
+    const rawData = await getManager().query(
+      `select COUNT(fk_post_id) as posts_count from posts_tags
+    inner join posts on posts.id = fk_post_id
+    where posts.is_private = false
+    and posts.is_temp = false
+    and fk_tag_id = $1`,
+      [tagId]
+    );
+    if (rawData.length === 0) return 0;
+    return rawData[0].posts_count;
+  }
+
+  static async getTags(cursor?: string): Promise<RawTagData> {
+    const cursorTag = cursor ? await getRepository(Tag).findOne(cursor) : null;
+
+    const manager = getManager();
+    if (!cursor) {
+      const tags = await manager.query(`
+      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+        select fk_tag_id,  COUNT(fk_post_id) as posts_count from posts_tags
+        inner join tags on tags.id = fk_tag_id
+        inner join posts on posts.id = fk_post_id
+        where posts.is_private = false
+        and posts.is_temp = false
+        and tags.is_alias = false
+        group by fk_tag_id
+      ) as q1
+      inner join tags on q1.fk_tag_id = tags.id
+      order by tags.name
+      LIMIT 50`);
+      return tags;
+    }
+
+    if (!cursorTag) {
+      throw new Error('Invalid tag');
+    }
+
+    const tags = await manager.query(
+      `
+      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+        select fk_tag_id,  COUNT(fk_post_id) as posts_count from posts_tags
+        inner join tags on tags.id = fk_tag_id
+        inner join posts on posts.id = fk_post_id
+        where posts.is_private = false
+        and posts.is_temp = false
+        and tags.is_alias = false
+        group by fk_tag_id
+      ) as q1
+      inner join tags on q1.fk_tag_id = tags.id
+      where tags.name > $1
+      order by tags.name
+      LIMIT 50`,
+      [cursorTag.name]
+    );
+    return tags;
+  }
+
+  static async getTrendingTags(cursor?: string): Promise<RawTagData> {
+    const cursorPostsCount = cursor ? await this.getPostsCount(cursor) : 0;
+    const manager = getManager();
+    if (!cursor) {
+      const tags = await manager.query(`select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+                  select fk_tag_id, COUNT(fk_post_id) as posts_count from posts_tags
+                  inner join tags on tags.id = fk_tag_id
+                  inner join posts on posts.id = fk_post_id
+                  where posts.is_private = false
+                  and posts.is_temp = false
+                  and tags.is_alias = false
+                  group by fk_tag_id
+                ) as q1
+                inner join tags on q1.fk_tag_id = tags.id
+                order by posts_count desc, tags.id
+                LIMIT 50`);
+      return tags;
+    }
+
+    const tags = await manager.query(
+      `
+      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+        select fk_tag_id,  COUNT(fk_post_id) as posts_count from posts_tags
+        inner join tags on tags.id = fk_tag_id
+        inner join posts on posts.id = fk_post_id
+        where posts.is_private = false
+        and posts.is_temp = false
+        and tags.is_alias = false
+        group by fk_tag_id
+      ) as q1
+      inner join tags on q1.fk_tag_id = tags.id
+      where posts_count <= $2
+      and id != $1
+      and not (id < $1 and posts_count = $2)
+      order by posts_count desc, tags.id
+      LIMIT 50`,
+      [cursor, cursorPostsCount]
+    );
+    return tags;
   }
 }
 
