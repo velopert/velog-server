@@ -20,14 +20,6 @@ export default class TagAlias {
   id!: string;
 
   @Index()
-  @Column({ length: 255 })
-  name!: string;
-
-  @Index()
-  @Column({ length: 255 })
-  name_filtered!: string;
-
-  @Index()
   @Column('uuid')
   fk_tag_id!: string;
 

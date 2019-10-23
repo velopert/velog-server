@@ -40,7 +40,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       { sort, cursor }: { sort: 'alphabetical' | 'trending'; cursor?: string },
       ctx
     ) => {
-      if (!['name', 'alphabetical'].includes(sort)) {
+      if (!['trending', 'alphabetical'].includes(sort)) {
         throw new ApolloError('Invalid variable "sort"', 'BAD_REQUEST');
       }
 
@@ -75,8 +75,21 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError(`Tag ${merge_to} is not found`, 'NOT_FOUND');
       }
 
-      // 1. update all PostsTags selected -> merge_to
+      // 0.5 find posts where two tags exist
+      const intersectionPosts = await PostsTags.getInstersectionPost(selected, merge_to);
+
+      // 0.75 remove selected tag from those posts
       const postsTagsRepo = getRepository(PostsTags);
+      if (intersectionPosts.length > 0) {
+        await postsTagsRepo
+          .createQueryBuilder()
+          .delete()
+          .where('fk_tag_id = :tagId', { tagId: selected })
+          .andWhere('fk_post_id IN (:...postIds)', { postIds: intersectionPosts })
+          .execute();
+      }
+
+      // 1. update all PostsTags selected -> merge_to
 
       await postsTagsRepo
         .createQueryBuilder()
@@ -89,12 +102,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // 2. update selected Tag: is_alias -> true
       selectedTag.is_alias = true;
-      postsTagsRepo.save(selectedTag);
+      await postsTagsRepo.save(selectedTag);
 
       // 3. create TagAlias
-      // const tagAliasRepo = getRepository(TagAlias);
-      // const tagAlias = new TagAlias();
-      // tagAlias.fk_tag_id = selected;
+      const tagAliasRepo = getRepository(TagAlias);
+      const tagAlias = new TagAlias();
+      tagAlias.fk_tag_id = selected;
+      tagAlias.fk_alias_tag_id = merge_to;
+      await tagAliasRepo.save(tagAlias);
+
+      return true;
     }
   }
 };

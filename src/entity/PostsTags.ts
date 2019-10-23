@@ -184,6 +184,22 @@ export default class PostsTags {
     );
     return tags;
   }
+
+  static async getInstersectionPost(t1: string, t2: string) {
+    const manager = getManager();
+    const data = await manager.query(
+      `
+      select fk_post_id from (
+        select fk_post_id, count(fk_post_id) from posts_tags 
+        where fk_tag_id in ($1, $2)
+        group by fk_post_id
+      ) as q1
+      where count = 2
+    `,
+      [t1, t2]
+    );
+    return data.map((row: any) => row.fk_post_id) as string[];
+  }
 }
 
 export const createTagsLoader = () =>
