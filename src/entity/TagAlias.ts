@@ -31,9 +31,17 @@ export default class TagAlias {
   @Column('uuid')
   fk_tag_id!: string;
 
+  @Index()
+  @Column('uuid')
+  fk_alias_tag_id!: string;
+
   @ManyToOne(type => Tag, { cascade: true, eager: true })
   @JoinColumn({ name: 'fk_tag_id' })
   tag!: Tag;
+
+  @ManyToOne(type => Tag, { cascade: true, eager: true })
+  @JoinColumn({ name: 'fk_tag_id' })
+  aliasTag!: Tag;
 
   @Column('timestampz')
   @CreateDateColumn()
