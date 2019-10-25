@@ -106,17 +106,17 @@ export default class PostsTags {
     if (!cursor) {
       const tags = await manager.query(`
       select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
-        select fk_tag_id,  COUNT(fk_post_id) as posts_count from posts_tags
-        inner join tags on tags.id = fk_tag_id
+        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
+        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
         inner join posts on posts.id = fk_post_id
         where posts.is_private = false
         and posts.is_temp = false
-        and tags.is_alias = false
-        group by fk_tag_id
+        group by tag_id
       ) as q1
-      inner join tags on q1.fk_tag_id = tags.id
+      inner join tags on q1.tag_id = tags.id
       order by tags.name
-      LIMIT 50`);
+      limit 50
+      `);
       return tags;
     }
 
@@ -127,18 +127,17 @@ export default class PostsTags {
     const tags = await manager.query(
       `
       select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
-        select fk_tag_id,  COUNT(fk_post_id) as posts_count from posts_tags
-        inner join tags on tags.id = fk_tag_id
+        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
+        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
         inner join posts on posts.id = fk_post_id
         where posts.is_private = false
         and posts.is_temp = false
-        and tags.is_alias = false
-        group by fk_tag_id
+        group by tag_id
       ) as q1
-      inner join tags on q1.fk_tag_id = tags.id
+      inner join tags on q1.tag_id = tags.id
       where tags.name > $1
       order by tags.name
-      LIMIT 50`,
+      limit 50`,
       [cursorTag.name]
     );
     return tags;
@@ -148,57 +147,41 @@ export default class PostsTags {
     const cursorPostsCount = cursor ? await this.getPostsCount(cursor) : 0;
     const manager = getManager();
     if (!cursor) {
-      const tags = await manager.query(`select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
-                  select fk_tag_id, COUNT(fk_post_id) as posts_count from posts_tags
-                  inner join tags on tags.id = fk_tag_id
-                  inner join posts on posts.id = fk_post_id
-                  where posts.is_private = false
-                  and posts.is_temp = false
-                  and tags.is_alias = false
-                  group by fk_tag_id
-                ) as q1
-                inner join tags on q1.fk_tag_id = tags.id
-                order by posts_count desc, tags.id
-                LIMIT 50`);
+      const tags = await manager.query(`
+      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
+        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
+        inner join posts on posts.id = fk_post_id
+        where posts.is_private = false
+        and posts.is_temp = false
+        group by tag_id
+      ) as q1
+      inner join tags on q1.tag_id = tags.id
+      order by posts_count desc, tags.id
+      limit 50
+      `);
       return tags;
     }
 
     const tags = await manager.query(
       `
       select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
-        select fk_tag_id,  COUNT(fk_post_id) as posts_count from posts_tags
-        inner join tags on tags.id = fk_tag_id
+        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
+        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
         inner join posts on posts.id = fk_post_id
         where posts.is_private = false
         and posts.is_temp = false
-        and tags.is_alias = false
-        group by fk_tag_id
+        group by tag_id
       ) as q1
-      inner join tags on q1.fk_tag_id = tags.id
+      inner join tags on q1.tag_id = tags.id
       where posts_count <= $2
       and id != $1
       and not (id < $1 and posts_count = $2)
       order by posts_count desc, tags.id
-      LIMIT 50`,
+      limit 50`,
       [cursor, cursorPostsCount]
     );
     return tags;
-  }
-
-  static async getInstersectionPost(t1: string, t2: string) {
-    const manager = getManager();
-    const data = await manager.query(
-      `
-      select fk_post_id from (
-        select fk_post_id, count(fk_post_id) from posts_tags 
-        where fk_tag_id in ($1, $2)
-        group by fk_post_id
-      ) as q1
-      where count = 2
-    `,
-      [t1, t2]
-    );
-    return data.map((row: any) => row.fk_post_id) as string[];
   }
 }
 

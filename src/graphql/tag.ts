@@ -75,34 +75,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError(`Tag ${merge_to} is not found`, 'NOT_FOUND');
       }
 
-      // 0.5 find posts where two tags exist
-      const intersectionPosts = await PostsTags.getInstersectionPost(selected, merge_to);
-
-      // 0.75 remove selected tag from those posts
-      const postsTagsRepo = getRepository(PostsTags);
-      if (intersectionPosts.length > 0) {
-        await postsTagsRepo
-          .createQueryBuilder()
-          .delete()
-          .where('fk_tag_id = :tagId', { tagId: selected })
-          .andWhere('fk_post_id IN (:...postIds)', { postIds: intersectionPosts })
-          .execute();
-      }
-
-      // 1. update all PostsTags selected -> merge_to
-
-      await postsTagsRepo
-        .createQueryBuilder()
-        .update()
-        .set({
-          fk_tag_id: merge_to
-        })
-        .where('fk_tag_id = :tagId', { tagId: selected })
-        .execute();
-
       // 2. update selected Tag: is_alias -> true
       selectedTag.is_alias = true;
-      await postsTagsRepo.save(selectedTag);
+      await tagRepo.save(selectedTag);
 
       // 3. create TagAlias
       const tagAliasRepo = getRepository(TagAlias);
