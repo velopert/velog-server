@@ -117,8 +117,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         comment.level = commentTarget.level + 1;
         comment.reply_to = comment_id;
 
-        if (comment.level >= 4) {
-          throw new ApolloError('Maximum comment level is 3', 'BAD_REQUEST');
+        if (comment.level >= 3) {
+          throw new ApolloError('Maximum comment level is 2', 'BAD_REQUEST');
         }
 
         commentTarget.has_replies = true;

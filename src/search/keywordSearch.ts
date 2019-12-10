@@ -27,7 +27,7 @@ export default async function keywordSearch({
                     match_phrase: {
                       title: {
                         query: keyword,
-                        boost: 15
+                        boost: 35
                       }
                     }
                   },
@@ -35,7 +35,7 @@ export default async function keywordSearch({
                     match_phrase: {
                       'title.raw': {
                         query: keyword,
-                        boost: 15
+                        boost: 35
                       }
                     }
                   },
@@ -62,7 +62,7 @@ export default async function keywordSearch({
         }
       },
       script: {
-        source: "_score + doc['likes'].value * 5 + doc['views'].value * 0.005"
+        source: "_score + doc['likes'].value * 3 + doc['views'].value * 0.005"
       }
     }
   };
@@ -108,7 +108,7 @@ export default async function keywordSearch({
             }
           },
           {
-            match: {
+            match_phrase: {
               'user.id': {
                 query: signedUserId,
                 boost: 0

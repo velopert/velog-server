@@ -15,6 +15,7 @@ import Tag from './Tag';
 import Post from './Post';
 import DataLoader from 'dataloader';
 import { groupById, normalize } from '../lib/utils';
+import TagAlias from './TagAlias';
 
 type RawTagData = {
   id: string;
@@ -23,6 +24,12 @@ type RawTagData = {
   thumbnail: string;
   created_at: string;
   posts_count: string;
+};
+
+type GetPostsByTagParams = {
+  tagName: string;
+  cursor?: string;
+  limit?: number;
 };
 
 @Entity('posts_tags', {
@@ -88,23 +95,28 @@ export default class PostsTags {
 
   static async getPostsCount(tagId: string): Promise<number> {
     const rawData = await getManager().query(
-      `select COUNT(fk_post_id) as posts_count from posts_tags
-    inner join posts on posts.id = fk_post_id
-    where posts.is_private = false
-    and posts.is_temp = false
-    and fk_tag_id = $1`,
+      `select posts_count from (
+        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags
+        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
+        inner join posts on posts.id = fk_post_id
+        where posts.is_private = false
+        and posts.is_temp = false
+        group by tag_id
+      ) as q1
+      where tag_id = $1`,
       [tagId]
     );
     if (rawData.length === 0) return 0;
     return rawData[0].posts_count;
   }
 
-  static async getTags(cursor?: string): Promise<RawTagData> {
+  static async getTags(cursor?: string, limit = 60): Promise<RawTagData> {
     const cursorTag = cursor ? await getRepository(Tag).findOne(cursor) : null;
 
     const manager = getManager();
     if (!cursor) {
-      const tags = await manager.query(`
+      const tags = await manager.query(
+        `
       select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
         select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
         left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
@@ -115,8 +127,10 @@ export default class PostsTags {
       ) as q1
       inner join tags on q1.tag_id = tags.id
       order by tags.name
-      limit 50
-      `);
+      limit $1
+      `,
+        [limit]
+      );
       return tags;
     }
 
@@ -137,17 +151,18 @@ export default class PostsTags {
       inner join tags on q1.tag_id = tags.id
       where tags.name > $1
       order by tags.name
-      limit 50`,
-      [cursorTag.name]
+      limit $2`,
+      [cursorTag.name, limit]
     );
     return tags;
   }
 
-  static async getTrendingTags(cursor?: string): Promise<RawTagData> {
+  static async getTrendingTags(cursor?: string, limit: number = 60): Promise<RawTagData> {
     const cursorPostsCount = cursor ? await this.getPostsCount(cursor) : 0;
     const manager = getManager();
     if (!cursor) {
-      const tags = await manager.query(`
+      const tags = await manager.query(
+        `
       select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
         select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
         left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
@@ -158,8 +173,10 @@ export default class PostsTags {
       ) as q1
       inner join tags on q1.tag_id = tags.id
       order by posts_count desc, tags.id
-      limit 50
-      `);
+      limit $1
+      `,
+        [limit]
+      );
       return tags;
     }
 
@@ -178,10 +195,74 @@ export default class PostsTags {
       and id != $1
       and not (id < $1 and posts_count = $2)
       order by posts_count desc, tags.id
-      limit 50`,
-      [cursor, cursorPostsCount]
+      limit $3`,
+      [cursor, cursorPostsCount, limit]
     );
     return tags;
+  }
+
+  static async getPostsByTag({ tagName, cursor, limit = 20 }: GetPostsByTagParams) {
+    const tag = await TagAlias.getOriginTag(tagName);
+    if (!tag) throw new Error('Invalid tag');
+    const manager = getManager();
+    const postRepo = getRepository(Post);
+    const cursorPost = cursor ? await postRepo.findOne(cursor) : null;
+
+    const rawData: { id: string }[] = await (cursorPost
+      ? manager.query(
+          `
+    select id from (
+      select distinct on (posts.id) posts.id, posts.released_at from posts
+      inner join posts_tags on posts.id = posts_tags.fk_post_id
+      inner join tags on posts_tags.fk_tag_id = tags.id
+      left join tag_alias on tag_alias.fk_tag_id = tags.id
+      where (
+        posts_tags.fk_tag_id = $1
+        or tag_alias.fk_alias_tag_id = $1
+      )
+      and posts.is_private = false
+      and posts.is_temp = false
+      and posts.id != $2
+      and posts.released_at <= $3
+      or (
+        posts.released_at = $3
+        and posts.id < $2
+      )
+      order by posts.id
+    ) as q1
+    order by released_at desc
+    limit 20
+  `,
+          [tag.id, cursorPost.id, cursorPost.released_at]
+        )
+      : manager.query(
+          `
+      select id from (
+        select distinct on (posts.id) posts.id, posts.released_at from posts
+        inner join posts_tags on posts.id = posts_tags.fk_post_id
+        inner join tags on posts_tags.fk_tag_id = tags.id
+        left join tag_alias on tag_alias.fk_tag_id = tags.id
+        where (
+          posts_tags.fk_tag_id = $1
+          or tag_alias.fk_alias_tag_id = $1
+        )
+        and posts.is_private = false
+        and posts.is_temp = false
+        order by posts.id
+      ) as q1
+      order by released_at desc
+      limit 20
+    `,
+          [tag.id]
+        ));
+
+    const idList = rawData.map(row => row.id);
+
+    const posts = await postRepo.findByIds(idList);
+    const normalized = normalize(posts);
+    const ordered = idList.map(id => normalized[id]);
+
+    return ordered;
   }
 }
 

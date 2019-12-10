@@ -37,7 +37,7 @@ export default class UserProfile {
   @UpdateDateColumn()
   updated_at!: Date;
 
-  @OneToOne(type => User, { cascade: true })
+  @OneToOne(type => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 

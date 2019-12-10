@@ -7,7 +7,8 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
-  ManyToOne
+  ManyToOne,
+  getRepository
 } from 'typeorm';
 import Tag from './Tag';
 
@@ -27,12 +28,12 @@ export default class TagAlias {
   @Column('uuid')
   fk_alias_tag_id!: string;
 
-  @ManyToOne(type => Tag, { cascade: true, eager: true })
+  @ManyToOne(type => Tag, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'fk_tag_id' })
   tag!: Tag;
 
-  @ManyToOne(type => Tag, { cascade: true, eager: true })
-  @JoinColumn({ name: 'fk_tag_id' })
+  @ManyToOne(type => Tag, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'fk_alias_tag_id' })
   aliasTag!: Tag;
 
   @Column('timestampz')
@@ -42,4 +43,26 @@ export default class TagAlias {
   @Column('timestamptz')
   @UpdateDateColumn()
   updated_at!: Date;
+
+  static async getOriginTag(name: string) {
+    const tagRepo = getRepository(Tag);
+    const nameFiltered = name.toLowerCase().replace(/ /g, '-');
+    const tag = await tagRepo.findOne({
+      where: {
+        name_filtered: nameFiltered
+      }
+    });
+    if (!tag) return undefined;
+    if (tag.is_alias) {
+      const tagAliasRepo = getRepository(TagAlias);
+      const alias = await tagAliasRepo.findOne({
+        where: {
+          fk_tag_id: tag.id
+        }
+      });
+      if (!alias) return undefined;
+      return tagRepo.findOne(alias.fk_alias_tag_id);
+    }
+    return tag;
+  }
 }

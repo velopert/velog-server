@@ -17,7 +17,7 @@ export const typeDef = gql`
   }
 
   extend type Query {
-    tags(sort: String!, cursor: ID): [Tag]
+    tags(sort: String!, cursor: ID, limit: Int): [Tag]
     tag(name: String!): Tag
   }
 
@@ -31,13 +31,22 @@ type MergeTagParams = {
   merge_to: string;
 };
 export const resolvers: IResolvers<any, ApolloContext> = {
+  Tag: {
+    posts_count: async (parent: Tag, _: any, ctx) => {
+      return PostsTags.getPostsCount(parent.id);
+    }
+  },
   Query: {
-    tag: async (parent: any, name: { name: string }, ctx) => {
-      return null;
+    tag: async (parent: any, { name }: { name: string }, ctx) => {
+      return TagAlias.getOriginTag(name);
     },
     tags: async (
       parent: any,
-      { sort, cursor }: { sort: 'alphabetical' | 'trending'; cursor?: string },
+      {
+        sort,
+        cursor,
+        limit
+      }: { sort: 'alphabetical' | 'trending'; cursor?: string; limit?: number },
       ctx
     ) => {
       if (!['trending', 'alphabetical'].includes(sort)) {
@@ -45,10 +54,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       if (sort === 'trending') {
-        return PostsTags.getTrendingTags(cursor);
+        return PostsTags.getTrendingTags(cursor, limit);
       }
 
-      return PostsTags.getTags(cursor);
+      return PostsTags.getTags(cursor, limit);
     }
   },
   Mutation: {

@@ -13,6 +13,7 @@ import { generateToken, decodeToken, setTokenCookie } from '../../../../lib/toke
 import { decode } from 'punycode';
 import UserProfile from '../../../../entity/UserProfile';
 import VelogConfig from '../../../../entity/VelogConfig';
+import UserMeta from '../../../../entity/UserMeta';
 
 const auth = new Router();
 
@@ -42,7 +43,7 @@ auth.post('/sendmail', async ctx => {
   // find user by email
   try {
     const user = await getRepository(User).findOne({
-      email
+      email: email.toLowerCase()
     });
     // create email
     const emailAuth = new EmailAuth();
@@ -249,9 +250,16 @@ auth.post('/register/local', async ctx => {
   profile.short_bio = short_bio;
   await getRepository(UserProfile).save(profile);
 
+  const velogConfigRepo = getRepository(VelogConfig);
+  const userMetaRepo = getRepository(UserMeta);
+
   const velogConfig = new VelogConfig();
   velogConfig.fk_user_id = user.id;
-  await getRepository(VelogConfig).save(velogConfig);
+
+  const userMeta = new UserMeta();
+  userMeta.fk_user_id = user.id;
+
+  await Promise.all([velogConfigRepo.save(velogConfig), userMetaRepo.save(userMeta)]);
 
   const tokens = await user.generateUserToken();
   setTokenCookie(ctx, tokens);

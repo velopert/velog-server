@@ -20,6 +20,7 @@ import { generateUploadPath } from '../../files';
 import AWS from 'aws-sdk';
 import { getFacebookAccessToken, getFacebookProfile } from '../../../../../lib/social/facebook';
 import { getGoogleAccessToken, getGoogleProfile } from '../../../../../lib/social/google';
+import UserMeta from '../../../../../entity/UserMeta';
 
 const s3 = new AWS.S3({
   region: 'ap-northeast-2',
@@ -169,6 +170,7 @@ export const socialRegister: Middleware = async ctx => {
 
     const userProfileRepo = getRepository(UserProfile);
     const velogConfigRepo = getRepository(VelogConfig);
+    const userMetaRepo = getRepository(UserMeta);
 
     // create user
     const user = new User();
@@ -202,10 +204,14 @@ export const socialRegister: Middleware = async ctx => {
 
     await userProfileRepo.save(profile);
 
-    // create velog config
+    // create velog config and meta
     const velogConfig = new VelogConfig();
     velogConfig.fk_user_id = user.id;
-    await velogConfigRepo.save(velogConfig);
+
+    const userMeta = new UserMeta();
+    userMeta.fk_user_id = user.id;
+
+    await Promise.all([velogConfigRepo.save(velogConfig), userMetaRepo.save(userMeta)]);
 
     const tokens = await user.generateUserToken();
     setTokenCookie(ctx, tokens);

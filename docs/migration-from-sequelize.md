@@ -2,6 +2,9 @@
 
 ## 1. Manual Sync
 - AuthToken
+- AdminUser
+- VelogConfig
+- TagAlias
 
 ## 2. Migrations
 - SetDefaultUUID

@@ -36,7 +36,7 @@ export default class VelogConfig {
   @Column({ length: 255, nullable: true })
   logo_image!: string;
 
-  @OneToOne(type => User, { cascade: true })
+  @OneToOne(type => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 

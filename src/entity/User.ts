@@ -13,6 +13,7 @@ import DataLoader from 'dataloader';
 import { generateToken } from '../lib/token';
 import AuthToken from './AuthToken';
 import UserProfile from './UserProfile';
+import { normalize } from '../lib/utils';
 
 @Entity('users', {
   synchronize: false
@@ -110,8 +111,9 @@ export default class User {
 }
 
 export const createUserLoader = () =>
-  new DataLoader<string, User>(ids => {
+  new DataLoader<string, User>(async ids => {
     const repo = getRepository(User);
-    const users = repo.findByIds(ids);
-    return users;
+    const users = await repo.findByIds(ids);
+    const normalized = normalize(users, user => user.id);
+    return ids.map(id => normalized[id]);
   });

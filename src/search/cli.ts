@@ -23,7 +23,7 @@ async function syncAll() {
       is_temp: false
     }
   });
-  const limit = 100;
+  const limit = 1000;
 
   const queryCount = Math.ceil(postsCount / limit);
   console.log(`Found ${postsCount} posts`);

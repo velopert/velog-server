@@ -22,6 +22,7 @@ export type ApolloContext = {
   user_id: string | null;
   loaders: Loaders;
   ip: string;
+  unsetCookie: () => void;
 };
 
 const apollo = new ApolloServer({
@@ -32,7 +33,11 @@ const apollo = new ApolloServer({
       return {
         user_id: ctx.state.user_id,
         loaders: createLoaders(),
-        ip: ctx.request.ip
+        ip: ctx.request.ip,
+        unsetCookie: () => {
+          ctx.cookies.set('access_token');
+          ctx.cookies.set('referesh_token');
+        }
       };
     } catch (e) {
       return {};

@@ -24,7 +24,7 @@ export default class AdminUser {
   @Column('uuid')
   fk_user_id!: string;
 
-  @ManyToOne(type => User, { cascade: true, eager: true })
+  @ManyToOne(type => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 

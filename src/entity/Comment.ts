@@ -62,7 +62,10 @@ export default class Comment {
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 
-  @ManyToOne(type => Post, post => post.comments)
+  @ManyToOne(
+    type => Post,
+    post => post.comments
+  )
   @JoinColumn({ name: 'fk_post_id' })
   post!: Post;
 
@@ -76,7 +79,7 @@ export const createCommentsLoader = () =>
       .leftJoinAndSelect('post.comments', 'comment')
       .whereInIds(postIds)
       .andWhere('level = 0')
-      .andWhere('deleted = false or has_replies = true')
+      .andWhere('(deleted = false or has_replies = true)')
       .orderBy({
         'comment.created_at': 'ASC'
       })

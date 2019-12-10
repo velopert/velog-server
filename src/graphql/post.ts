@@ -62,7 +62,7 @@ export const typeDef = gql`
   }
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
-    posts(cursor: ID, limit: Int, username: String, temp_only: Boolean): [Post]
+    posts(cursor: ID, limit: Int, username: String, temp_only: Boolean, tag: String): [Post]
     trendingPosts(offset: Int, limit: Int, timeframe: String): [Post]
     searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
     postHistories(post_id: ID): [PostHistory]
@@ -114,6 +114,7 @@ type PostsArgs = {
   limit?: number;
   username?: string;
   temp_only?: boolean;
+  tag?: string;
 };
 
 type WritePostArgs = {
@@ -295,7 +296,23 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         console.log(e);
       }
     },
-    posts: async (parent: any, { cursor, limit = 20, username, temp_only }: PostsArgs, context) => {
+    posts: async (
+      parent: any,
+      { cursor, limit = 20, username, temp_only, tag }: PostsArgs,
+      context
+    ) => {
+      if (limit > 100) {
+        throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
+      }
+
+      if (tag) {
+        return PostsTags.getPostsByTag({
+          limit,
+          cursor,
+          tagName: tag
+        });
+      }
+
       const query = getManager()
         .createQueryBuilder(Post, 'post')
         .limit(limit)
@@ -353,7 +370,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return posts;
     },
     trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'week' }) => {
-      const timeframes: [string, number][] = [['day', 1], ['week', 7], ['month', 30]];
+      const timeframes: [string, number][] = [
+        ['day', 1],
+        ['week', 7],
+        ['month', 30]
+      ];
       const selectedTimeframe = timeframes.find(([text]) => text === timeframe);
       if (!selectedTimeframe) {
         throw new ApolloError('Invalid timeframe', 'BAD_REQUEST');
