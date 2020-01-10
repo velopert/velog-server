@@ -1,5 +1,5 @@
 service:
-  name: velog-server
+  name: velog-v2-backend
 
 # Add the serverless-webpack plugin
 plugins:
@@ -8,9 +8,51 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
   region: ap-northeast-2
   stage: dev
+
+  environment:
+    TYPEORM_CONNECTION: postgres
+    TYPEORM_HOST: ${ssm:/velog-v2/rds-host}
+    TYPEORM_USERNAME: velog
+    TYPEORM_DATABASE: velog
+    TYPEORM_PORT: 5432
+    TYPEORM_SYNCHRONIZE: false
+    TYPEORM_LOGGING: false
+    GITHUB_ID: f51c5f7d1098d4a1cbdf
+    GITHUB_SECRET: 78ff1213c152f3c5f63953796cda33cde44658a7
+    FACEBOOK_ID: 686892251796798
+    FACEBOOK_SECRET: 339f16ee1f3d011e927410193ed594ec
+    GOOGLE_ID: 997152497044-0kq4paur2i6rq9aibjp5jjlapc32eek2.apps.googleusercontent.com
+    GOOGLE_SECRET: 26ZmeLM5aRx4VPPF88j8UieP
+    HASH_KEY: ${ssm:/velog-v2/hash-key}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+        - ssm:GetParameters
+        - ssm:GetParametersByPath
+      Resource:
+        Fn::Join:
+          - ''
+          -
+            - 'arn:aws:ssm:'
+            - Ref: AWS::Region
+            - ':'
+            - Ref: AWS::AccountId
+            - ':parameter/velog-v2/*'
+    - Effect: Allow
+      Action:
+        - 'ses:SendEmail'
+      Resource:
+        - 'arn:aws:ses:us-east-1:550209488018:identity/velog.io'
+  vpc:
+    securityGroupIds:
+      - sg-f588c99d
+    subnetIds:
+      - subnet-02c6112f71f5148c7
+      - subnet-0ebc43e6ab298c646
 
 functions:
   app:
@@ -22,3 +64,7 @@ functions:
       - http:
           path: /{any+}
           method: ANY
+
+custom:
+  webpack:
+    includeModules: true

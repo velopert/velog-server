@@ -51,17 +51,17 @@ auth.post('/sendmail', async ctx => {
     emailAuth.email = email;
     await getRepository(EmailAuth).save(emailAuth);
     const emailTemplate = createAuthEmail(!!user, emailAuth.code);
+
+    const result = await sendMail({
+      to: email,
+      ...emailTemplate,
+      from: 'verify@velog.io'
+    });
+
     ctx.body = {
+      result,
       registered: !!user
     };
-
-    setImmediate(() => {
-      sendMail({
-        to: email,
-        ...emailTemplate,
-        from: 'verify@velog.io'
-      });
-    });
   } catch (e) {
     ctx.throw(500, e);
   }

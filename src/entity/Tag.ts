@@ -10,6 +10,7 @@ import {
   ManyToOne,
   getRepository
 } from 'typeorm';
+import { escapeForUrl } from '../lib/utils';
 
 @Entity('tags', {
   synchronize: false
@@ -69,6 +70,7 @@ export default class Tag {
     const repo = getRepository(Tag);
     const freshTag = new Tag();
     freshTag.name = name;
+    freshTag.name_filtered = escapeForUrl(name);
     await repo.save(freshTag);
     return freshTag;
   }

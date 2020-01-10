@@ -2,39 +2,45 @@ import jwt, { SignOptions } from 'jsonwebtoken';
 import { Context, Middleware } from 'koa';
 import { getRepository } from 'typeorm';
 import User from '../entity/User';
+import loadVariables from '../loadVariable';
 
 const { SECRET_KEY } = process.env;
 
-if (!SECRET_KEY) {
+if (!SECRET_KEY && process.env.NODE_ENV === 'development') {
   const error = new Error('InvalidSecretKeyError');
   error.message = 'Secret key for JWT is missing.';
   if (process.env.npm_lifecycle_event !== 'typeorm') throw error;
 }
 
-export const generateToken = (payload: any, options?: SignOptions): Promise<string> => {
+export const generateToken = async (payload: any, options?: SignOptions): Promise<string> => {
   const jwtOptions: SignOptions = {
     issuer: 'velog.io',
     expiresIn: '7d',
     ...options
   };
+  const variables = await loadVariables();
+  const secretKey = SECRET_KEY || variables.secretKey;
 
   if (!jwtOptions.expiresIn) {
     // removes expiresIn when expiresIn is given as undefined
     delete jwtOptions.expiresIn;
   }
   return new Promise((resolve, reject) => {
-    if (!SECRET_KEY) return;
-    jwt.sign(payload, SECRET_KEY, jwtOptions, (err, token) => {
+    if (!secretKey) return;
+    jwt.sign(payload, secretKey, jwtOptions, (err, token) => {
       if (err) reject(err);
       resolve(token);
     });
   });
 };
 
-export const decodeToken = <T = any>(token: string): Promise<T> => {
+export const decodeToken = async <T = any>(token: string): Promise<T> => {
+  const variables = await loadVariables();
+  const secretKey = SECRET_KEY || variables.secretKey;
+
   return new Promise((resolve, reject) => {
-    if (!SECRET_KEY) return;
-    jwt.verify(token, SECRET_KEY, (err, decoded) => {
+    if (!secretKey) return;
+    jwt.verify(token, secretKey, (err, decoded) => {
       if (err) reject(err);
       resolve(decoded as any);
     });
