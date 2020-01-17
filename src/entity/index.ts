@@ -18,6 +18,7 @@ import UserImage from './UserImage';
 import UserMeta from './UserMeta';
 import UserProfile from './UserProfile';
 import VelogConfig from './VelogConfig';
+import UrlSlugHistory from './UrlSlugHistory';
 
 const entities = [
   AdminUser,
@@ -39,7 +40,8 @@ const entities = [
   UserImage,
   UserMeta,
   UserProfile,
-  VelogConfig
+  VelogConfig,
+  UrlSlugHistory
 ];
 
 export default entities;

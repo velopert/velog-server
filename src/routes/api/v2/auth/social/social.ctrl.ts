@@ -33,7 +33,8 @@ const {
   FACEBOOK_ID,
   FACEBOOK_SECRET,
   GOOGLE_ID,
-  GOOGLE_SECRET
+  GOOGLE_SECRET,
+  CLIENT_HOST
 } = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
@@ -347,9 +348,14 @@ export const socialCallback: Middleware = async ctx => {
       const tokens = await user.generateUserToken();
       setTokenCookie(ctx, tokens);
       const redirectUrl =
-        process.env.NODE_ENV === 'development' ? 'https://localhost:3000/' : 'https://velog.io/';
+        process.env.NODE_ENV === 'development'
+          ? 'https://localhost:3000'
+          : `https://${CLIENT_HOST}`;
 
-      ctx.redirect(encodeURI(redirectUrl));
+      const state = ctx.query.state ? (JSON.parse(ctx.query.state) as { next: string }) : null;
+      const next = ctx.query.next || state?.next || '/';
+
+      ctx.redirect(encodeURI(redirectUrl.concat(next)));
       return;
     }
 

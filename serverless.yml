@@ -27,6 +27,9 @@ provider:
     GOOGLE_ID: 997152497044-0kq4paur2i6rq9aibjp5jjlapc32eek2.apps.googleusercontent.com
     GOOGLE_SECRET: 26ZmeLM5aRx4VPPF88j8UieP
     HASH_KEY: ${ssm:/velog-v2/hash-key}
+    API_HOST: ${env:API_HOST}
+    CLIENT_HOST: ${env:CLIENT_HOST}
+
   iamRoleStatements:
     - Effect: Allow
       Action:

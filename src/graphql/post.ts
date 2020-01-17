@@ -7,6 +7,7 @@ import { normalize, escapeForUrl } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import PostsTags from '../entity/PostsTags';
 import Tag from '../entity/Tag';
+import UrlSlugHistory from '../entity/UrlSlugHistory';
 import Comment from '../entity/Comment';
 import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
@@ -281,11 +282,26 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
           return post;
         }
-        const post = await getManager()
+        let post = await getManager()
           .createQueryBuilder(Post, 'post')
           .leftJoinAndSelect('post.user', 'user')
           .where('user.username = :username AND url_slug = :url_slug', { username, url_slug })
           .getOne();
+        if (!post) {
+          const fallbackPost = await getManager()
+            .createQueryBuilder(UrlSlugHistory, 'urlSlugHistory')
+            .leftJoinAndSelect('urlSlugHistory.post', 'post')
+            .leftJoinAndSelect('urlSlugHistory.user', 'user')
+            .where('user.username = :username AND urlSlugHistory.url_slug = :url_slug', {
+              username,
+              url_slug
+            })
+            .getOne();
+          console.log(fallbackPost);
+          if (fallbackPost) {
+            post = fallbackPost.post;
+          }
+        }
         if (!post) return null;
         if ((post.is_temp || post.is_private) && post.fk_user_id !== ctx.user_id) {
           return null;
@@ -633,6 +649,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         processedUrlSlug += `-${randomString}`;
       }
 
+      if (post.url_slug !== processedUrlSlug) {
+        // url_slug
+        const urlSlugHistory = new UrlSlugHistory();
+        urlSlugHistory.fk_post_id = post.id;
+        urlSlugHistory.fk_user_id = ctx.user_id;
+        urlSlugHistory.url_slug = post.url_slug;
+        const urlSlugHistoryRepo = getRepository(UrlSlugHistory);
+        await urlSlugHistoryRepo.save(urlSlugHistory);
+      }
       post.url_slug = processedUrlSlug;
 
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));

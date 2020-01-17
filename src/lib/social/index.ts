@@ -2,13 +2,13 @@ import { google } from 'googleapis';
 
 export type SocialProvider = 'facebook' | 'github' | 'google';
 
-const { GITHUB_ID, FACEBOOK_ID, GOOGLE_ID, GOOGLE_SECRET } = process.env;
+const { GITHUB_ID, FACEBOOK_ID, GOOGLE_ID, GOOGLE_SECRET, API_HOST } = process.env;
 
 const redirectPath = `/api/v2/auth/social/callback/`;
 export const redirectUri =
   process.env.NODE_ENV === 'development'
     ? `http://localhost:5000${redirectPath}`
-    : `https://velog.io${redirectPath}`;
+    : `https://${API_HOST}${redirectPath}`;
 
 export function generateSocialLoginLink(provider: SocialProvider, next: string = '/') {
   const generators = {
