@@ -5,7 +5,6 @@ import * as comment from './comment';
 import * as series from './series';
 import * as tag from './tag';
 import { gql, IResolvers, makeExecutableSchema } from 'apollo-server-koa';
-import DateScalar from './scalars/dateScalar';
 
 const typeDef = gql`
   scalar JSON
@@ -22,8 +21,7 @@ const resolvers: IResolvers = {
   Query: {
     _version: () => '1.0'
   },
-  Mutation: {},
-  Date: DateScalar
+  Mutation: {}
 };
 
 const schema = makeExecutableSchema({
