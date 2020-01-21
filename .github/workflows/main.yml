@@ -32,3 +32,5 @@ jobs:
         # or if using AWS creds directly
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
+        API_HOST: v2dev.velog.io
+        CLIENT_HOST: alpha.velog.io
