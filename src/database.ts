@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import entities from './entity';
 import loadVariables from './loadVariable';
+import 'pg'; // Crucial for postgres
 
 export default class Database {
   connectionManager: ConnectionManager;
