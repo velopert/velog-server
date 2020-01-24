@@ -1,9 +1,12 @@
 import './env';
-import app, { initialize } from './app';
+import app from './app';
+import Database from './database';
 
 const { PORT } = process.env;
 
-initialize();
+const database = new Database();
+database.getConnection();
+
 app.listen(PORT, () => {
   console.log('Velog server is listening to port', PORT);
 });

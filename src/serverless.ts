@@ -1,15 +1,16 @@
 import serverless from 'serverless-http';
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import 'pg';
 
-import app, { initialize } from './app';
+import app from './app';
+import Database from './database';
 
 const serverlessApp = serverless(app);
 
-const initialization = initialize();
-
 export const handler: APIGatewayProxyHandler = async (event, context) => {
-  await initialization;
   context.callbackWaitsForEmptyEventLoop = false;
+
+  const database = new Database();
+  await database.getConnection();
+
   return await serverlessApp(event, context);
 };
