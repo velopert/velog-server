@@ -1,7 +1,7 @@
 import Koa, { Context } from 'koa';
 import bodyParser from 'koa-bodyparser';
 import { ApolloServer } from 'apollo-server-koa';
-import { createConnection, getConnectionManager } from 'typeorm';
+import { createConnection, getConnectionManager, getConnection } from 'typeorm';
 import logger from 'koa-logger';
 import routes from './routes';
 import schema from './graphql/schema';

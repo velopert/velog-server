@@ -29,6 +29,7 @@ provider:
     HASH_KEY: ${ssm:/velog-v2/hash-key}
     API_HOST: ${env:API_HOST}
     CLIENT_HOST: ${env:CLIENT_HOST}
+    SERVERLESS: true
 
   iamRoleStatements:
     - Effect: Allow

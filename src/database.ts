@@ -16,18 +16,7 @@ export default class Database {
     this.connectionManager = getConnectionManager();
   }
 
-  async getConnection(): Promise<Connection> {
-    const CONNECTION_NAME = 'default';
-
-    if (this.connectionManager.has(CONNECTION_NAME)) {
-      console.log('Using existing connection...');
-      const connection = this.connectionManager.get(CONNECTION_NAME);
-
-      return connection.isConnected ? connection : connection.connect();
-    }
-
-    console.log('Creating new connection');
-
+  async connect() {
     const variables = await loadVariables();
     const password = process.env.TYPEORM_PASSWORD || variables.rdsPassword;
     if (!password) {
@@ -42,9 +31,25 @@ export default class Database {
       database: process.env.TYPEORM_DATABASE,
       username: process.env.TYPEORM_USERNAME,
       port: parseInt(process.env.TYPEORM_PORT || '5432', 10),
-      synchronize: process.env.SYNCHRONIZE === 'true'
+      synchronize: process.env.SYNCHRONIZE === 'true',
+      appname: 'velog-v2-server'
     };
 
     return createConnection(connectionOptions);
+  }
+
+  async getConnection(): Promise<Connection> {
+    const CONNECTION_NAME = `default`;
+    if (this.connectionManager.has(CONNECTION_NAME)) {
+      const connection = this.connectionManager.get(CONNECTION_NAME);
+      try {
+        if (connection.isConnected) {
+          await connection.close();
+        }
+      } catch {}
+      return connection.connect();
+    }
+
+    return this.connect();
   }
 }

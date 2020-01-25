@@ -10,7 +10,9 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
   context.callbackWaitsForEmptyEventLoop = false;
 
   const database = new Database();
-  await database.getConnection();
+  const connection = await database.getConnection();
+  const response = await serverlessApp(event, context);
 
-  return await serverlessApp(event, context);
+  await connection.close();
+  return response;
 };
