@@ -7,8 +7,7 @@ services:
     container_name: es01
     environment:
       - node.name=es01
-      - discovery.seed_hosts=es02
-      - cluster.initial_master_nodes=es01,es02
+      - cluster.initial_master_nodes=es01
       - cluster.name=docker-cluster
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
@@ -22,27 +21,6 @@ services:
       - 9200:9200
     networks:
       - esnet
-  es02:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
-    container_name: es01
-    container_name: es02
-    environment:
-      - node.name=es02
-      - discovery.seed_hosts=es01
-      - cluster.initial_master_nodes=es01,es02
-      - cluster.name=docker-cluster
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - esdata02:/usr/share/elasticsearch/data
-    networks:
-      - esnet
 
 volumes:
   esdata01:
@@ -52,3 +30,6 @@ volumes:
 
 networks:
   esnet:
+
+# check following link for using 2 nodes:
+# https://gist.github.com/velopert/f2c8ceeb96e9a53d44e5a5c596d9ba4c
