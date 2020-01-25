@@ -30,6 +30,7 @@ provider:
     API_HOST: ${env:API_HOST}
     CLIENT_HOST: ${env:CLIENT_HOST}
     SERVERLESS: true
+    ES_HOST: ${ssm:/velog-v2/es-host}
 
   iamRoleStatements:
     - Effect: Allow

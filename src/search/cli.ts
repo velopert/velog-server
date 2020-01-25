@@ -6,10 +6,12 @@ import inquirer from 'inquirer';
 import User from '../entity/User';
 import esClient from './esClient';
 import { serializePost } from './serializePost';
+import Database from '../database';
 
 async function initialize() {
   try {
-    await createConnection();
+    const database = new Database();
+    await database.getConnection();
     console.log('Postgres RDBMS connection is established');
   } catch (e) {
     console.log(e);
@@ -65,29 +67,6 @@ async function syncAll() {
       .whereInIds(idList)
       .getMany();
 
-    // const posts = await postRepo.find({
-    //   select: [
-    //     'id',
-    //     'title',
-    //     'body',
-    //     'thumbnail',
-    //     'fk_user_id',
-    //     'user',
-    //     'released_at',
-    //     'likes',
-    //     'views',
-    //     'meta'
-    //   ],
-    //   skip: i * limit,
-    //   take: limit,
-    //   relations: ['user', 'user.profile', 'tags'],
-    //   where: {
-    //     is_temp: false
-    //   },
-    //   order: {
-    //     released_at: 'ASC'
-    //   }
-    // });
     const serializedPosts = posts.map(serializePost);
 
     try {

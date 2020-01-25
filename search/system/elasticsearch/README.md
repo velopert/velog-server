@@ -1,6 +1,6 @@
 ## Create Index
 
-**GET http://localhost:9200/posts** 
+**PUT http://localhost:9200/posts** 
 
 ```json
 {
