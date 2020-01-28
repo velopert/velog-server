@@ -653,7 +653,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           url_slug: processedUrlSlug
         }
       });
-      if (urlSlugDuplicate) {
+      if (urlSlugDuplicate && urlSlugDuplicate.id !== post.id) {
         const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
         processedUrlSlug += `-${randomString}`;
       }
