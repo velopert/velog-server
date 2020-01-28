@@ -19,6 +19,7 @@ import PostHistory from '../entity/PostHistory';
 import User from '../entity/User';
 import PostRead from '../entity/PostRead';
 import hash from '../lib/hash';
+import cache from '../cache';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -591,13 +592,20 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const seriesRepo = getRepository(Series);
       const seriesPostsRepo = getRepository(SeriesPosts);
 
-      const post = await postRepo.findOne(id);
+      const post = await postRepo.findOne(id, {
+        relations: ['user']
+      });
       if (!post) {
         throw new ApolloError('Post not found', 'NOT_FOUND');
       }
       if (post.fk_user_id !== ctx.user_id) {
         throw new ApolloError('This post is not yours', 'NO_PERMISSION');
       }
+
+      const { username } = post.user;
+      const postCacheKey = `ssr:/@${username}/${post.url_slug}`;
+      const userVelogCacheKey = `ssr:/@${username}`;
+      const cacheKeys = [postCacheKey, userVelogCacheKey];
 
       const prevSeriesPost = await seriesPostsRepo.findOne({
         fk_post_id: post.id
@@ -619,6 +627,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           if (series.fk_user_id !== ctx.user_id) {
             throw new ApolloError('This series is not yours', 'NO_PERMISSION');
           }
+          cacheKeys.push(`ssr:/@${username}/series/${series.url_slug}`);
           await appendToSeries(series_id, post.id);
         }
         // remove series
@@ -663,32 +672,45 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
       await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
 
-      searchSync.update(post.id);
+      await Promise.all([searchSync.update(post.id), cache.remove(...cacheKeys)]);
 
       return post;
     },
     removePost: async (parent: any, args, ctx) => {
       const { id } = args as { id: string };
       const postRepo = getRepository(Post);
-      const post = await postRepo.findOne(id);
+      const post = await postRepo.findOne(id, {
+        relations: ['user']
+      });
       if (!post) {
         throw new ApolloError('Post not found', 'NOT_FOUND');
       }
       if (post.fk_user_id !== ctx.user_id) {
         throw new ApolloError('This post is not yours', 'NO_PERMISSION');
       }
+
       // check series
       const seriesPostsRepo = getRepository(SeriesPosts);
       const seriesPost = await seriesPostsRepo.findOne({
         fk_post_id: post.id
       });
 
+      const { username } = post.user;
+      const postCacheKey = `ssr:/@${username}/${post.url_slug}`;
+      const userVelogCacheKey = `ssr:/@${username}`;
+      const cacheKeys = [postCacheKey, userVelogCacheKey];
+
       await postRepo.remove(post);
       if (seriesPost) {
         subtractIndexAfter(seriesPost.fk_series_id, seriesPost.index);
+        const series = await getRepository(Series).findOne(seriesPost.fk_series_id);
+        if (series) {
+          cacheKeys.push(`ssr:/@${username}/series/${series.url_slug}`);
+        }
       }
 
-      searchSync.remove(id);
+      await Promise.all([searchSync.remove(id), cache.remove(...cacheKeys)]);
+
       return true;
     },
     likePost: async (parent: any, args, ctx) => {

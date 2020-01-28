@@ -4,6 +4,7 @@ import Comment from '../entity/Comment';
 import { getRepository } from 'typeorm';
 import Post from '../entity/Post';
 import PostScore from '../entity/PostScore';
+import cache from '../cache';
 
 export const typeDef = gql`
   type Comment {
@@ -102,10 +103,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new AuthenticationError('Not Logged In');
       }
       const { post_id, comment_id, text } = args as WriteCommentArgs;
-      const post = await getRepository(Post).findOne(post_id);
+      const post = await getRepository(Post).findOne(post_id, { relations: ['user'] });
       if (!post) {
         throw new ApolloError('Post not found', 'NOT_FOUND');
       }
+      const { username } = post.user;
       const commentRepo = getRepository(Comment);
       const comment = new Comment();
 
@@ -139,6 +141,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       score.type = 'COMMENT';
       postScoreRepo.save(score);
 
+      await cache.remove(`ssr:/@${username}/${post.url_slug}`);
+
       return comment;
     },
     removeComment: async (parent: any, { id }: any, ctx) => {
@@ -155,6 +159,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('No permission');
       }
 
+      const post = await getRepository(Post).findOne(comment.fk_post_id, {
+        relations: ['user']
+      });
+
+      if (!post) {
+        throw new ApolloError('Post not found');
+      }
+
+      const { username } = post.user;
+
       comment.deleted = true;
       await commentRepo.save(comment);
 
@@ -170,6 +184,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (score) {
         postScoreRepo.delete(score.id);
       }
+
+      await cache.remove(`ssr:/@${username}/${post.url_slug}`);
 
       return true;
     },
