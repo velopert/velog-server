@@ -19,6 +19,7 @@ class Cache {
   async disconnect() {
     if (this.client) {
       await this.client.quit();
+      this.client = null;
       return;
     }
     return Promise.resolve();
