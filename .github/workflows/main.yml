@@ -34,3 +34,10 @@ jobs:
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
         API_HOST: v2dev.velog.io
         CLIENT_HOST: alpha.velog.io
+    - name: Slack Notification
+      uses: rtCamp/action-slack-notify@v2.0.0
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_USERNAME: 'Github Actions'
+        SLACK_ICON: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png'
+        SLACK_MESSAGE: '벨로그 백엔드 배포가 끝났어요! :rocket:'
