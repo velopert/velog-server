@@ -53,6 +53,12 @@ provider:
         - 'ses:SendEmail'
       Resource:
         - 'arn:aws:ses:us-east-1:550209488018:identity/velog.io'
+    - Effect: Allow
+      Action:
+        - s3:*
+      Resource:
+        - "arn:aws:s3:::s3.images.velog.io"
+
   vpc:
     securityGroupIds:
       - sg-f588c99d
