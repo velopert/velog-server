@@ -58,6 +58,7 @@ provider:
         - s3:*
       Resource:
         - "arn:aws:s3:::s3.images.velog.io"
+        - "arn:aws:s3:::s3.images.velog.io/*"
 
   vpc:
     securityGroupIds:
