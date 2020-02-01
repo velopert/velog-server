@@ -204,7 +204,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       });
       return !!liked;
     },
-    linked_posts: async (parent: Post, args: any) => {
+    linked_posts: async (parent: Post, args: any, ctx) => {
       const seriesPostsRepo = getRepository(SeriesPosts);
 
       const seriesPost = await seriesPostsRepo.findOne({
@@ -231,17 +231,27 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if (seriesPosts.length === 1) {
           return seriesPosts[0].index > index // compare series index
             ? {
-                next: seriesPosts[0].post // is next post
+                next:
+                  seriesPosts[0].post.is_private && ctx.user_id !== seriesPosts[0].post.fk_user_id
+                    ? null
+                    : seriesPosts[0].post
+                // is next post
               }
             : {
                 previous: seriesPosts[0].post // is prev post
               };
         }
 
-        return {
+        const result: Record<'previous' | 'next', Post | null> = {
           previous: seriesPosts[0] && seriesPosts[0].post,
           next: seriesPosts[1] && seriesPosts[1].post
         };
+
+        if (result.next?.is_private && result.next?.fk_user_id !== ctx.user_id) {
+          result.next = null;
+        }
+
+        return result;
       }
 
       // is not in series: show prev & next in time order
@@ -254,6 +264,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .createQueryBuilder('posts')
           .where('fk_user_id = :userId', { userId: parent.fk_user_id })
           .andWhere('released_at < :releasedAt', { releasedAt: parent.released_at })
+          .andWhere('is_temp = false')
+          .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
+            current_user_id: ctx.user_id
+          })
           .orderBy('released_at', 'DESC')
           .getOne(),
         postRepo
@@ -261,6 +275,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .where('fk_user_id = :userId', { userId: parent.fk_user_id })
           .andWhere('released_at > :releasedAt', { releasedAt: parent.released_at })
           .andWhere('id != :postId', { postId: parent.id })
+          .andWhere('is_temp = false')
+          .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
+            current_user_id: ctx.user_id
+          })
           .orderBy('released_at', 'ASC')
           .getOne()
       ]);
