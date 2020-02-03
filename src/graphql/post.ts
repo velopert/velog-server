@@ -3,7 +3,7 @@ import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server
 import Post from '../entity/Post';
 import { getRepository, getManager } from 'typeorm';
 import PostScore from '../entity/PostScore';
-import { normalize, escapeForUrl } from '../lib/utils';
+import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import PostsTags from '../entity/PostsTags';
 import Tag from '../entity/Tag';
@@ -486,8 +486,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
       }
+
       const post = new Post();
       const data = args as WritePostArgs;
+
+      if (checkEmpty(data.title)) {
+        throw new ApolloError('Title is empty', 'BAD_REQUEST');
+      }
+
       post.fk_user_id = ctx.user_id;
       post.title = data.title;
       post.body = data.body;
