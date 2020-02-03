@@ -33,6 +33,7 @@ export const typeDef = gql`
     createSeries(name: String!, url_slug: String!): Series
     appendToSeries(series_id: ID!, post_id: ID!): Int
     editSeries(id: ID!, name: String!, series_order: [ID]): Series
+    removeSeries(id: ID!): Boolean
   }
 `;
 
@@ -222,8 +223,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         return acc;
       }, []);
 
-      console.log(updates);
-
       // update every seriesPosts index where needed
       await Promise.all(
         updates.map(update => {
@@ -234,6 +233,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       );
 
       return series;
+    },
+    removeSeries: async (parent, args: { id: string }, ctx) => {
+      const seriesRepo = getRepository(Series);
+      const series = await seriesRepo.findOne(args.id);
+      if (!series) {
+        throw new ApolloError('Series not found', 'NOT_FOUND');
+      }
+      if (series.fk_user_id !== ctx.user_id) {
+        throw new ApolloError('This series is not yours', 'NO_PERMISSION');
+      }
+      await seriesRepo.remove(series);
+      return true;
     }
   }
 };
