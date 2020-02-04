@@ -15,7 +15,9 @@ export const handler: APIGatewayProxyHandler = async (event, context) => {
   const response = await serverlessApp(event, context);
 
   // disconnect db & redis
-  await Promise.all([connection.close(), cache.disconnect()]);
+  try {
+    await Promise.all([connection.close(), cache.disconnect()]);
+  } catch (e) {}
 
   return response;
 };
