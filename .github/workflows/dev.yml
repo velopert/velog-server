@@ -1,4 +1,4 @@
-name: Deploy Serverless Backend
+name: Deploy Serverless Backend (Dev)
 
 on:
   push:
