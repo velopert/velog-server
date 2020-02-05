@@ -27,12 +27,12 @@ jobs:
     - name: serverless deploy
       uses: serverless/github-action@master
       with:
-        args: deploy --stage production
+        args: deploy
       env:
         # or if using AWS creds directly
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_KEY }}
-        API_HOST: v2.velog.io
+        API_HOST: v2dev.velog.io
         CLIENT_HOST: alpha.velog.io
     - name: Slack Notification
       uses: rtCamp/action-slack-notify@v2.0.0
