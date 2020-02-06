@@ -9,6 +9,7 @@ const cors: Middleware = (ctx, next) => {
   const allowedHosts = [
     /^https:\/\/velog.io$/,
     /^https:\/\/alpha.velog.io$/,
+    /^https:\/\/prod.velog.io$/,
     /https:\/\/(.*)--velog.netlify.com/
   ];
   const { origin } = ctx.headers;
