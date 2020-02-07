@@ -532,17 +532,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const tagsData = await Promise.all(data.tags.map(Tag.findOrCreate));
       await postRepo.save(post);
 
-      PostsTags.syncPostTags(post.id, tagsData);
+      await PostsTags.syncPostTags(post.id, tagsData);
 
       // Link to series
       if (data.series_id && !data.is_temp) {
-        appendToSeries(data.series_id, post.id);
+        await appendToSeries(data.series_id, post.id);
       }
 
       post.tags = tagsData;
 
       if (!data.is_temp) {
-        searchSync.update(post.id);
+        await searchSync.update(post.id);
       }
 
       return post;
