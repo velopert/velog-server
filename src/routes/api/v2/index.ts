@@ -2,7 +2,7 @@ import Router from '@koa/router';
 import auth from './auth';
 import { consumeUser } from '../../../lib/token';
 import files from './files';
-import atom from './atom';
+import rss from './rss';
 
 const v2 = new Router();
 
@@ -20,6 +20,6 @@ v2.get('/test', async ctx => {
 
 v2.use('/auth', auth.routes());
 v2.use('/files', files.routes());
-v2.use('/atom', atom.routes());
+v2.use('/rss', rss.routes());
 
 export default v2;

@@ -8,7 +8,7 @@ import VelogConfig from '../../../../entity/VelogConfig';
 
 function convert(post: Post): Item {
   const { username } = post.user;
-  const link = `https://velog.io/${username}/${encodeURI(post.url_slug)}}`;
+  const link = `https://velog.io/${username}/${encodeURI(post.url_slug)}`;
   return {
     link,
     title: post.title,
@@ -16,6 +16,7 @@ function convert(post: Post): Item {
     id: link,
     image: post.thumbnail || undefined,
     date: post.released_at,
+
     author: [
       {
         name: post.user.profile.display_name,
@@ -51,7 +52,7 @@ export const getEntireFeed: Middleware = async ctx => {
   const postFeeds = posts.map(convert);
   postFeeds.forEach(feed.addItem);
   ctx.type = 'text/xml; charset=UTF-8';
-  ctx.body = feed.atom1();
+  ctx.body = feed.rss2();
 };
 
 export const getUserFeed: Middleware = async ctx => {
@@ -93,5 +94,5 @@ export const getUserFeed: Middleware = async ctx => {
   const postFeeds = posts.map(convert);
   postFeeds.forEach(feed.addItem);
   ctx.type = 'text/xml; charset=UTF-8';
-  ctx.body = feed.atom1();
+  ctx.body = feed.rss2();
 };
