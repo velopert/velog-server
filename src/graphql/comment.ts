@@ -139,7 +139,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       score.fk_user_id = ctx.user_id;
       score.score = 1;
       score.type = 'COMMENT';
-      postScoreRepo.save(score);
+      await postScoreRepo.save(score);
 
       await cache.remove(`ssr:/@${username}/${post.url_slug}`);
 
@@ -182,7 +182,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .getOne();
 
       if (score) {
-        postScoreRepo.delete(score.id);
+        await postScoreRepo.delete(score.id);
       }
 
       await cache.remove(`ssr:/@${username}/${post.url_slug}`);
