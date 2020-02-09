@@ -84,6 +84,7 @@
     "dev:sync": "yarn typeorm schema:sync",
     "search:cli": "NODE_ENV=development ts-node ./src/search/cli",
     "search:cli:js": "NODE_ENV=development node ./dist/search/cli",
-    "build": "tsc"
+    "build": "tsc",
+    "deploy:production": "serverless deploy --stage production"
   }
 }

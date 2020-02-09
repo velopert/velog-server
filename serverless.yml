@@ -20,12 +20,12 @@ provider:
     TYPEORM_PORT: 5432
     TYPEORM_SYNCHRONIZE: false
     TYPEORM_LOGGING: false
-    GITHUB_ID: f51c5f7d1098d4a1cbdf
-    GITHUB_SECRET: 78ff1213c152f3c5f63953796cda33cde44658a7
-    FACEBOOK_ID: 686892251796798
-    FACEBOOK_SECRET: 339f16ee1f3d011e927410193ed594ec
-    GOOGLE_ID: 997152497044-0kq4paur2i6rq9aibjp5jjlapc32eek2.apps.googleusercontent.com
-    GOOGLE_SECRET: 26ZmeLM5aRx4VPPF88j8UieP
+    GITHUB_ID: 7c3902d881910d52ae3e
+    GITHUB_SECRET: ${ssm:/velog-v2/github-secret}
+    FACEBOOK_ID: 203040656938507
+    FACEBOOK_SECRET: ${ssm:/velog-v2/facebook-secret}
+    GOOGLE_ID: 512153499356-4sg3s216vvqiv5kjfstal7dd2c1gc1an.apps.googleusercontent.com
+    GOOGLE_SECRET: ${ssm:/velog-v2/google-secret}
     HASH_KEY: ${ssm:/velog-v2/hash-key}
     API_HOST: ${env:API_HOST}
     CLIENT_HOST: ${env:CLIENT_HOST}

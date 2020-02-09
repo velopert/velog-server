@@ -1,0 +1,3 @@
+#!/bin/bash
+export CLIENT_HOST=alpha.velog.io
+export API_HOST=v2dev.velog.io
