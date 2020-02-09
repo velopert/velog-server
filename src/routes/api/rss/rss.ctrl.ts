@@ -1,14 +1,14 @@
 import { Middleware } from '@koa/router';
 import { getRepository } from 'typeorm';
-import Post from '../../../../entity/Post';
+import Post from '../../../entity/Post';
 import { Feed } from 'feed';
 import { Item } from 'feed/lib/typings';
 import marked from 'marked';
-import VelogConfig from '../../../../entity/VelogConfig';
+import VelogConfig from '../../../entity/VelogConfig';
 
 function convert(post: Post): Item {
   const { username } = post.user;
-  const link = `https://velog.io/${username}/${encodeURI(post.url_slug)}`;
+  const link = `https://velog.io/@${username}/${encodeURI(post.url_slug)}`;
   return {
     link,
     title: post.title,
@@ -44,7 +44,8 @@ export const getEntireFeed: Middleware = async ctx => {
     id: 'https://velog.io/',
     image: 'https://images.velog.io/velog.png',
     updated: posts[0]?.released_at,
-    copyright: 'Copyright (C) 2019. Velog. All rights reserved.'
+    copyright: 'Copyright (C) 2019. Velog. All rights reserved.',
+    feed: 'https://v2.velog.io/rss/'
   });
 
   const postFeeds = posts.map(convert);
@@ -60,7 +61,7 @@ export const getUserFeed: Middleware = async ctx => {
   const posts = await postRepo
     .createQueryBuilder('post')
     .where('is_temp = false AND is_private = false')
-    .where('username = :username', { username })
+    .andWhere('username = :username', { username })
     .orderBy('released_at', 'DESC')
     .innerJoinAndSelect('post.user', 'user')
     .innerJoinAndSelect('user.profile', 'profile')
@@ -86,7 +87,8 @@ export const getUserFeed: Middleware = async ctx => {
     id: 'https://velog.io/',
     image: user.profile.thumbnail || undefined,
     updated: posts[0]?.released_at,
-    copyright: `Copyright (C) 2019. ${title}. All rights reserved.`
+    copyright: `Copyright (C) 2019. ${title}. All rights reserved.`,
+    feed: `https://v2.velog.io/rss/${username}`
   });
 
   const postFeeds = posts.map(convert);
