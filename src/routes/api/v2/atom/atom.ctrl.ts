@@ -14,9 +14,7 @@ function convert(post: Post): Item {
     title: post.title,
     description: marked(post.body),
     id: link,
-    image: post.thumbnail || undefined,
     date: post.released_at,
-
     author: [
       {
         name: post.user.profile.display_name,
@@ -94,5 +92,5 @@ export const getUserFeed: Middleware = async ctx => {
   const postFeeds = posts.map(convert);
   postFeeds.forEach(feed.addItem);
   ctx.type = 'text/xml; charset=UTF-8';
-  ctx.body = feed.atom1();
+  ctx.body = feed.rss2();
 };
