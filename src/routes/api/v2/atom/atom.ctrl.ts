@@ -94,5 +94,5 @@ export const getUserFeed: Middleware = async ctx => {
   const postFeeds = posts.map(convert);
   postFeeds.forEach(feed.addItem);
   ctx.type = 'text/xml; charset=UTF-8';
-  ctx.body = feed.rss2();
+  ctx.body = feed.atom1();
 };
