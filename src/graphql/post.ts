@@ -356,14 +356,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .leftJoinAndSelect('post.user', 'user')
         .where('is_private = false');
 
+      const userRepo = getRepository(User);
+
+      const user = username
+        ? await userRepo.findOne({
+            where: {
+              username
+            }
+          })
+        : null;
+
       if (temp_only) {
         if (!username) throw new ApolloError('username is missing', 'BAD_REQUEST');
-        const userRepo = getRepository(User);
-        const user = await userRepo.findOne({
-          where: {
-            username
-          }
-        });
         if (!user) throw new ApolloError('Invalid username', 'NOT_FOUND');
         if (user.id !== context.user_id) {
           throw new ApolloError('You have no permission to load temp posts', 'NO_PERMISSION');
@@ -396,7 +400,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       // show private posts
-      if (context.user_id) {
+      if (context.user_id && (!username || user?.id === context.user_id)) {
         query.orWhere('post.is_private = true and post.fk_user_id = :user_id', {
           user_id: context.user_id
         });
@@ -431,6 +435,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       const rows = (await query.getRawMany()) as { fk_post_id: string; score: number }[];
+
       const ids = rows.map(row => row.fk_post_id);
       const posts = await getRepository(Post).findByIds(ids);
       const normalized = normalize(posts);
