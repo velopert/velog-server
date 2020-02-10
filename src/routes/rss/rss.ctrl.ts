@@ -1,10 +1,10 @@
 import { Middleware } from '@koa/router';
 import { getRepository } from 'typeorm';
-import Post from '../../../entity/Post';
+import Post from '../../entity/Post';
 import { Feed } from 'feed';
 import { Item } from 'feed/lib/typings';
 import marked from 'marked';
-import VelogConfig from '../../../entity/VelogConfig';
+import VelogConfig from '../../entity/VelogConfig';
 
 function convert(post: Post): Item {
   const { username } = post.user;
@@ -57,7 +57,14 @@ export const getEntireFeed: Middleware = async ctx => {
 export const getUserFeed: Middleware = async ctx => {
   const postRepo = getRepository(Post);
   const velogConfigRepo = getRepository(VelogConfig);
-  const { username } = ctx.params;
+  let { username } = ctx.params as { username: string };
+
+  // For velog v1 compat
+  // Remove me after 2021
+  if (username.charAt(0) === '@') {
+    username = username.slice(1, username.length);
+  }
+
   const posts = await postRepo
     .createQueryBuilder('post')
     .where('is_temp = false AND is_private = false')
@@ -75,7 +82,10 @@ export const getUserFeed: Middleware = async ctx => {
     .where('user.username = :username', { username })
     .getOne();
 
-  if (!config) throw new Error('Config not found');
+  if (!config) {
+    ctx.throw(404);
+    return;
+  }
 
   const title = config.title || `${username}.log`;
   const { user } = config;
