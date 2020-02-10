@@ -353,8 +353,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .limit(limit)
         .orderBy('post.released_at', 'DESC')
         .addOrderBy('post.id', 'DESC')
-        .leftJoinAndSelect('post.user', 'user')
-        .where('is_private = false');
+        .leftJoinAndSelect('post.user', 'user');
+
+      if (!context.user_id) {
+        query.where('is_private = false');
+      } else {
+        query.where('(is_private = false OR post.fk_user_id = :user_id)', {
+          user_id: context.user_id
+        });
+      }
+      // .where('is_private = false');
 
       const userRepo = getRepository(User);
 
@@ -399,12 +407,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         });
       }
 
-      // show private posts
-      if (context.user_id && (!username || user?.id === context.user_id)) {
-        query.orWhere('post.is_private = true and post.fk_user_id = :user_id', {
-          user_id: context.user_id
-        });
-      }
       const posts = await query.getMany();
       return posts;
     },
