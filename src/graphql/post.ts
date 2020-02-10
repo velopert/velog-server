@@ -740,7 +740,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         }
       }
 
-      await Promise.all([searchSync.remove(id), cache.remove(...cacheKeys)]);
+      try {
+        await Promise.all([searchSync.remove(id), cache.remove(...cacheKeys)]);
+      } catch (e) {
+        console.log('Failed to remove post from cache or elasticsearch');
+        console.log(e);
+      }
 
       return true;
     },
