@@ -670,6 +670,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       post.title = title;
       post.body = body;
+
+      if (post.is_temp && !is_temp) {
+        post.released_at = new Date();
+      }
       post.is_temp = is_temp;
       post.is_markdown = is_markdown;
       post.meta = meta;
@@ -702,8 +706,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
       await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
-
-      await Promise.all([searchSync.update(post.id), cache.remove(...cacheKeys)]);
+      await Promise.all([is_temp ? null : searchSync.update(post.id), cache.remove(...cacheKeys)]);
 
       return post;
     },
