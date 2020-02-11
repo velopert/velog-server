@@ -83,6 +83,13 @@ auth.get('/code/:code', async ctx => {
       return;
     }
 
+    if (emailAuth.logged) {
+      ctx.body = {
+        name: 'TOKEN_ALREADY_USED'
+      };
+      ctx.status = 403;
+      return;
+    }
     // check date
     const diff = new Date().getTime() - new Date(emailAuth.created_at).getTime();
     if (diff > 1000 * 60 * 60 * 24 || emailAuth.logged) {
@@ -129,9 +136,7 @@ auth.get('/code/:code', async ctx => {
           refresh_token: tokens.refreshToken
         }
       };
-      setImmediate(() => {
-        getRepository(EmailAuth).save(emailAuth);
-      });
+      await getRepository(EmailAuth).save(emailAuth);
     }
   } catch (e) {
     ctx.throw(500, e);
