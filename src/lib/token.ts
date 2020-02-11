@@ -55,13 +55,24 @@ export function setTokenCookie(
   ctx.cookies.set('access_token', tokens.accessToken, {
     httpOnly: true,
     maxAge: 1000 * 60 * 60,
-    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
+    domain: '.velog.io'
   });
 
   ctx.cookies.set('refresh_token', tokens.refreshToken, {
     httpOnly: true,
     maxAge: 1000 * 60 * 60 * 24 * 30,
-    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
+    domain: '.velog.io'
+  });
+
+  // Following codes are for webpack-dev-server proxy
+  ctx.cookies.set('access_token', tokens.accessToken, {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60
+  });
+
+  ctx.cookies.set('refresh_token', tokens.refreshToken, {
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24 * 30
   });
 }
 
