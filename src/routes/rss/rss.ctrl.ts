@@ -12,7 +12,7 @@ function convert(post: Post): Item {
   return {
     link,
     title: post.title,
-    description: marked(post.body),
+    description: marked(post.body).replace(/[\u001C-\u001F\u0008]/gu, ''),
     id: link,
     date: post.released_at,
     author: [
