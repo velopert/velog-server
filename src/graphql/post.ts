@@ -894,7 +894,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         const score = new PostScore();
         score.fk_post_id = id;
         score.type = 'READ';
-        score.score = 0.75;
+        score.score = 0.25;
         await postScoreRepo.save(score);
       }
 
