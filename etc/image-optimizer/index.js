@@ -1,25 +1,62 @@
-const querystring = require('querystring'); // Node.js를 실행할 Lambda 머신이 가지고 있기에 별도의 설치를 하지 않습니다.
-const AWS = require('aws-sdk'); // Node.js를 실행할 Lambda 머신이 가지고 있기에 별도의 설치를 하지 않습니다.
+const querystring = require('querystring');
+const AWS = require('aws-sdk');
 const S3 = new AWS.S3({
-  region: 'ap-northeast-2' // S3 Bucket Region 명
+  region: 'ap-northeast-2'
 });
 
 const Sharp = require('sharp');
 const BUCKET = 's3.images.velog.io'; // S3 Bucket 이름
+
+async function resize(key, { format, w }) {
+  const s3Object = await S3.getObject({
+    Bucket: BUCKET,
+    Key: key
+  }).promise();
+
+  const info = await Sharp(s3Object.Body).metadata();
+  const parsedWidth = w && parseInt(w);
+  if (info.width <= parsedWidth) {
+    return null;
+  }
+  const width = parsedWidth && Math.min(parsedWidth, 2048);
+
+  let task = Sharp(s3Object.Body);
+  if (width) {
+    task = task.resize({ width });
+  }
+  task = task
+    .withMetadata()
+    .toFormat(format)
+    .toBuffer();
+  const image = await task;
+
+  return image.toString('base64');
+}
 
 exports.handler = async (event, context, callback) => {
   const response = event.Records[0].cf.response;
   const request = event.Records[0].cf.request;
 
   const params = querystring.parse(request.querystring);
+
+  const { w, webp } = params;
+
   const uri = request.uri;
   const [, imageName, extension] = uri.match(/\/(.*)\.(.*)/);
-  const requiredFormat = extension == 'jpg' ? 'jpeg' : extension;
+
+  // no params given -> return original data OR gif
+  if (Object.values(params).every(value => !value) || extension === 'gif') {
+    callback(null, response);
+    return;
+  }
+
+  const originalFormat = extension == 'jpg' ? 'jpeg' : extension.toLowerCase();
+  const format = webp === '1' ? 'webp' : originalFormat;
 
   response.headers['content-type'] = [
     {
       key: 'Content-type',
-      value: 'image/' + requiredFormat
+      value: 'image/' + format
     }
   ];
 
@@ -32,52 +69,15 @@ exports.handler = async (event, context, callback) => {
     ];
   }
 
-  if (!params.w && !params.h) {
-    callback(null, response);
-    return;
-  }
-
   try {
-    const originalKey = imageName + '.' + extension;
-
-    const s3Object = await S3.getObject({
-      Bucket: BUCKET,
-      Key: originalKey
-    }).promise();
-
-    let resizedImage;
-
-    if (params.w && params.h) {
-      const width = parseInt(params.w);
-      const height = parseInt(params.h);
-      resizedImage = await Sharp(s3Object.Body)
-        .resize(width, height, { fit: 'fill' })
-        .withMetadata()
-        .rotate()
-        .toFormat(requiredFormat)
-        .toBuffer();
-    } else if (params.w) {
-      const width = parseInt(params.w);
-      resizedImage = await Sharp(s3Object.Body)
-        .resize({ width: width })
-        .withMetadata()
-        .rotate()
-        .toFormat(requiredFormat)
-        .toBuffer();
-    } else if (params.h) {
-      const height = parseInt(params.h);
-      resizedImage = await Sharp(s3Object.Body)
-        .resize({ height: height })
-        .withMetadata()
-        .rotate()
-        .toFormat(requiredFormat)
-        .toBuffer();
-    } else {
-      return callback(null, response);
+    const originalKey = decodeURI(imageName) + '.' + extension;
+    const image = await resize(originalKey, { format, w });
+    if (image === null) {
+      callback(null, response);
     }
 
     response.status = 200;
-    response.body = resizedImage.toString('base64');
+    response.body = image;
     response.bodyEncoding = 'base64';
 
     return callback(null, response);
