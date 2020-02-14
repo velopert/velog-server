@@ -110,6 +110,27 @@ export default class PostsTags {
     return rawData[0].posts_count;
   }
 
+  static async getUserTags(
+    userId: string,
+    showPrivate: boolean
+  ): Promise<Tag & { posts_count: number }> {
+    const rawData = await getManager().query(
+      `
+      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+        select count(fk_post_id) as posts_count, fk_tag_id from posts_tags
+        inner join posts on posts.id = fk_post_id
+          and posts.is_temp = false
+          and posts.fk_user_id = $1
+          ${showPrivate ? '' : 'and posts.is_private = false'}
+        group by fk_tag_id
+      ) as q inner join tags on q.fk_tag_id = tags.id
+      order by posts_count desc
+    `,
+      [userId]
+    );
+    return rawData;
+  }
+
   static async getTags(cursor?: string, limit = 60): Promise<RawTagData> {
     const cursorTag = cursor ? await getRepository(Tag).findOne(cursor) : null;
 

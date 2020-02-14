@@ -5,6 +5,7 @@ import Tag from '../entity/Tag';
 import PostsTags from '../entity/PostsTags';
 import AdminUser from '../entity/AdminUser';
 import TagAlias from '../entity/TagAlias';
+import User from '../entity/User';
 
 export const typeDef = gql`
   type Tag {
@@ -19,6 +20,7 @@ export const typeDef = gql`
   extend type Query {
     tags(sort: String!, cursor: ID, limit: Int): [Tag]
     tag(name: String!): Tag
+    userTags(username: String): [Tag]
   }
 
   extend type Mutation {
@@ -32,7 +34,8 @@ type MergeTagParams = {
 };
 export const resolvers: IResolvers<any, ApolloContext> = {
   Tag: {
-    posts_count: async (parent: Tag, _: any, ctx) => {
+    posts_count: async (parent: Tag & { posts_count?: number }, _: any, ctx) => {
+      if (parent.posts_count) return parent.posts_count;
       return PostsTags.getPostsCount(parent.id);
     }
   },
@@ -58,6 +61,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       return PostsTags.getTags(cursor, limit);
+    },
+    userTags: async (parent: any, { username }, ctx) => {
+      const user = await getRepository(User).findOne({ username });
+      if (!user) throw new ApolloError('Invalid username', 'NOT_FOUND');
+      const tags = await PostsTags.getUserTags(user.id, ctx.user_id === user.id);
+
+      return tags;
     }
   },
   Mutation: {
