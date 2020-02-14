@@ -420,25 +420,25 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!selectedTimeframe) {
         throw new ApolloError('Invalid timeframe', 'BAD_REQUEST');
       }
-      const interval = selectedTimeframe[1];
-
-      const query = getRepository(PostScore)
-        .createQueryBuilder()
-        .select('fk_post_id')
-        .addSelect('SUM(score)', 'score')
-        .where(`created_at > now()::DATE - ${interval} AND fk_post_id IS NOT NULL`)
-        .groupBy('fk_post_id')
-        .orderBy('score', 'DESC')
-        .addOrderBy('fk_post_id', 'DESC')
-        .limit(limit);
-
-      if (offset) {
-        query.offset(offset);
+      if (limit > 100) {
+        throw new ApolloError('Limit is too high', 'BAD_REQUEST');
       }
 
-      const rows = (await query.getRawMany()) as { fk_post_id: string; score: number }[];
+      const rows = (await getManager().query(
+        `
+        select posts.id, posts.title, SUM(score) as score  from post_scores
+        inner join posts on post_scores.fk_post_id = posts.id
+        where post_scores.created_at > now() - interval '14 days'
+        and posts.released_at > now() - interval '3 months'
+        group by posts.id
+        order by score desc, posts.id desc
+        offset $1
+        limit $2
+      `,
+        [offset, limit]
+      )) as { id: string; score: number }[];
 
-      const ids = rows.map(row => row.fk_post_id);
+      const ids = rows.map(row => row.id);
       const posts = await getRepository(Post).findByIds(ids);
       const normalized = normalize(posts);
       const ordered = ids.map(id => normalized[id]);
