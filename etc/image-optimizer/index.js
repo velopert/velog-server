@@ -42,6 +42,7 @@ exports.handler = async (event, context, callback) => {
   const { w, webp } = params;
 
   const uri = request.uri;
+  console.log(request.uri);
   const [, imageName, extension] = uri.match(/\/(.*)\.(.*)/);
 
   // no params given -> return original data OR gif
@@ -83,6 +84,6 @@ exports.handler = async (event, context, callback) => {
     return callback(null, response);
   } catch (error) {
     console.log(error);
-    return callback(error);
+    return callback(null, response);
   }
 };
