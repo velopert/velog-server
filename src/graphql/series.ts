@@ -135,7 +135,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const seriesRepo = getRepository(Series);
       const exists = await seriesRepo.findOne({
         where: {
-          name
+          url_slug,
+          fk_user_id: ctx.user_id
         }
       });
       if (exists) {
