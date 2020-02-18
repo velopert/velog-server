@@ -340,11 +340,22 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
       }
 
+      const userRepo = getRepository(User);
+      const user = username
+        ? await userRepo.findOne({
+            where: {
+              username
+            }
+          })
+        : null;
+
       if (tag) {
         return PostsTags.getPostsByTag({
           limit,
           cursor,
-          tagName: tag
+          tagName: tag,
+          userId: user?.id,
+          userself: !!(user && user.id === context.user_id)
         });
       }
 
@@ -363,16 +374,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         });
       }
       // .where('is_private = false');
-
-      const userRepo = getRepository(User);
-
-      const user = username
-        ? await userRepo.findOne({
-            where: {
-              username
-            }
-          })
-        : null;
 
       if (temp_only) {
         if (!username) throw new ApolloError('username is missing', 'BAD_REQUEST');

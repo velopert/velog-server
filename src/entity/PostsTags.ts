@@ -30,6 +30,8 @@ type GetPostsByTagParams = {
   tagName: string;
   cursor?: string;
   limit?: number;
+  userId?: string;
+  userself: boolean;
 };
 
 @Entity('posts_tags', {
@@ -222,7 +224,13 @@ export default class PostsTags {
     return tags;
   }
 
-  static async getPostsByTag({ tagName, cursor, limit = 20 }: GetPostsByTagParams) {
+  static async getPostsByTag({
+    tagName,
+    cursor,
+    limit = 20,
+    userId,
+    userself
+  }: GetPostsByTagParams) {
     const tag = await TagAlias.getOriginTag(tagName);
     if (!tag) throw new Error('Invalid tag');
     const manager = getManager();
@@ -241,14 +249,16 @@ export default class PostsTags {
         posts_tags.fk_tag_id = $1
         or tag_alias.fk_alias_tag_id = $1
       )
-      and posts.is_private = false
+      ${userself ? '' : 'and posts.is_private = false'}
       and posts.is_temp = false
       and posts.id != $2
-      and posts.released_at <= $3
-      or (
-        posts.released_at = $3
-        and posts.id < $2
+      and (posts.released_at <= $3
+        or (
+          posts.released_at = $3
+          and posts.id < $2
+        )
       )
+      ${userId ? `and fk_user_id = '${userId}'` : ''}
       order by posts.id
     ) as q1
     order by released_at desc
@@ -267,7 +277,8 @@ export default class PostsTags {
           posts_tags.fk_tag_id = $1
           or tag_alias.fk_alias_tag_id = $1
         )
-        and posts.is_private = false
+        ${userself ? '' : 'and posts.is_private = false'}
+        ${userId ? `and fk_user_id = '${userId}'` : ''}
         and posts.is_temp = false
         order by posts.id
       ) as q1

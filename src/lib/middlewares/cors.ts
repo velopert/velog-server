@@ -12,6 +12,10 @@ const cors: Middleware = (ctx, next) => {
     /^https:\/\/prod.velog.io$/,
     /https:\/\/(.*)--velog.netlify.com/
   ];
+
+  if (process.env.NODE_ENV === 'development') {
+    allowedHosts.push(/^http:\/\/localhost/);
+  }
   const { origin } = ctx.headers;
   const valid = allowedHosts.some(regex => regex.test(ctx.headers.origin));
   if (!valid) return next();
