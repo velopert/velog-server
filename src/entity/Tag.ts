@@ -47,14 +47,9 @@ export default class Tag {
 
   static findByName(name: string) {
     const repo = getRepository(Tag);
-    return repo
-      .createQueryBuilder('tag')
-      .where(
-        `lower(tag.name) = lower(:name)
-      OR lower(replace(tag.name, ' ', '-')) = lower(replace(:name, ' ', '-'))`,
-        { name }
-      )
-      .getOne();
+    return repo.findOne({
+      name_filtered: escapeForUrl(name)
+    });
   }
 
   /**
