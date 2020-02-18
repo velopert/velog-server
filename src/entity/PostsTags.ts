@@ -66,6 +66,16 @@ export default class PostsTags {
   post!: Post;
 
   static async syncPostTags(postId: string, tags: Tag[]) {
+    const uniqueTags = tags.reduce<Tag[]>((acc, current) => {
+      if (!acc.find(tag => tag.id === current.id)) {
+        acc.push(current);
+        return acc;
+      }
+      return acc;
+    }, []);
+
+    console.log(uniqueTags);
+
     const repo = getRepository(PostsTags);
 
     // get current post tags
@@ -77,7 +87,7 @@ export default class PostsTags {
 
     const normalized = {
       prev: normalize(prevPostTags, postTag => postTag.fk_tag_id),
-      current: normalize(tags)
+      current: normalize(uniqueTags)
     };
 
     // removes tags that are missing
@@ -85,7 +95,7 @@ export default class PostsTags {
     missing.forEach(tag => repo.remove(tag));
 
     // adds tags that are new
-    const tagsToAdd = tags.filter(tag => !normalized.prev[tag.id]);
+    const tagsToAdd = uniqueTags.filter(tag => !normalized.prev[tag.id]);
     const postTags = tagsToAdd.map(tag => {
       const postTag = new PostsTags();
       postTag.fk_post_id = postId;
