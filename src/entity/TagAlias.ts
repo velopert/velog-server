@@ -11,6 +11,7 @@ import {
   getRepository
 } from 'typeorm';
 import Tag from './Tag';
+import { escapeForUrl } from '../lib/utils';
 
 /** Created with TypeORM  **/
 @Entity('tag_alias', {
@@ -46,7 +47,7 @@ export default class TagAlias {
 
   static async getOriginTag(name: string) {
     const tagRepo = getRepository(Tag);
-    const nameFiltered = name.toLowerCase().replace(/ /g, '-');
+    const nameFiltered = escapeForUrl(name).toLowerCase();
     const tag = await tagRepo.findOne({
       where: {
         name_filtered: nameFiltered

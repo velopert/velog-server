@@ -48,7 +48,7 @@ export default class Tag {
   static findByName(name: string) {
     const repo = getRepository(Tag);
     return repo.findOne({
-      name_filtered: escapeForUrl(name)
+      name_filtered: escapeForUrl(name).toLowerCase()
     });
   }
 
@@ -65,7 +65,7 @@ export default class Tag {
     const repo = getRepository(Tag);
     const freshTag = new Tag();
     freshTag.name = name;
-    freshTag.name_filtered = escapeForUrl(name);
+    freshTag.name_filtered = escapeForUrl(name).toLowerCase();
     await repo.save(freshTag);
     return freshTag;
   }
