@@ -48,7 +48,7 @@ auth.post('/sendmail', async ctx => {
     // create email
     const emailAuth = new EmailAuth();
     emailAuth.code = shortid.generate();
-    emailAuth.email = email;
+    emailAuth.email = email.toLowerCase();
     await getRepository(EmailAuth).save(emailAuth);
     const emailTemplate = createAuthEmail(!!user, emailAuth.code);
 
