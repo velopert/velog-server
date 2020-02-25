@@ -707,7 +707,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
       await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
-      await Promise.all([is_temp ? null : searchSync.update(post.id), cache.remove(...cacheKeys)]);
+
+      try {
+        await Promise.all([
+          is_temp ? null : searchSync.update(post.id),
+          cache.remove(...cacheKeys)
+        ]);
+      } catch (e) {
+        console.log(e);
+      }
 
       return post;
     },
