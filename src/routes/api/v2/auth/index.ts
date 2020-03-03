@@ -48,15 +48,28 @@ auth.post('/sendmail', async ctx => {
     // create email
     const emailAuth = new EmailAuth();
     emailAuth.code = shortid.generate();
-    emailAuth.email = email;
+    emailAuth.email = email.toLowerCase();
     await getRepository(EmailAuth).save(emailAuth);
     const emailTemplate = createAuthEmail(!!user, emailAuth.code);
 
-    await sendMail({
-      to: email,
-      ...emailTemplate,
-      from: 'verify@velog.io'
-    });
+    try {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(
+          `Login URL: http://${process.env.CLIENT_HOST}/${user ? 'email-login' : 'register'}?code=${
+            emailAuth.code
+          }`
+        );
+      }
+      await sendMail({
+        to: email,
+        ...emailTemplate,
+        from: 'verify@velog.io'
+      });
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'development') {
+        throw e;
+      }
+    }
 
     ctx.body = {
       registered: !!user

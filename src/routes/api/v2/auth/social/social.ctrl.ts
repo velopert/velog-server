@@ -395,7 +395,7 @@ export const socialCallback: Middleware = async ctx => {
 
     const redirectUrl =
       process.env.NODE_ENV === 'development'
-        ? 'https://localhost:3000/register?social=1'
+        ? 'http://localhost:3000/register?social=1'
         : 'https://velog.io/register?social=1';
     ctx.redirect(encodeURI(redirectUrl));
   } catch (e) {

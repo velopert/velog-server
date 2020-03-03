@@ -1,3 +1,14 @@
+CREATE DATABASE velog
+  LC_COLLATE 'C'
+  LC_CTYPE 'C'
+  ENCODING 'UTF8'
+  TEMPLATE template0;
+
+CREATE USER velog WITH ENCRYPTED PASSWORD 'velogpw';
+GRANT ALL PRIVILEGES ON DATABASE velog to velog;
+
+\c velog
+
 --
 -- PostgreSQL database dump
 --
@@ -1188,13 +1199,6 @@ CREATE INDEX users_email ON public.users USING btree (email);
 --
 
 CREATE INDEX users_username ON public.users USING btree (username);
-
-
---
--- Name: posts tsvectorupdate; Type: TRIGGER; Schema: public; Owner: velog
---
-
-CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE ON public.posts FOR EACH ROW EXECUTE PROCEDURE public.posts_tsv_trigger();
 
 
 --
