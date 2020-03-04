@@ -5,6 +5,11 @@ import { getRepository } from 'typeorm';
 import Post from '../entity/Post';
 import PostScore from '../entity/PostScore';
 import cache from '../cache';
+import UserMeta from '../entity/UserMeta';
+import User from '../entity/User';
+import { generateUnsubscribeToken } from '../lib/common';
+import { createCommentEmail } from '../etc/emailTemplates';
+import sendMail from '../lib/sendMail';
 
 export const typeDef = gql`
   type Comment {
@@ -140,6 +145,66 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       score.score = 1;
       score.type = 'COMMENT';
       await postScoreRepo.save(score);
+
+      const commenter = await getRepository(User).findOne(ctx.user_id, {
+        relations: ['profile']
+      });
+
+      // send email to commenter
+      (async () => {
+        if (!post.user.email) return;
+        const userMeta = await getRepository(UserMeta).findOne({ fk_user_id: post.user.id });
+        if (!userMeta?.email_notification) return;
+        if (!commenter) return;
+        if (commenter.id === post.user.id) return;
+        const unsubscribeToken = await generateUnsubscribeToken(post.user.id, 'email_notification');
+        const body = createCommentEmail({
+          unsubscribeToken,
+          username: commenter.username,
+          userThumbnail: commenter.profile.thumbnail,
+          urlSlug: post.url_slug,
+          postTitle: post.title,
+          comment: text,
+          commentId: comment.id
+        });
+        sendMail({
+          body,
+          to: post.user.email,
+          subject: `Re: ${post.title} | 댓글 알림`,
+          from: 'Velog <notify@velog.io>'
+        });
+      })();
+
+      // send email to parent comment user
+      (async () => {
+        if (!comment_id || !commenter) return;
+        const parentComment = await getRepository(Comment).findOne(comment_id, {
+          relations: ['user']
+        });
+        if (!parentComment || ctx.user_id === parentComment?.user.id || !parentComment.user.email) {
+          return;
+        }
+        const userMeta = await getRepository(UserMeta).findOne({
+          fk_user_id: parentComment.user.id
+        });
+        if (!userMeta?.email_notification) return;
+        const unsubscribeToken = await generateUnsubscribeToken(post.user.id, 'email_notification');
+        const body = createCommentEmail({
+          unsubscribeToken,
+          username: commenter.username,
+          userThumbnail: commenter.profile.thumbnail,
+          urlSlug: post.url_slug,
+          postTitle: post.title,
+          comment: text,
+          commentId: comment.id
+        });
+        sendMail({
+          body,
+          to: parentComment.user.email,
+          subject: `Re: ${post.title} | 답글 알림`,
+          from: 'Velog <notify@velog.io>'
+        });
+      })();
 
       await cache.remove(`ssr:/@${username}/${post.url_slug}`);
 

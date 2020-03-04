@@ -8,7 +8,7 @@ import cache from './cache';
 const serverlessApp = serverless(app);
 
 export const handler: APIGatewayProxyHandler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+  // context.callbackWaitsForEmptyEventLoop = false;
 
   const database = new Database();
   const connection = await database.getConnection();
