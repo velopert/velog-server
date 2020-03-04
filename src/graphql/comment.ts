@@ -177,7 +177,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             subject: `Re: ${post.title} | 댓글 알림`,
             from: 'Velog <notify@velog.io>'
           });
-          return sleep(50);
+          return sleep(300);
         })();
 
         // send email to parent comment user
@@ -216,7 +216,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             subject: `Re: ${post.title} | 답글 알림`,
             from: 'Velog <notify@velog.io>'
           });
-          return sleep(50);
+          return sleep(300);
         })();
 
         await Promise.all([p1, p2]);
