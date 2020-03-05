@@ -97,7 +97,7 @@ export const createCommentEmail = ({
         ${commentHtml}
       </div>
       <div style="font-size: 0.875rem; color: #adb5bd; margin-top: 1.5rem">
-        ${format(new Date(), 'yyyy년 mm월 dd일')}
+        ${format(new Date(), 'yyyy년 MM월 dd일')}
       </div>
       <a
         href="${postLink}?comment_id=${commentId || ''}"
