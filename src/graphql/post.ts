@@ -20,6 +20,7 @@ import User from '../entity/User';
 import PostRead from '../entity/PostRead';
 import hash from '../lib/hash';
 import cache from '../cache';
+import PostReadLog from '../entity/PostReadLog';
 
 export const typeDef = gql`
   type LinkedPosts {
@@ -325,6 +326,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if ((post.is_temp || post.is_private) && post.fk_user_id !== ctx.user_id) {
           return null;
         }
+
+        setTimeout(async () => {
+          if (post?.fk_user_id === ctx.user_id || !ctx.user_id) return;
+          PostReadLog.log({
+            userId: ctx.user_id,
+            postId: post.id,
+            resumeTitleId: null,
+            percentage: 0
+          });
+        }, 0);
 
         return post;
       } catch (e) {
