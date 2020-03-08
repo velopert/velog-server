@@ -32,7 +32,8 @@ export default class Database {
       username: process.env.TYPEORM_USERNAME,
       port: parseInt(process.env.TYPEORM_PORT || '5432', 10),
       synchronize: process.env.SYNCHRONIZE === 'true',
-      appname: 'velog-v2-server'
+      appname: 'velog-v2-server',
+      logging: process.env.TYPEORM_LOGGING === 'true'
     };
 
     return createConnection(connectionOptions);

@@ -1,7 +1,7 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import { getRepository, getManager } from 'typeorm';
+import { getRepository, getManager, LessThan, Not } from 'typeorm';
 import PostScore from '../entity/PostScore';
 import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
 import removeMd from 'remove-markdown';
@@ -22,7 +22,18 @@ import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
 
+type ReadingListQueryParams = {
+  type: 'LIKED' | 'READ';
+  limit?: number;
+  cursor?: string;
+};
+
 export const typeDef = gql`
+  enum ReadingListOption {
+    LIKED
+    READ
+  }
+
   type LinkedPosts {
     previous: Post
     next: Post
@@ -50,6 +61,7 @@ export const typeDef = gql`
     series: Series
     liked: Boolean
     linked_posts: LinkedPosts
+    last_read_at: Date
   }
   type SearchResult {
     count: Int
@@ -70,7 +82,9 @@ export const typeDef = gql`
     searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
     postHistories(post_id: ID): [PostHistory]
     lastPostHistory(post_id: ID!): PostHistory
+    readingList(type: ReadingListOption, cursor: ID, limit: Int): [Post]
   }
+
   extend type Mutation {
     writePost(
       title: String
@@ -495,6 +509,70 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         }
       });
       return postHistory;
+    },
+    readingList: async (parent: any, { type, cursor, limit = 20 }: ReadingListQueryParams, ctx) => {
+      if (limit > 100) {
+        throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
+      }
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+
+      if (type === 'LIKED') {
+        const likesRepo = getRepository(PostLike);
+        const cursorData = cursor
+          ? await likesRepo.findOne({
+              where: {
+                fk_user_id: ctx.user_id,
+                fk_post_id: cursor
+              }
+            })
+          : null;
+        const cursorQueryOption = cursorData
+          ? { updated_at: LessThan(cursorData.created_at), id: Not(cursorData.id) }
+          : {};
+
+        const likes = await likesRepo.find({
+          where: {
+            fk_user_id: ctx.user_id,
+            ...cursorQueryOption
+          },
+          order: {
+            updated_at: 'DESC',
+            id: 'ASC'
+          },
+          take: limit
+        });
+        return likes.map(like => like.post);
+      }
+
+      const logRepo = getRepository(PostReadLog);
+      const cursorData = cursor
+        ? await logRepo.findOne({
+            where: {
+              fk_user_id: ctx.user_id,
+              fk_post_id: cursor
+            }
+          })
+        : null;
+
+      const cursorQueryOption = cursorData
+        ? { updated_at: LessThan(cursorData.updated_at), id: Not(cursorData.id) }
+        : {};
+
+      const logs = await logRepo.find({
+        where: {
+          fk_user_id: ctx.user_id,
+          ...cursorQueryOption
+        },
+        order: {
+          updated_at: 'DESC',
+          id: 'ASC'
+        },
+        take: limit
+      });
+
+      return logs.map(log => log.post);
     }
   },
   Mutation: {
