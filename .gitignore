@@ -6,3 +6,4 @@ ormconfig.json
 .env.development
 dist
 .env.staging
+.env.production
