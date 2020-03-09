@@ -242,7 +242,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
       userMeta.email_notification = args.notification;
       userMeta.email_promotion = args.promotion;
-      userMetaRepo.save(userMeta);
+      await userMetaRepo.save(userMeta);
       return userMeta;
     },
     unregister: async (parent: any, args: { token: string }, ctx) => {

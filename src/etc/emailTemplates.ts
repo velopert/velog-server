@@ -30,6 +30,7 @@ export const createAuthEmail = (registered: boolean, code: string) => {
 };
 
 type CreateCommentEmailParams = {
+  postWriter: string;
   username: string;
   userThumbnail: string | null;
   urlSlug: string;
@@ -40,6 +41,7 @@ type CreateCommentEmailParams = {
 };
 
 export const createCommentEmail = ({
+  postWriter,
   username,
   userThumbnail,
   urlSlug,
@@ -49,7 +51,7 @@ export const createCommentEmail = ({
   commentId
 }: CreateCommentEmailParams) => {
   const commentHtml = marked(comment);
-  const postLink = `https://velog.io/@${username}/${urlSlug}?comment_id=${commentId}`;
+  const postLink = `https://velog.io/@${postWriter}/${urlSlug}?comment_id=${commentId}`;
   const unsubscribeUrl = `https://v2.velog.io/api/v2/common/email/unsubscribe?token=${unsubscribeToken}`;
 
   return `
@@ -100,7 +102,7 @@ export const createCommentEmail = ({
         ${format(new Date(), 'yyyy년 MM월 dd일')}
       </div>
       <a
-        href="${postLink}?comment_id=${commentId || ''}"
+        href="${postLink}"
         style="outline: none; border: none; background: #845ef7; color: white; padding-top: 0.5rem; padding-bottom: 0.5rem; font-size: 1rem; font-weight: 600; display: inline-block; background: #845ef7; padding-left: 1rem; padding-right: 1rem; align-items: center; margin-top: 1rem; border-radius: 4px; text-decoration: none;"
         >답글 달기</a
       >

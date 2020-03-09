@@ -164,6 +164,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           );
           const body = createCommentEmail({
             unsubscribeToken,
+            postWriter: post.user.username,
             username: commenter.username,
             userThumbnail: commenter.profile.thumbnail,
             urlSlug: post.url_slug,
@@ -202,6 +203,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           );
           const body = createCommentEmail({
             unsubscribeToken,
+            postWriter: post.user.username,
             username: commenter.username,
             userThumbnail: commenter.profile.thumbnail,
             urlSlug: post.url_slug,
