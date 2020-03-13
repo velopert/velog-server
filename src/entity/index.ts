@@ -19,6 +19,7 @@ import UserMeta from './UserMeta';
 import UserProfile from './UserProfile';
 import VelogConfig from './VelogConfig';
 import UrlSlugHistory from './UrlSlugHistory';
+import PostReadLog from './PostReadLog';
 
 const entities = [
   AdminUser,
@@ -41,7 +42,8 @@ const entities = [
   UserMeta,
   UserProfile,
   VelogConfig,
-  UrlSlugHistory
+  UrlSlugHistory,
+  PostReadLog
 ];
 
 export default entities;

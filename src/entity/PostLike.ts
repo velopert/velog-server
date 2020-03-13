@@ -26,6 +26,7 @@ export default class PostLike {
   @Column('uuid')
   fk_post_id!: string;
 
+  @Index()
   @Column('timestampz')
   @CreateDateColumn()
   created_at!: Date;

@@ -989,7 +989,8 @@ CREATE INDEX post_histories_fk_post_id ON public.post_histories USING btree (fk_
 --
 
 CREATE UNIQUE INDEX post_likes_fk_post_id_fk_user_id ON public.post_likes USING btree (fk_post_id, fk_user_id);
-
+CREATE INDEX post_likes_created_at ON public.post_likes USING btree (created_at);
+CREATE INDEX post_likes_fk_user_id ON public.post_likes USING btree (fk_user_id);
 
 --
 -- Name: post_reads_created_at; Type: INDEX; Schema: public; Owner: velog
@@ -1533,3 +1534,19 @@ ALTER TABLE ONLY public.user_thumbnails
 -- PostgreSQL database dump complete
 --
 
+CREATE TABLE public.post_read_logs (
+	id uuid NOT NULL DEFAULT uuid_generate_v4(),
+	fk_post_id uuid NOT NULL,
+	fk_user_id uuid NOT NULL,
+	percentage float4 NOT NULL,
+	resume_title_id varchar(255) NULL,
+	created_at timestamp NOT NULL DEFAULT now(),
+	updated_at timestamp NOT NULL DEFAULT now(),
+	CONSTRAINT "PK_bc18dad4a9c6ab3bf5a8605f9e7" PRIMARY KEY (id),
+	CONSTRAINT "FK_7b37d3334ab7d049a97f8b2ee0c" FOREIGN KEY (fk_post_id) REFERENCES posts(id) ON DELETE CASCADE,
+	CONSTRAINT "FK_d4fd1d180f05445287d377ba49c" FOREIGN KEY (fk_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+CREATE INDEX "IDX_7b37d3334ab7d049a97f8b2ee0" ON public.post_read_logs USING btree (fk_post_id);
+CREATE INDEX "IDX_d4fd1d180f05445287d377ba49" ON public.post_read_logs USING btree (fk_user_id);
+
+ALTER TABLE public.post_read_logs OWNER TO velog;

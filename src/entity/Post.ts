@@ -80,7 +80,10 @@ export default class Post {
   @UpdateDateColumn()
   updated_at!: Date;
 
-  @OneToMany(type => Comment, comment => comment.post)
+  @OneToMany(
+    type => Comment,
+    comment => comment.post
+  )
   comments!: Comment[];
 
   @ManyToMany(type => Tag)
@@ -95,5 +98,6 @@ export default class Post {
   })
   tags!: Tag[];
 
+  last_read_at?: Date;
   // tags!: Tag[];
 }
