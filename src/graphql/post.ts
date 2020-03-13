@@ -343,6 +343,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
         setTimeout(async () => {
           if (post?.fk_user_id === ctx.user_id || !ctx.user_id) return;
+          if (!post) return;
           PostReadLog.log({
             userId: ctx.user_id,
             postId: post.id,
