@@ -53,7 +53,8 @@ export const escapeForUrl = (text: string): string => {
     )
     .trim()
     .replace(/ /g, '-')
-    .replace(/--+/g, '-');
+    .replace(/--+/g, '-')
+    .replace(/\.+$/, '');
 };
 
 export function checkEmpty(text: string) {
