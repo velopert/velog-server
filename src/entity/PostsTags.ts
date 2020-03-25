@@ -125,7 +125,7 @@ export default class PostsTags {
   static async getUserTags(
     userId: string,
     showPrivate: boolean
-  ): Promise<Tag & { posts_count: number }> {
+  ): Promise<(Tag & { posts_count: number })[]> {
     const rawData = await getManager().query(
       `
       select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (

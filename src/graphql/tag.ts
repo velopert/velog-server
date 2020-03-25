@@ -80,8 +80,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         is_temp: false,
         ...(userself ? {} : { is_private: false })
       });
+
+      // prevents wrong tags conflict with public tag posts_count
+      const transformedTags = tags.map(tag => ({ ...tag, id: `${user.id}:${tag.id}` }));
+
+      // transform id for user tag
       return {
-        tags,
+        tags: transformedTags,
         posts_count: postsCount
       };
     }
