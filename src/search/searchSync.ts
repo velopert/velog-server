@@ -15,6 +15,7 @@ async function update(id: string) {
 
   if (!post) return;
   const serialized = serializePost(post);
+
   return esClient.index({
     id,
     index: 'posts',
