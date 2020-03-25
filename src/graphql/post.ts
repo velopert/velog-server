@@ -688,6 +688,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           })
           .andWhere('created_at < :createdAt', { createdAt: data[9].created_at })
           .execute();
+
+        setTimeout(() => {
+          searchSync.update(post.id).catch(console.error);
+        }, 0);
       }
 
       return postHistory;
@@ -906,6 +910,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       score.fk_user_id = ctx.user_id;
       await postScoreRepo.save(score);
 
+      setTimeout(() => {
+        searchSync.update(post.id);
+      }, 0);
+
       return post;
     },
     unlikePost: async (parent: any, args, ctx) => {
@@ -955,6 +963,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .andWhere('fk_user_id = :userId', { userId: ctx.user_id })
         .andWhere("type = 'LIKE'")
         .execute();
+
+      setTimeout(() => {
+        searchSync.update(post.id).catch(console.error);
+      }, 0);
 
       return post;
     },

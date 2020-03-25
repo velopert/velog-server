@@ -79,6 +79,8 @@ async function syncAll() {
     } catch (e) {
       console.log(e);
     }
+
+    console.log(`Query ${i + 1}/${queryCount}`);
   }
 }
 
