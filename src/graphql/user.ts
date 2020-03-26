@@ -199,6 +199,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (args.title === '' || checkEmpty(args.title)) {
         throw new ApolloError('Title must not be empty', 'BAD_REQUEST');
       }
+      if (args.title.length > 24) {
+        throw new ApolloError('Title is too long', 'BAD_REQUEST');
+      }
       const velogConfigRepo = getRepository(VelogConfig);
       const velogConfig = await velogConfigRepo.findOne({
         where: {
