@@ -71,8 +71,22 @@ async function getSeriesIfValid(seriesId: string, userId: string | null) {
 
 export const resolvers: IResolvers<any, ApolloContext> = {
   Series: {
-    series_posts: async (parent: Series, _: any, { loaders }) => {
-      return loaders.seriesPosts.load(parent.id);
+    series_posts: async (parent: Series, _: any, { loaders, user_id }) => {
+      if (parent.fk_user_id === user_id) {
+        return loaders.seriesPosts.load(parent.id);
+      }
+
+      const seriesPosts = await getRepository(SeriesPosts)
+        .createQueryBuilder('series_posts')
+        .leftJoinAndSelect('series_posts.post', 'post')
+        .where('fk_series_id = :seriesId', { seriesId: parent.id })
+        .andWhere('post.is_temp = false')
+        .andWhere('post.is_private = false')
+        .orderBy('fk_series_id', 'ASC')
+        .orderBy('index', 'ASC')
+        .getMany();
+
+      return seriesPosts;
     },
     user: async (parent: Series, _: any, { loaders }) => {
       return loaders.user.load(parent.fk_user_id);
