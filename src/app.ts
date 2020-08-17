@@ -40,7 +40,7 @@ const apollo = new ApolloServer({
         ip: ctx.request.ip,
         unsetCookie: () => {
           ctx.cookies.set('access_token');
-          ctx.cookies.set('referesh_token');
+          ctx.cookies.set('refresh_token');
         }
       };
     } catch (e) {
