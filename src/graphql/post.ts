@@ -21,6 +21,7 @@ import PostRead from '../entity/PostRead';
 import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
+import spamFilter from '../etc/spamFilter';
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -189,8 +190,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const count = await commentRepo.count({
         where: {
           fk_post_id: parent.id,
-          deleted: false
-        }
+          deleted: false,
+        },
       });
       return count;
       // const comments = await loaders.comments.load(parent.id);
@@ -215,7 +216,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!user_id) return false;
       const liked = await postLikeRepo.findOne({
         fk_post_id: parent.id,
-        fk_user_id: user_id
+        fk_user_id: user_id,
       });
       return !!liked;
     },
@@ -224,8 +225,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const seriesPost = await seriesPostsRepo.findOne({
         where: {
-          fk_post_id: parent.id
-        }
+          fk_post_id: parent.id,
+        },
       });
 
       // is in series: show prev & next series post
@@ -237,7 +238,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .where('fk_series_id = :seriesId', { seriesId: seriesPost.fk_series_id })
           .andWhere('(index = :prevIndex OR index = :nextIndex)', {
             prevIndex: index - 1,
-            nextIndex: index + 1
+            nextIndex: index + 1,
           })
           .orderBy('index', 'ASC')
           .getMany();
@@ -249,17 +250,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
                 next:
                   seriesPosts[0].post.is_private && ctx.user_id !== seriesPosts[0].post.fk_user_id
                     ? null
-                    : seriesPosts[0].post
+                    : seriesPosts[0].post,
                 // is next post
               }
             : {
-                previous: seriesPosts[0].post // is prev post
+                previous: seriesPosts[0].post, // is prev post
               };
         }
 
         const result: Record<'previous' | 'next', Post | null> = {
           previous: seriesPosts[0] && seriesPosts[0].post,
-          next: seriesPosts[1] && seriesPosts[1].post
+          next: seriesPosts[1] && seriesPosts[1].post,
         };
 
         if (result.next?.is_private && result.next?.fk_user_id !== ctx.user_id) {
@@ -281,7 +282,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .andWhere('released_at < :releasedAt', { releasedAt: parent.released_at })
           .andWhere('is_temp = false')
           .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
-            current_user_id: ctx.user_id
+            current_user_id: ctx.user_id,
           })
           .orderBy('released_at', 'DESC')
           .getOne(),
@@ -292,17 +293,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .andWhere('id != :postId', { postId: parent.id })
           .andWhere('is_temp = false')
           .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
-            current_user_id: ctx.user_id
+            current_user_id: ctx.user_id,
           })
           .orderBy('released_at', 'ASC')
-          .getOne()
+          .getOne(),
       ]);
 
       return {
         previous,
-        next
+        next,
       };
-    }
+    },
   },
   Query: {
     post: async (parent: any, { id, username, url_slug }: any, ctx: any) => {
@@ -328,7 +329,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             .leftJoinAndSelect('urlSlugHistory.user', 'user')
             .where('user.username = :username AND urlSlugHistory.url_slug = :url_slug', {
               username,
-              url_slug
+              url_slug,
             })
             .getOne();
           console.log(fallbackPost);
@@ -348,7 +349,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             userId: ctx.user_id,
             postId: post.id,
             resumeTitleId: null,
-            percentage: 0
+            percentage: 0,
           });
         }, 0);
 
@@ -370,8 +371,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const user = username
         ? await userRepo.findOne({
             where: {
-              username
-            }
+              username,
+            },
           })
         : null;
 
@@ -381,7 +382,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           cursor,
           tagName: tag,
           userId: user?.id,
-          userself: !!(user && user.id === context.user_id)
+          userself: !!(user && user.id === context.user_id),
         });
       }
 
@@ -396,7 +397,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         query.where('is_private = false');
       } else {
         query.where('(is_private = false OR post.fk_user_id = :user_id)', {
-          user_id: context.user_id
+          user_id: context.user_id,
         });
       }
       // .where('is_private = false');
@@ -419,18 +420,18 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       // pagination
       if (cursor) {
         const post = await getRepository(Post).findOne({
-          id: cursor
+          id: cursor,
         });
         if (!post) {
           throw new ApolloError('invalid cursor');
         }
         query.andWhere('post.released_at < :date', {
           date: post.released_at,
-          id: post.id
+          id: post.id,
         });
         query.orWhere('post.released_at = :date AND post.id < :id', {
           date: post.released_at,
-          id: post.id
+          id: post.id,
         });
       }
 
@@ -441,7 +442,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const timeframes: [string, number][] = [
         ['day', 1],
         ['week', 7],
-        ['month', 30]
+        ['month', 30],
       ];
       const selectedTimeframe = timeframes.find(([text]) => text === timeframe);
       if (!selectedTimeframe) {
@@ -482,7 +483,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         username,
         from: offset,
         size: limit,
-        signedUserId: ctx.user_id
+        signedUserId: ctx.user_id,
       });
 
       return searchResult;
@@ -491,11 +492,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const postHistoryRepo = getRepository(PostHistory);
       const postHistories = await postHistoryRepo.find({
         where: {
-          fk_post_id: post_id
+          fk_post_id: post_id,
         },
         order: {
-          created_at: 'DESC'
-        }
+          created_at: 'DESC',
+        },
       });
       return postHistories;
     },
@@ -503,11 +504,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const postHistoryRepo = getRepository(PostHistory);
       const postHistory = await postHistoryRepo.findOne({
         where: {
-          fk_post_id: post_id
+          fk_post_id: post_id,
         },
         order: {
-          created_at: 'DESC'
-        }
+          created_at: 'DESC',
+        },
       });
       return postHistory;
     },
@@ -525,8 +526,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           ? await likesRepo.findOne({
               where: {
                 fk_user_id: ctx.user_id,
-                fk_post_id: cursor
-              }
+                fk_post_id: cursor,
+              },
             })
           : null;
         const cursorQueryOption = cursorData
@@ -536,13 +537,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         const likes = await likesRepo.find({
           where: {
             fk_user_id: ctx.user_id,
-            ...cursorQueryOption
+            ...cursorQueryOption,
           },
           order: {
             updated_at: 'DESC',
-            id: 'ASC'
+            id: 'ASC',
           },
-          take: limit
+          take: limit,
         });
         return likes.map(like => like.post);
       }
@@ -552,8 +553,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         ? await logRepo.findOne({
             where: {
               fk_user_id: ctx.user_id,
-              fk_post_id: cursor
-            }
+              fk_post_id: cursor,
+            },
           })
         : null;
 
@@ -564,17 +565,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const logs = await logRepo.find({
         where: {
           fk_user_id: ctx.user_id,
-          ...cursorQueryOption
+          ...cursorQueryOption,
         },
         order: {
           updated_at: 'DESC',
-          id: 'ASC'
+          id: 'ASC',
         },
-        take: limit
+        take: limit,
       });
 
       return logs.map(log => log.post);
-    }
+    },
   },
   Mutation: {
     writePost: async (parent: any, args, ctx) => {
@@ -600,13 +601,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
       post.is_private = data.is_private;
+      if (spamFilter(data.body)) {
+        post.is_private = true;
+      }
 
       let processedUrlSlug = escapeForUrl(data.url_slug);
       const urlSlugDuplicate = await postRepo.findOne({
         where: {
           fk_user_id: ctx.user_id,
-          url_slug: processedUrlSlug
-        }
+          url_slug: processedUrlSlug,
+        },
       });
       if (urlSlugDuplicate) {
         const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
@@ -672,11 +676,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const [data, count] = await postHistoryRepo.findAndCount({
         where: {
-          fk_post_id: post_id
+          fk_post_id: post_id,
         },
         order: {
-          created_at: 'DESC'
-        }
+          created_at: 'DESC',
+        },
       });
 
       if (count > 10) {
@@ -684,7 +688,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           .createQueryBuilder('post_history')
           .delete()
           .where('fk_post_id = :postId', {
-            postId: post_id
+            postId: post_id,
           })
           .andWhere('created_at < :createdAt', { createdAt: data[9].created_at })
           .execute();
@@ -712,14 +716,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         series_id,
         url_slug,
         tags,
-        is_private
+        is_private,
       } = args as EditPostArgs;
       const postRepo = getRepository(Post);
       const seriesRepo = getRepository(Series);
       const seriesPostsRepo = getRepository(SeriesPosts);
 
       const post = await postRepo.findOne(id, {
-        relations: ['user']
+        relations: ['user'],
       });
       if (!post) {
         throw new ApolloError('Post not found', 'NOT_FOUND');
@@ -734,7 +738,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const cacheKeys = [postCacheKey, userVelogCacheKey];
 
       const prevSeriesPost = await seriesPostsRepo.findOne({
-        fk_post_id: post.id
+        fk_post_id: post.id,
       });
 
       if (!prevSeriesPost && series_id) {
@@ -745,7 +749,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if (series_id) {
           // append series
           const series = await seriesRepo.findOne({
-            id: series_id
+            id: series_id,
           });
           if (!series) {
             throw new ApolloError('Series not found', 'NOT_FOUND');
@@ -759,7 +763,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         // remove series
         await Promise.all([
           subtractIndexAfter(prevSeriesPost.fk_series_id, prevSeriesPost.index),
-          seriesPostsRepo.remove(prevSeriesPost)
+          seriesPostsRepo.remove(prevSeriesPost),
         ]);
       }
 
@@ -774,14 +778,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = meta;
       post.thumbnail = thumbnail;
       post.is_private = is_private;
+      if (spamFilter(body)) {
+        post.is_private = true;
+      }
 
       // TODO: if url_slug changes, create url_slug_alias
       let processedUrlSlug = escapeForUrl(url_slug);
       const urlSlugDuplicate = await postRepo.findOne({
         where: {
           fk_user_id: ctx.user_id,
-          url_slug: processedUrlSlug
-        }
+          url_slug: processedUrlSlug,
+        },
       });
       if (urlSlugDuplicate && urlSlugDuplicate.id !== post.id) {
         const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
@@ -805,7 +812,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       try {
         await Promise.all([
           is_temp ? null : searchSync.update(post.id),
-          cache.remove(...cacheKeys)
+          cache.remove(...cacheKeys),
         ]);
       } catch (e) {
         console.log(e);
@@ -817,7 +824,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const { id } = args as { id: string };
       const postRepo = getRepository(Post);
       const post = await postRepo.findOne(id, {
-        relations: ['user']
+        relations: ['user'],
       });
       if (!post) {
         throw new ApolloError('Post not found', 'NOT_FOUND');
@@ -829,7 +836,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       // check series
       const seriesPostsRepo = getRepository(SeriesPosts);
       const seriesPost = await seriesPostsRepo.findOne({
-        fk_post_id: post.id
+        fk_post_id: post.id,
       });
 
       const { username } = post.user;
@@ -873,8 +880,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const alreadyLiked = await postLikeRepo.findOne({
         where: {
           fk_post_id: args.id,
-          fk_user_id: ctx.user_id
-        }
+          fk_user_id: ctx.user_id,
+        },
       });
 
       // exists
@@ -894,8 +901,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const count = await postLikeRepo.count({
         where: {
-          fk_post_id: args.id
-        }
+          fk_post_id: args.id,
+        },
       });
 
       post.likes = count;
@@ -934,8 +941,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const postLike = await postLikeRepo.findOne({
         where: {
           fk_post_id: args.id,
-          fk_user_id: ctx.user_id
-        }
+          fk_user_id: ctx.user_id,
+        },
       });
 
       // not exists
@@ -947,8 +954,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const count = await postLikeRepo.count({
         where: {
-          fk_post_id: args.id
-        }
+          fk_post_id: args.id,
+        },
       });
 
       post.likes = count;
@@ -992,7 +999,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .createQueryBuilder()
         .update()
         .set({
-          views: () => 'views + 1'
+          views: () => 'views + 1',
         })
         .where('id = :id', { id })
         .execute();
@@ -1010,6 +1017,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       return true;
-    }
-  }
+    },
+  },
 };
