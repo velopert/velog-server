@@ -615,7 +615,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         },
       });
 
-      if (recentPostCount >= 8) {
+      if (recentPostCount >= 6) {
         post.is_private = true;
         const user = await getRepository(User).findOne(ctx.user_id);
         try {
@@ -810,7 +810,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           },
         });
 
-        if (recentPostCount >= 8) {
+        if (recentPostCount >= 6) {
           post.is_private = true;
           const user = await getRepository(User).findOne(ctx.user_id);
           try {
