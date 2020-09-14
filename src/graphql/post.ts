@@ -159,6 +159,8 @@ type EditPostArgs = WritePostArgs & {
   id: string;
 };
 
+const slackUrl = `https://hooks.slack.com/services/TSQQPH3FT/B01BCB14UF2/${process.env.SLACK_TOKEN}`;
+
 export const resolvers: IResolvers<any, ApolloContext> = {
   Post: {
     user: (parent: Post, _: any, { loaders }) => {
@@ -626,12 +628,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
               is_private: true,
             }
           );
-          await Axios.post(
-            'https://hooks.slack.com/services/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',
-            {
-              text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
-            }
-          );
+          await Axios.post(slackUrl, {
+            text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+          });
         } catch (e) {
           console.log(e);
         }
@@ -825,12 +824,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
                 is_private: true,
               }
             );
-            await Axios.post(
-              'https://hooks.slack.com/services/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',
-              {
-                text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
-              }
-            );
+            await Axios.post(slackUrl, {
+              text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+            });
           } catch (e) {
             console.log(e);
           }
