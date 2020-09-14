@@ -616,21 +616,25 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (recentPostCount >= 5) {
         post.is_private = true;
         const user = await getRepository(User).findOne(ctx.user_id);
-        Axios.post(
-          'https://hooks.slack.com/services/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',
-          {
-            text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
-          }
-        );
-        await postRepo.update(
-          {
-            fk_user_id: ctx.user_id,
-            released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
-          },
-          {
-            is_private: true,
-          }
-        );
+        try {
+          await postRepo.update(
+            {
+              fk_user_id: ctx.user_id,
+              released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
+            },
+            {
+              is_private: true,
+            }
+          );
+          await Axios.post(
+            'https://hooks.slack.com/services/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',
+            {
+              text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+            }
+          );
+        } catch (e) {
+          console.log(e);
+        }
       }
 
       let processedUrlSlug = escapeForUrl(data.url_slug);
@@ -809,21 +813,27 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if (recentPostCount >= 5) {
           post.is_private = true;
           const user = await getRepository(User).findOne(ctx.user_id);
-          await Axios.post(
-            'https://hooks.slack.com/services/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',
-            {
-              text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
-            }
-          );
-          await postRepo.update(
-            {
-              fk_user_id: ctx.user_id,
-              released_at: MoreThan(new Date(new Date(post.released_at).getTime() - 1000 * 60 * 5)),
-            },
-            {
-              is_private: true,
-            }
-          );
+          try {
+            await postRepo.update(
+              {
+                fk_user_id: ctx.user_id,
+                released_at: MoreThan(
+                  new Date(new Date(post.released_at).getTime() - 1000 * 60 * 5)
+                ),
+              },
+              {
+                is_private: true,
+              }
+            );
+            await Axios.post(
+              'https://hooks.slack.com/services/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',
+              {
+                text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+              }
+            );
+          } catch (e) {
+            console.log(e);
+          }
         }
       }
 
