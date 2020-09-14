@@ -1,7 +1,7 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import { getRepository, getManager, LessThan, Not } from 'typeorm';
+import { getRepository, getManager, LessThan, Not, MoreThan } from 'typeorm';
 import PostScore from '../entity/PostScore';
 import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
 import removeMd from 'remove-markdown';
@@ -22,6 +22,7 @@ import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
 import spamFilter from '../etc/spamFilter';
+import Axios from 'axios';
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -605,6 +606,33 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         post.is_private = true;
       }
 
+      const recentPostCount = await postRepo.count({
+        where: {
+          fk_user_id: ctx.user_id,
+          released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
+        },
+      });
+
+      if (recentPostCount >= 5) {
+        post.is_private = true;
+        const user = await getRepository(User).findOne(ctx.user_id);
+        Axios.post(
+          'https://hooks.slack.com/services/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',
+          {
+            text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+          }
+        );
+        await postRepo.update(
+          {
+            fk_user_id: ctx.user_id,
+            released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
+          },
+          {
+            is_private: true,
+          }
+        );
+      }
+
       let processedUrlSlug = escapeForUrl(data.url_slug);
       const urlSlugDuplicate = await postRepo.findOne({
         where: {
@@ -770,6 +798,35 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.title = title;
       post.body = body;
 
+      if (!post.is_temp) {
+        const recentPostCount = await postRepo.count({
+          where: {
+            fk_user_id: ctx.user_id,
+            released_at: MoreThan(new Date(new Date(post.released_at).getTime() - 1000 * 60 * 5)),
+          },
+        });
+
+        if (recentPostCount >= 5) {
+          post.is_private = true;
+          const user = await getRepository(User).findOne(ctx.user_id);
+          await Axios.post(
+            'https://hooks.slack.com/services/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',
+            {
+              text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+            }
+          );
+          await postRepo.update(
+            {
+              fk_user_id: ctx.user_id,
+              released_at: MoreThan(new Date(new Date(post.released_at).getTime() - 1000 * 60 * 5)),
+            },
+            {
+              is_private: true,
+            }
+          );
+        }
+      }
+
       if (post.is_temp && !is_temp) {
         post.released_at = new Date();
       }
@@ -778,6 +835,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = meta;
       post.thumbnail = thumbnail;
       post.is_private = is_private;
+
       if (spamFilter(body)) {
         post.is_private = true;
       }
