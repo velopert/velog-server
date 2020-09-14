@@ -159,7 +159,7 @@ type EditPostArgs = WritePostArgs & {
   id: string;
 };
 
-const slackUrl = `https://hooks.slack.com/services/TSQQPH3FT/B01BCB14UF2/${process.env.SLACK_TOKEN}`;
+const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
 export const resolvers: IResolvers<any, ApolloContext> = {
   Post: {
@@ -800,6 +800,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       post.title = title;
       post.body = body;
+      post.is_private = is_private;
 
       if (!post.is_temp) {
         const recentPostCount = await postRepo.count({
@@ -840,7 +841,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.is_markdown = is_markdown;
       post.meta = meta;
       post.thumbnail = thumbnail;
-      post.is_private = is_private;
 
       if (spamFilter(body)) {
         post.is_private = true;
