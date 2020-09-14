@@ -627,7 +627,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             }
           );
           await Axios.post(
-            'https://hooks.slack.com/services/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',
+            'https://hooks.slack.com/services/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',
             {
               text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
             }
@@ -826,7 +826,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
               }
             );
             await Axios.post(
-              'https://hooks.slack.com/services/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',
+              'https://hooks.slack.com/services/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',
               {
                 text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
               }
