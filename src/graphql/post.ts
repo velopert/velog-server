@@ -806,7 +806,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         const recentPostCount = await postRepo.count({
           where: {
             fk_user_id: ctx.user_id,
-            released_at: MoreThan(new Date(new Date(post.released_at).getTime() - 1000 * 60 * 5)),
+            released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
           },
         });
 
@@ -817,9 +817,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             await postRepo.update(
               {
                 fk_user_id: ctx.user_id,
-                released_at: MoreThan(
-                  new Date(new Date(post.released_at).getTime() - 1000 * 60 * 5)
-                ),
+                released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
               },
               {
                 is_private: true,
