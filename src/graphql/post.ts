@@ -612,10 +612,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         where: {
           fk_user_id: ctx.user_id,
           released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
+          is_private: false,
         },
       });
 
-      if (recentPostCount >= 6) {
+      if (recentPostCount >= 10) {
         post.is_private = true;
         const user = await getRepository(User).findOne(ctx.user_id);
         try {
@@ -807,10 +808,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           where: {
             fk_user_id: ctx.user_id,
             released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
+            is_private: false,
           },
         });
 
-        if (recentPostCount >= 6) {
+        if (recentPostCount >= 10) {
           post.is_private = true;
           const user = await getRepository(User).findOne(ctx.user_id);
           try {
