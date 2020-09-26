@@ -7,23 +7,25 @@ import {
   CreateDateColumn,
   OneToOne,
   JoinColumn,
-  ManyToOne
+  ManyToOne,
 } from 'typeorm';
 import Post from './Post';
 import User from './User';
 
 @Entity('post_reads', {
-  synchronize: false
+  synchronize: false,
 })
 export default class PostRead {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Index()
   @Column('uuid', {
-    nullable: true
+    nullable: true,
   })
   fk_user_id!: string | null;
 
+  @Index()
   @Column('uuid')
   fk_post_id!: string;
 
