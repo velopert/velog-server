@@ -648,6 +648,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
         processedUrlSlug += `-${randomString}`;
       }
+      if (processedUrlSlug === '') {
+        processedUrlSlug = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
+      }
 
       post.url_slug = processedUrlSlug;
 
@@ -857,6 +860,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (urlSlugDuplicate && urlSlugDuplicate.id !== post.id) {
         const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
         processedUrlSlug += `-${randomString}`;
+      }
+      if (processedUrlSlug === '') {
+        processedUrlSlug = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
       }
 
       if (post.url_slug !== processedUrlSlug) {
