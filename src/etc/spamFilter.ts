@@ -8,5 +8,6 @@ export default function spamFilter(text: string) {
     return true;
   }
   if (replaced.includes('낙태')) return true;
+  if (replaced.includes('dumpsarchive')) return true;
   return false;
 }
