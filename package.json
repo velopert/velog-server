@@ -58,8 +58,9 @@
     "mime-types": "^2.1.24",
     "nanoid": "^2.0.3",
     "pg": "^7.17.1",
+    "pm2": "^4.5.0",
     "qs": "^6.9.0",
-    "ramda": "^0.26.1",
+    "ramda": "^0.27.1",
     "remove": "^0.1.5",
     "remove-markdown": "^0.3.0",
     "sanitize-html": "^1.20.0",
@@ -89,6 +90,7 @@
     "search:cli": "NODE_ENV=development ts-node ./src/search/cli",
     "search:cli:js": "NODE_ENV=development node ./dist/search/cli",
     "build": "tsc",
-    "deploy:production": "serverless deploy --stage production"
+    "deploy:production": "serverless deploy --stage production",
+    "start": "pm2 start deploy.config.json"
   }
 }
