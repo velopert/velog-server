@@ -5,12 +5,12 @@ type GetParametersPromise = Promise<PromiseResult<SSM.GetParametersByPathResult,
 
 const ssm = new SSM();
 const envPromise: GetParametersPromise | null =
-  process.env.NODE_ENV === 'development'
+  process.env.NODE_ENV === 'development' || true // disable loadVariable
     ? null
     : ssm
         .getParametersByPath({
           Path: '/velog-v2/',
-          WithDecryption: true
+          WithDecryption: true,
         })
         .promise();
 
@@ -18,7 +18,7 @@ export default async function loadVariables() {
   if (process.env.NODE_ENV === 'development' || !envPromise) {
     return {
       secretKey: null,
-      rdsPassword: null
+      rdsPassword: null,
     };
   }
 
@@ -30,7 +30,7 @@ export default async function loadVariables() {
 
     return {
       secretKey: selector('secret-key'),
-      rdsPassword: selector('rds-password')
+      rdsPassword: selector('rds-password'),
     };
   } catch (e) {
     console.error('Failed to load variables');
