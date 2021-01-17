@@ -16,7 +16,7 @@ export default function spamFilter(text: string) {
   )
     return true;
   if (
-    replaced.includes('www.game.tv') ||
+    replaced.includes('wwwgametv') ||
     (replaced.includes('reddit') && replaced.includes('live')) ||
     (replaced.includes('deviantart') && replaced.includes('live')) ||
     replaced.includes('allsportslives') ||
