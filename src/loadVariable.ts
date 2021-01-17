@@ -5,7 +5,7 @@ type GetParametersPromise = Promise<PromiseResult<SSM.GetParametersByPathResult,
 
 const ssm = new SSM();
 const envPromise: GetParametersPromise | null =
-  process.env.NODE_ENV === 'development' || true // disable loadVariable
+  process.env.NODE_ENV === 'development' || process.env.SERVERLESS === 'false' // disable loadVariable
     ? null
     : ssm
         .getParametersByPath({
