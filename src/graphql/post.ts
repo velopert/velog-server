@@ -606,6 +606,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.is_private = data.is_private;
       if (spamFilter(data.body)) {
         post.is_private = true;
+        await Axios.post(slackUrl, {
+          text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}`,
+        });
       }
 
       const recentPostCount = await postRepo.count({
