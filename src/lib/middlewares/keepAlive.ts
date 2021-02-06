@@ -9,5 +9,5 @@ export const keepAlive: Middleware = (ctx, next) => {
   if (isClosing) {
     ctx.res.end();
   }
-  next();
+  return next();
 };
