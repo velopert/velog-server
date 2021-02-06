@@ -91,6 +91,7 @@
     "search:cli:js": "NODE_ENV=development node ./dist/search/cli",
     "build": "tsc",
     "deploy:production": "serverless deploy --stage production",
-    "start": "pm2 start deploy.config.json"
+    "start": "pm2 start deploy.config.json",
+    "reload": "pm2 start deploy.config.json"
   }
 }
