@@ -607,7 +607,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (spamFilter(data.body)) {
         post.is_private = true;
         await Axios.post(slackUrl, {
-          text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}`,
+          text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}`,
         });
       }
 
@@ -633,7 +633,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             }
           );
           await Axios.post(slackUrl, {
-            text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
+            text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}\nip: ${ctx.ip}`,
           });
         } catch (e) {
           console.log(e);
