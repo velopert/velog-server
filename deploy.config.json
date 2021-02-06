@@ -5,6 +5,7 @@
       "script": "./dist/server.js",
       "instances": 2,
       "exec_mode": "cluster",
+      "wait_ready": true,
       "env": {
         "NODE_PATH": "src"
       }

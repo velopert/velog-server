@@ -11,6 +11,7 @@ import createLoaders, { Loaders } from './lib/createLoader';
 import entities from './entity';
 import loadVariables from './loadVariable';
 import cors from './lib/middlewares/cors';
+import { keepAlive } from './lib/middlewares/keepAlive';
 
 const app = new Koa();
 
@@ -21,6 +22,7 @@ app.use(bodyParser());
 app.use(consumeUser);
 app.use(routes.routes()).use(routes.allowedMethods());
 app.use(compress());
+app.use(keepAlive);
 
 export type ApolloContext = {
   user_id: string | null;
@@ -41,13 +43,13 @@ const apollo = new ApolloServer({
         unsetCookie: () => {
           ctx.cookies.set('access_token');
           ctx.cookies.set('referesh_token');
-        }
+        },
       };
     } catch (e) {
       return {};
     }
   },
-  tracing: process.env.NODE_ENV === 'development'
+  tracing: process.env.NODE_ENV === 'development',
 });
 apollo.applyMiddleware({ app, cors: false });
 

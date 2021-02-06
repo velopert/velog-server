@@ -5,8 +5,9 @@ import Database from './database';
 const { PORT } = process.env;
 
 const database = new Database();
-database.getConnection();
-
-app.listen(PORT, () => {
-  console.log('Velog server is listening to port', PORT);
+database.getConnection().then(database => {
+  app.listen(PORT, () => {
+    process.send?.('ready');
+    console.log('Velog server is listening to port', PORT);
+  });
 });
