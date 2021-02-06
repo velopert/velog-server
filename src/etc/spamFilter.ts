@@ -27,6 +27,7 @@ export default function spamFilter(text: string) {
   if (replaced.includes('besflix')) return true;
   if (replaced.includes('dumpspanda')) return true;
   if (replaced.includes('dump') && noKorean) return true;
+  if (replaced.includes('ambiinstructurecom')) return true;
 
   if (replaced.includes('mfd8') && replaced.includes('카톡')) {
     return true;
