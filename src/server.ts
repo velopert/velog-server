@@ -8,15 +8,12 @@ const { PORT } = process.env;
 
 const database = new Database();
 database.getConnection().then(database => {
-  const server = http.createServer(app.callback());
-  server.listen(PORT, () => {
+  app.listen(PORT, () => {
     process.send?.('ready');
   });
 
   process.on('SIGINT', function () {
     startClosing();
-    server.close(() => {
-      process.exit(0);
-    });
+    process.exit(0);
   });
 });
