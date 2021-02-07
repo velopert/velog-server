@@ -12,10 +12,12 @@ import entities from './entity';
 import loadVariables from './loadVariable';
 import cors from './lib/middlewares/cors';
 import { keepAlive } from './lib/middlewares/keepAlive';
+import { ipaddr } from './lib/middlewares/ipaddr';
 
 const app = new Koa();
 
 /* setup middlewares */
+app.use(ipaddr);
 app.use(logger());
 app.use(cors);
 app.use(bodyParser());
@@ -39,7 +41,7 @@ const apollo = new ApolloServer({
       return {
         user_id: ctx.state.user_id,
         loaders: createLoaders(),
-        ip: ctx.request.ip,
+        ip: ctx.state.ipaddr,
         unsetCookie: () => {
           ctx.cookies.set('access_token');
           ctx.cookies.set('referesh_token');
