@@ -18,7 +18,7 @@ routes.use('/sitemaps', sitemaps.routes());
 routes.get('/', ctx => {
   ctx.body = {
     message: 'hello world',
-    ips: ctx.request.ips,
+    ips: ctx.state.ipaddr,
   };
 });
 

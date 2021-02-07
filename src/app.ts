@@ -17,6 +17,7 @@ import { ipaddr } from './lib/middlewares/ipaddr';
 const app = new Koa();
 
 /* setup middlewares */
+app.proxy = true;
 app.use(ipaddr);
 app.use(logger());
 app.use(cors);
