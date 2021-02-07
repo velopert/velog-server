@@ -16,7 +16,10 @@ routes.use('/sitemaps', sitemaps.routes());
 // routes.use('/atom', rss.routes());
 
 routes.get('/', ctx => {
-  ctx.body = 'hello world!';
+  ctx.body = {
+    message: 'hello world',
+    ips: ctx.request.ips,
+  };
 });
 
 export default routes;
