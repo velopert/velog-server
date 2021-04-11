@@ -54,3 +54,11 @@ export default function spamFilter(text: string) {
     return true;
   return false;
 }
+
+export function commentSpamFilter(text: string) {
+  const noKorean = !/[ㄱ-힣]/g.test(text);
+  if (noKorean && text.includes('http')) {
+    return true;
+  }
+  return false;
+}

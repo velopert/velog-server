@@ -1,7 +1,7 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, AuthenticationError, ApolloError } from 'apollo-server-koa';
 import Comment from '../entity/Comment';
-import { getRepository } from 'typeorm';
+import { getRepository, MoreThan } from 'typeorm';
 import Post from '../entity/Post';
 import PostScore from '../entity/PostScore';
 import cache from '../cache';
@@ -10,6 +10,10 @@ import User from '../entity/User';
 import { generateUnsubscribeToken, sleep } from '../lib/common';
 import { createCommentEmail } from '../etc/emailTemplates';
 import sendMail from '../lib/sendMail';
+import { commentSpamFilter } from '../etc/spamFilter';
+import Axios from 'axios';
+
+const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
 export const typeDef = gql`
   type Comment {
@@ -66,11 +70,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const comments = await getRepository(Comment).find({
         where: {
           reply_to: parent.id,
-          deleted: false
+          deleted: false,
         },
         order: {
-          created_at: 'ASC'
-        }
+          created_at: 'ASC',
+        },
       });
       return comments;
     },
@@ -79,11 +83,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const count = await getRepository(Comment).count({
         where: {
           reply_to: parent.id,
-          deleted: false
-        }
+          deleted: false,
+        },
       });
       return count;
-    }
+    },
   },
   Query: {
     comment: async (parent: any, { comment_id }) => {
@@ -93,14 +97,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     subcomments: async (parent: any, { comment_id }) => {
       const comments = await getRepository(Comment).find({
         where: {
-          reply_to: comment_id
+          reply_to: comment_id,
         },
         order: {
-          created_at: 'ASC'
-        }
+          created_at: 'ASC',
+        },
       });
       return comments;
-    }
+    },
   },
   Mutation: {
     writeComment: async (parent: any, args, ctx) => {
@@ -115,6 +119,26 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const { username } = post.user;
       const commentRepo = getRepository(Comment);
       const comment = new Comment();
+
+      if (commentSpamFilter(text)) {
+        await Axios.post(slackUrl, {
+          text: `스팸 의심!\n *userId*: ${ctx.user_id}\n*text*: ${text}`,
+        });
+        throw new ApolloError('Bad Request');
+      }
+
+      const recentCommentsCount = await commentRepo.count({
+        where: {
+          fk_user_id: ctx.user_id,
+          created_at: MoreThan(new Date(Date.now() - 1000 * 60)),
+        },
+      });
+      if (recentCommentsCount >= 10) {
+        await Axios.post(slackUrl, {
+          text: `스팸 의심!\n *userId*: ${ctx.user_id}\n*text*: ${text}`,
+        });
+        throw new ApolloError('Bad Request');
+      }
 
       if (comment_id) {
         const commentTarget = await commentRepo.findOne(comment_id);
@@ -147,7 +171,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       await postScoreRepo.save(score);
 
       const commenter = await getRepository(User).findOne(ctx.user_id, {
-        relations: ['profile']
+        relations: ['profile'],
       });
 
       try {
@@ -170,13 +194,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             urlSlug: post.url_slug,
             postTitle: post.title,
             comment: text,
-            commentId: comment.id
+            commentId: comment.id,
           });
           sendMail({
             body,
             to: post.user.email,
             subject: `Re: ${post.title} | 댓글 알림`,
-            from: 'Velog <notify@velog.io>'
+            from: 'Velog <notify@velog.io>',
           });
         })();
 
@@ -184,7 +208,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         const p2 = (async () => {
           if (!comment_id || !commenter) return;
           const parentComment = await getRepository(Comment).findOne(comment_id, {
-            relations: ['user']
+            relations: ['user'],
           });
           if (
             !parentComment ||
@@ -194,7 +218,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             return;
           }
           const userMeta = await getRepository(UserMeta).findOne({
-            fk_user_id: parentComment.user.id
+            fk_user_id: parentComment.user.id,
           });
           if (!userMeta?.email_notification) return;
           const unsubscribeToken = await generateUnsubscribeToken(
@@ -209,13 +233,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             urlSlug: post.url_slug,
             postTitle: post.title,
             comment: text,
-            commentId: comment.id
+            commentId: comment.id,
           });
           sendMail({
             body,
             to: parentComment.user.email,
             subject: `Re: ${post.title} | 답글 알림`,
-            from: 'Velog <notify@velog.io>'
+            from: 'Velog <notify@velog.io>',
           });
         })();
 
@@ -242,7 +266,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       const post = await getRepository(Post).findOne(comment.fk_post_id, {
-        relations: ['user']
+        relations: ['user'],
       });
 
       if (!post) {
@@ -286,6 +310,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       comment.text = text;
       await commentRepo.save(comment);
       return comment;
-    }
-  }
+    },
+  },
 };
