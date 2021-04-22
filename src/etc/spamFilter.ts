@@ -70,7 +70,7 @@ export default function spamFilter(text: string) {
     return acc;
   }, 0);
 
-  if (score > 2) return true;
+  if (score >= 2) return true;
 
   return false;
 }
