@@ -52,6 +52,26 @@ export default function spamFilter(text: string) {
     replaced.includes('handballonline')
   )
     return true;
+
+  const keywords = [
+    'airline',
+    'flight',
+    'booking',
+    'customer',
+    'center',
+    'binance',
+    'support number',
+    'support phone number',
+  ];
+  const score = keywords.reduce((acc, current) => {
+    if (replaced.includes(current)) {
+      return acc + 1;
+    }
+    return acc;
+  }, 0);
+
+  if (score > 2) return true;
+
   return false;
 }
 
