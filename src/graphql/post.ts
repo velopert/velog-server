@@ -604,7 +604,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
       post.is_private = data.is_private;
-      if (spamFilter(data.body)) {
+      if (spamFilter(data.body) || spamFilter(data.title)) {
         post.is_private = true;
         await Axios.post(slackUrl, {
           text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}`,
@@ -848,7 +848,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = meta;
       post.thumbnail = thumbnail;
 
-      if (spamFilter(body)) {
+      if (spamFilter(body) || spamFilter(title)) {
         post.is_private = true;
       }
 

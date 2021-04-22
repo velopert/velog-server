@@ -120,7 +120,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const commentRepo = getRepository(Comment);
       const comment = new Comment();
 
-      if (commentSpamFilter(text)) {
+      if (
+        commentSpamFilter(text) &&
+        Date.now() - post.user.created_at.getTime() < 1000 * 60 * 60 * 24 * 7
+      ) {
         await Axios.post(slackUrl, {
           text: `스팸 의심!\n *userId*: ${ctx.user_id}\n*text*: ${text}`,
         });
