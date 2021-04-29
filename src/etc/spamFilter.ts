@@ -60,8 +60,22 @@ export default function spamFilter(text: string) {
     'customer',
     'center',
     'binance',
-    'support number',
+    'support',
+    'phone',
+    'number',
+    'how to',
+    'password',
     'support phone number',
+    ':phone:',
+    'helpline',
+    'electrum',
+    'coinomi',
+    'recovery',
+    'customer',
+    'mycelium',
+    'reset password',
+    'electrum',
+    '8103554365',
   ];
   const score = keywords.reduce((acc, current) => {
     if (replaced.includes(current)) {
