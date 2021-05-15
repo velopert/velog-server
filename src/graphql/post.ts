@@ -463,7 +463,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       let ids: string[] = [];
-      const cacheKey = `trending-${selectedTimeframe[0]}`;
+      const cacheKey = `trending-${selectedTimeframe[0]}-${offset}-${limit}`;
 
       const cachedIds = lruCache.get(cacheKey);
       if (cachedIds) {
