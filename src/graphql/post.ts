@@ -461,7 +461,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         select posts.id, posts.title, SUM(score) as score  from post_scores
         inner join posts on post_scores.fk_post_id = posts.id
         where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
-        and posts.released_at > now() - interval '${selectedTimeframe[1]} days'
+        and posts.released_at > now() - interval '${selectedTimeframe[1] * 2} days'
         group by posts.id
         order by score desc, posts.id desc
         offset $1
