@@ -1,7 +1,7 @@
 // hard coded spam filter
 export default function spamFilter(text: string) {
   let replaced = text
-    .replace(/[^a-zA-Zㄱ-힣0-9\n]/g, '')
+    .replace(/[^a-zA-Zㄱ-힣0-9 \n]/g, '')
     .replace(/\n\s*\n/g, '\n')
     .toLowerCase();
 
