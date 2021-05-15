@@ -25,7 +25,7 @@ import spamFilter from '../etc/spamFilter';
 import Axios from 'axios';
 import LRU from 'lru-cache';
 
-const lruCache = new LRU<string, string[]>({
+const lruCache = new LRU<string, Post[]>({
   max: 150,
   maxAge: 1000 * 60 * 60,
 });
@@ -465,12 +465,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       let ids: string[] = [];
       const cacheKey = `trending-${selectedTimeframe[0]}-${offset}-${limit}`;
 
-      const cachedIds = lruCache.get(cacheKey);
-      if (cachedIds) {
-        ids = cachedIds;
-      } else {
-        const rows = (await getManager().query(
-          `
+      const cachedPosts = lruCache.get(cacheKey);
+      if (cachedPosts) {
+        return cachedPosts;
+      }
+      const rows = (await getManager().query(
+        `
           select posts.id, posts.title, SUM(score) as score  from post_scores
           inner join posts on post_scores.fk_post_id = posts.id
           where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
@@ -480,16 +480,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           offset $1
           limit $2
         `,
-          [offset, limit]
-        )) as { id: string; score: number }[];
+        [offset, limit]
+      )) as { id: string; score: number }[];
 
-        ids = rows.map(row => row.id);
-        lruCache.set(`trending-${selectedTimeframe[0]}`, ids);
-      }
+      ids = rows.map(row => row.id);
 
       const posts = await getRepository(Post).findByIds(ids);
       const normalized = normalize(posts);
       const ordered = ids.map(id => normalized[id]);
+      lruCache.set(`trending-${selectedTimeframe[0]}`, ordered);
 
       return ordered;
     },
