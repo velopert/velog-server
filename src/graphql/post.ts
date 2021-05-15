@@ -467,6 +467,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const cachedPosts = lruCache.get(cacheKey);
       if (cachedPosts) {
+        console.log('using cache', cacheKey);
         return cachedPosts;
       }
       const rows = (await getManager().query(
