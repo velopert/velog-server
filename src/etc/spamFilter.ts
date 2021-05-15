@@ -70,6 +70,8 @@ export default function spamFilter(text: string) {
     ':phone:',
     'helpline',
     'airlines reservations',
+    'casino',
+    '온카지노',
   ];
 
   const keywords = ['airline', 'flight', 'booking', 'customer', 'center', 'how to', 'helpline'];

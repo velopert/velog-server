@@ -441,11 +441,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const posts = await query.getMany();
       return posts;
     },
-    trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'week' }) => {
+    trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'month' }) => {
       const timeframes: [string, number][] = [
         ['day', 1],
         ['week', 7],
         ['month', 30],
+        ['year', 365],
       ];
       const selectedTimeframe = timeframes.find(([text]) => text === timeframe);
       if (!selectedTimeframe) {
@@ -459,8 +460,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         `
         select posts.id, posts.title, SUM(score) as score  from post_scores
         inner join posts on post_scores.fk_post_id = posts.id
-        where post_scores.created_at > now() - interval '14 days'
-        and posts.released_at > now() - interval '45 days'
+        where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
+        and posts.released_at > now() - interval '${selectedTimeframe[1]} days'
         group by posts.id
         order by score desc, posts.id desc
         offset $1
