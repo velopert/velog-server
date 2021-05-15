@@ -23,6 +23,12 @@ import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
 import spamFilter from '../etc/spamFilter';
 import Axios from 'axios';
+import LRU from 'lru-cache';
+
+const lruCache = new LRU<string, string[]>({
+  max: 150,
+  maxAge: 1000 * 60 * 60,
+});
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -456,21 +462,31 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('Limit is too high', 'BAD_REQUEST');
       }
 
-      const rows = (await getManager().query(
-        `
-        select posts.id, posts.title, SUM(score) as score  from post_scores
-        inner join posts on post_scores.fk_post_id = posts.id
-        where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
-        and posts.released_at > now() - interval '${selectedTimeframe[1] * 2} days'
-        group by posts.id
-        order by score desc, posts.id desc
-        offset $1
-        limit $2
-      `,
-        [offset, limit]
-      )) as { id: string; score: number }[];
+      let ids: string[] = [];
+      const cacheKey = `trending-${selectedTimeframe[0]}`;
 
-      const ids = rows.map(row => row.id);
+      const cachedIds = lruCache.get(cacheKey);
+      if (cachedIds) {
+        ids = cachedIds;
+      } else {
+        const rows = (await getManager().query(
+          `
+          select posts.id, posts.title, SUM(score) as score  from post_scores
+          inner join posts on post_scores.fk_post_id = posts.id
+          where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
+          and posts.released_at > now() - interval '${selectedTimeframe[1] * 2} days'
+          group by posts.id
+          order by score desc, posts.id desc
+          offset $1
+          limit $2
+        `,
+          [offset, limit]
+        )) as { id: string; score: number }[];
+
+        ids = rows.map(row => row.id);
+        lruCache.set(`trending-${selectedTimeframe[0]}`, ids);
+      }
+
       const posts = await getRepository(Post).findByIds(ids);
       const normalized = normalize(posts);
       const ordered = ids.map(id => normalized[id]);
