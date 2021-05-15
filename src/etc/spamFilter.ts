@@ -53,30 +53,27 @@ export default function spamFilter(text: string) {
   )
     return true;
 
-  const keywords = [
-    'airline',
-    'flight',
-    'booking',
-    'customer',
-    'center',
-    'binance',
-    'support',
-    'phone',
-    'number',
-    'how to',
-    'password',
-    'support phone number',
-    ':phone:',
-    'helpline',
+  const bannedKeywords = [
     'electrum',
     'coinomi',
-    'recovery',
-    'customer',
-    'mycelium',
     'reset password',
-    'electrum',
+    'mycelium',
     '8103554365',
+    'support phone',
+    'customer support',
+    'customer care number',
+    'support phone service',
+    'account recovery',
+    'find password',
+    'reset password',
+    '3554365',
+    ':phone:',
+    'helpline',
+    'airlines reservations',
   ];
+
+  const keywords = ['airline', 'flight', 'booking', 'customer', 'center', 'how to', 'helpline'];
+
   const score = keywords.reduce((acc, current) => {
     if (replaced.includes(current)) {
       return acc + 1;
@@ -85,6 +82,9 @@ export default function spamFilter(text: string) {
   }, 0);
 
   if (score >= 2) return true;
+  if (bannedKeywords.some(keyword => replaced.includes(keyword))) {
+    return true;
+  }
 
   return false;
 }
