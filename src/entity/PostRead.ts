@@ -68,7 +68,7 @@ export default class PostRead {
     );
     return {
       total,
-      countByDay: countByDay.map(c => ({ day: new Date(c.day), count: parseInt(c.count) })),
+      count_by_day: countByDay.map(c => ({ day: new Date(c.day), count: parseInt(c.count) })),
     };
   }
 }

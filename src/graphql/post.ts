@@ -47,7 +47,7 @@ export const typeDef = gql`
   }
   type Stats {
     total: Int
-    countByDay: [ReadCountByDay]
+    count_by_day: [ReadCountByDay]
   }
 
   type LinkedPosts {
