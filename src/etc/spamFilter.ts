@@ -72,6 +72,10 @@ export default function spamFilter(text: string) {
     'airlines reservations',
     'casino',
     '온카지노',
+    'erectile',
+    'dysfunction',
+    'cenforce',
+    'micasonnam',
   ];
 
   const keywords = ['airline', 'flight', 'booking', 'customer', 'center', 'how to', 'helpline'];

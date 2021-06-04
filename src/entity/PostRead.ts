@@ -8,6 +8,8 @@ import {
   OneToOne,
   JoinColumn,
   ManyToOne,
+  getManager,
+  getRepository,
 } from 'typeorm';
 import Post from './Post';
 import User from './User';
@@ -48,4 +50,25 @@ export default class PostRead {
   @ManyToOne(type => User, { cascade: true, eager: true })
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
+
+  static async getStats(postId: string) {
+    const total = await getRepository(PostRead).count({
+      where: {
+        fk_post_id: postId,
+      },
+    });
+    const countByDay: { count: string; day: string }[] = await getManager().query(
+      `select count(id) as count, date_trunc('day'::text, timezone('KST'::text, created_at)) as day from (
+        select * from post_reads 
+        where fk_post_id = $1
+      ) as t
+  group by day
+  order by day desc`,
+      [postId]
+    );
+    return {
+      total,
+      countByDay: countByDay.map(c => ({ day: new Date(c.day), count: parseInt(c.count) })),
+    };
+  }
 }

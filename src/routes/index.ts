@@ -5,6 +5,7 @@ import Tag from '../entity/Tag';
 import loadVariables from '../loadVariable';
 import rss from './rss';
 import sitemaps from './sitemaps';
+import PostRead from '../entity/PostRead';
 
 const routes = new Router();
 
@@ -15,10 +16,12 @@ routes.use('/sitemaps', sitemaps.routes());
 // Delete me on 2021
 // routes.use('/atom', rss.routes());
 
-routes.get('/', ctx => {
+routes.get('/', async ctx => {
+  const stats = await PostRead.getStats('295906a0-da71-11e8-8483-39fd55313fb0');
   ctx.body = {
     message: 'hello world',
     ips: ctx.state.ipaddr,
+    stats,
   };
 });
 

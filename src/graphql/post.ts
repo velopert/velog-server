@@ -41,6 +41,14 @@ export const typeDef = gql`
     LIKED
     READ
   }
+  type ReadCountByDay {
+    count: Int
+    day: Date
+  }
+  type Stats {
+    total: Int
+    countByDay: [ReadCountByDay]
+  }
 
   type LinkedPosts {
     previous: Post
@@ -91,6 +99,7 @@ export const typeDef = gql`
     postHistories(post_id: ID): [PostHistory]
     lastPostHistory(post_id: ID!): PostHistory
     readingList(type: ReadingListOption, cursor: ID, limit: Int): [Post]
+    getStats(post_id: ID!): Stats
   }
 
   extend type Mutation {
@@ -341,7 +350,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
               url_slug,
             })
             .getOne();
-          console.log(fallbackPost);
           if (fallbackPost) {
             post = fallbackPost.post;
           }
@@ -595,6 +603,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       });
 
       return logs.map(log => log.post);
+    },
+    getStats: async (parent: any, { post_id }: { post_id: string }, ctx) => {
+      const post = await getRepository(Post).findOne(post_id);
+      if (!post) {
+        throw new ApolloError('Post not found', 'NOT_FOUND');
+      }
+      if (post.fk_user_id !== ctx.user_id) {
+        throw new ApolloError('This post is not yours', 'NO_PERMISSION');
+      }
+      const stats = await PostRead.getStats(post_id);
+      return stats;
     },
   },
   Mutation: {
