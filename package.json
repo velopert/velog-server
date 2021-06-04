@@ -78,7 +78,7 @@
     "tslint": "^5.12.1",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.17.0",
-    "typeorm": "^0.2.22",
+    "typeorm": "^0.2.25",
     "typescript": "^3.7.4",
     "webpack": "^4.41.5",
     "webpack-node-externals": "^1.7.2"
