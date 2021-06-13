@@ -6,6 +6,12 @@ import loadVariables from '../loadVariable';
 import rss from './rss';
 import sitemaps from './sitemaps';
 import PostRead from '../entity/PostRead';
+import { BigQuery } from '@google-cloud/bigquery';
+import { createReadLog } from '../lib/bigQuery';
+
+const bigQueryClient = new BigQuery({
+  projectId: 'velog-14',
+});
 
 const routes = new Router();
 
@@ -17,11 +23,9 @@ routes.use('/sitemaps', sitemaps.routes());
 // routes.use('/atom', rss.routes());
 
 routes.get('/', async ctx => {
-  const stats = await PostRead.getStats('295906a0-da71-11e8-8483-39fd55313fb0');
   ctx.body = {
     message: 'hello world',
     ips: ctx.state.ipaddr,
-    stats,
   };
 });
 

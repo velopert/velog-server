@@ -7,3 +7,4 @@ ormconfig.json
 dist
 .env.staging
 .env.production
+google-service-account.json

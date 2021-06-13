@@ -24,6 +24,7 @@ import PostReadLog from '../entity/PostReadLog';
 import spamFilter from '../etc/spamFilter';
 import Axios from 'axios';
 import LRU from 'lru-cache';
+import { createLikeLog, createReadLog } from '../lib/bigQuery';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -976,6 +977,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new AuthenticationError('Not Logged In');
       }
 
+      createLikeLog({
+        ip: ctx.ip,
+        postId: args.id,
+        userId: ctx.user_id,
+      });
+
       // find post
       const postRepo = getRepository(Post);
       const post = await postRepo.findOne(args.id);
@@ -1089,6 +1096,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     postView: async (parent: any, { id }: { id: string }, ctx) => {
       const postReadRepo = getRepository(PostRead);
       const ipHash = hash(ctx.ip);
+
+      createReadLog({
+        ip: ctx.ip,
+        postId: id,
+        userId: ctx.user_id,
+      });
 
       const viewed = await postReadRepo
         .createQueryBuilder('post_read')
