@@ -4,7 +4,7 @@ Velog is a blog platform for developers. It provides markdown editor with syntax
 
 Website link: https://velog.io/
 
-Frontend project of service is at another Repo - [velog-client](https://github.com/velopert/velog-server)
+Frontend project of service is at another Repo - [velog-client](https://github.com/velopert/velog-client)
 
 ## Project Stack
 - Node.js
