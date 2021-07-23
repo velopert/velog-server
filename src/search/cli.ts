@@ -68,7 +68,7 @@ async function syncAll() {
       .whereInIds(idList)
       .getMany();
 
-    const tagsGroup = await tagsLoader.loadMany(idList);
+    const tagsGroup = await tagsLoader.loadMany(posts.map(post => post.id));
     posts.forEach((p, index) => {
       p.tags = tagsGroup[index];
     });
