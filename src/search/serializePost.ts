@@ -25,7 +25,7 @@ export function serializePost(post: Post) {
     ...picked,
     // _id: picked.id,
     // objectID: picked.id,
-    body: picked.body,
+    body: picked.body.slice(0, 8000),
     user: {
       id: picked.user.id,
       username: picked.user.username,

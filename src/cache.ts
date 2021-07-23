@@ -6,7 +6,7 @@ class Cache {
   connect() {
     this.client = new Redis({
       maxRetriesPerRequest: 3,
-      host: process.env.REDIS_HOST || 'localhost'
+      host: process.env.REDIS_HOST || 'localhost',
     });
   }
 
@@ -28,5 +28,6 @@ class Cache {
 }
 
 const cache = new Cache();
+cache.connect();
 
 export default cache;

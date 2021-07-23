@@ -1,7 +1,14 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import { getRepository, getManager, LessThan, Not, MoreThan } from 'typeorm';
+import {
+  getRepository,
+  getManager,
+  LessThan,
+  Not,
+  MoreThan,
+  UsingJoinColumnIsNotAllowedError,
+} from 'typeorm';
 import PostScore from '../entity/PostScore';
 import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
 import removeMd from 'remove-markdown';
@@ -25,6 +32,10 @@ import spamFilter from '../etc/spamFilter';
 import Axios from 'axios';
 import LRU from 'lru-cache';
 import { createLikeLog, createReadLog } from '../lib/bigQuery';
+import esClient from '../search/esClient';
+import { buildFallbackRecommendedPosts, buildRecommendedPostsQuery } from '../search/buildQuery';
+import { pickRandomItems } from '../etc/pickRandomItems';
+import { shuffleArray } from '../etc/shuffleArray';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -79,6 +90,7 @@ export const typeDef = gql`
     liked: Boolean
     linked_posts: LinkedPosts
     last_read_at: Date
+    recommended_posts: [Post]
   }
   type SearchResult {
     count: Int
@@ -238,6 +250,50 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         fk_user_id: user_id,
       });
       return !!liked;
+    },
+    recommended_posts: async (parent: Post, args: any, ctx) => {
+      parent.tags = await ctx.loaders.tags.load(parent.id);
+      const cacheKey = `${parent.id}:recommend`;
+      let postIds: string[];
+      try {
+        const cachedPostIds = await cache.client!.get(cacheKey);
+        if (cachedPostIds) {
+          postIds = cachedPostIds.split(',');
+        } else {
+          let recommendedPosts = await esClient.search({
+            index: 'posts',
+            body: {
+              query: buildRecommendedPostsQuery(parent),
+              size: 8,
+            },
+          });
+          postIds = recommendedPosts.body.hits.hits.map((hit: any) => hit._id as string);
+          const diff = 8 - postIds.length;
+          if (diff > 0) {
+            const fallbackPosts = await esClient.search({
+              index: 'posts',
+              body: {
+                query: buildFallbackRecommendedPosts(),
+                size: 100,
+              },
+            });
+            const fallbackPostIds: string[] = fallbackPosts.body.hits.hits.map(
+              (hit: any) => hit._id as string
+            );
+            const randomPostIds = pickRandomItems(fallbackPostIds, diff);
+            postIds = [...postIds, ...randomPostIds];
+          }
+
+          cache.client!.set(`${parent.id}:recommend`, postIds.join(','), 'EX', 60 * 60 * 24);
+        }
+
+        const posts = await getRepository(Post).findByIds(postIds);
+        const normalized = normalize(posts);
+        const ordered = postIds.map(id => normalized[id]);
+        return ordered;
+      } catch (e) {
+        return [];
+      }
     },
     linked_posts: async (parent: Post, args: any, ctx) => {
       const seriesPostsRepo = getRepository(SeriesPosts);
