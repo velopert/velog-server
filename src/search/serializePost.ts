@@ -17,7 +17,7 @@ export function serializePost(post: Post) {
       'meta',
       'user',
       'tags',
-      'url_slug'
+      'url_slug',
     ],
     post
   );
@@ -25,16 +25,16 @@ export function serializePost(post: Post) {
     ...picked,
     // _id: picked.id,
     // objectID: picked.id,
-    body: picked.body.slice(0, 3500),
+    body: picked.body,
     user: {
       id: picked.user.id,
       username: picked.user.username,
       profile: {
         id: picked.user.profile.id,
         display_name: picked.user.profile.display_name,
-        thumbnail: picked.user.profile.thumbnail
-      }
+        thumbnail: picked.user.profile.thumbnail,
+      },
     },
-    tags: picked.tags.map(t => t.name)
+    tags: picked.tags.map(t => t.name),
   };
 }
