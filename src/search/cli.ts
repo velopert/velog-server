@@ -7,6 +7,7 @@ import User from '../entity/User';
 import esClient from './esClient';
 import { serializePost } from './serializePost';
 import Database from '../database';
+import { createTagsLoader } from '../entity/PostsTags';
 
 async function initialize() {
   try {
@@ -18,12 +19,14 @@ async function initialize() {
   }
 }
 
+const tagsLoader = createTagsLoader();
+
 async function syncAll() {
   const postRepo = getRepository(Post);
   const postsCount = await postRepo.count({
     where: {
-      is_temp: false
-    }
+      is_temp: false,
+    },
   });
   const limit = 1000;
 
@@ -62,10 +65,13 @@ async function syncAll() {
       .addSelect('profile.id')
       .addSelect('profile.display_name')
       .addSelect('profile.thumbnail')
-      .leftJoinAndSelect('post.tags', 'tags')
-      .addSelect('tags.name')
       .whereInIds(idList)
       .getMany();
+
+    const tagsGroup = await tagsLoader.loadMany(idList);
+    posts.forEach((p, index) => {
+      p.tags = tagsGroup[index];
+    });
 
     const serializedPosts = posts.map(serializePost);
 
@@ -89,8 +95,8 @@ async function askPostId() {
     {
       type: 'input',
       name: 'postId',
-      message: 'Please type the post id to process'
-    }
+      message: 'Please type the post id to process',
+    },
   ]);
   return postId;
 }
@@ -101,9 +107,12 @@ async function updatePost() {
     .createQueryBuilder('post')
     .leftJoinAndSelect('post.user', 'user')
     .leftJoinAndSelect('user.profile', 'profile')
-    .leftJoinAndSelect('post.tags', 'tags')
     .where('post.id = :id', { id: '21fd6700-b354-11e8-ba07-9dd972ee6ad1' })
     .getOne();
+
+  const tags = await tagsLoader.load(post!.id);
+  post!.tags = tags;
+  console.log(post);
 }
 
 async function deletePost() {
@@ -116,8 +125,8 @@ async function search() {
     {
       type: 'input',
       name: 'keyword',
-      message: 'Please type the keyword to search'
-    }
+      message: 'Please type the keyword to search',
+    },
   ]);
   // const result = await postsIndex.search({
   //   query: keyword,
@@ -129,7 +138,7 @@ const taskMap = {
   'Sync all posts': syncAll,
   'Update a post': updatePost,
   'Delete a post': deletePost,
-  Search: search
+  Search: search,
 };
 
 type TaskKey = keyof typeof taskMap;
@@ -140,8 +149,8 @@ async function ask() {
       type: 'list',
       name: 'task',
       message: 'Select the task to process',
-      choices: ['Sync all posts', 'Update a post', 'Delete a post', 'Search']
-    }
+      choices: ['Sync all posts', 'Update a post', 'Delete a post', 'Search'],
+    },
   ]);
   const taskFn = taskMap[task];
   await taskFn();
