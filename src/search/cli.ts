@@ -76,7 +76,10 @@ async function syncAll() {
     const serializedPosts = posts.map(serializePost);
 
     try {
-      const body = serializedPosts.map(doc => [{ index: { _index: 'posts', _id: doc.id } }, doc]);
+      const body = serializedPosts.map(doc => [
+        { index: { _index: 'posts_v3', _id: doc.id } },
+        doc,
+      ]);
       const flat = ([] as any[]).concat(...body);
       const response = await esClient.bulk({ body: flat });
       if (response.body.errors) {
