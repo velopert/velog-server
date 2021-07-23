@@ -264,11 +264,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             index: 'posts',
             body: {
               query: buildRecommendedPostsQuery(parent),
-              size: 8,
+              size: 12,
             },
           });
           postIds = recommendedPosts.body.hits.hits.map((hit: any) => hit._id as string);
-          const diff = 8 - postIds.length;
+          const diff = 12 - postIds.length;
           if (diff > 0) {
             const fallbackPosts = await esClient.search({
               index: 'posts',
