@@ -31,7 +31,7 @@ export function buildRecommendedPostsQuery(post: Post, minimumView: number = 100
                   like: post.body,
                 },
               },
-              // ...tagsQuery,
+              ...tagsQuery,
             ],
           },
         },
@@ -39,6 +39,14 @@ export function buildRecommendedPostsQuery(post: Post, minimumView: number = 100
           range: {
             views: {
               gte: minimumView,
+            },
+          },
+        },
+        {
+          match: {
+            is_private: {
+              query: false,
+              boost: 0,
             },
           },
         },
