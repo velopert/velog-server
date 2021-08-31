@@ -12,6 +12,7 @@ import { createCommentEmail } from '../etc/emailTemplates';
 import sendMail from '../lib/sendMail';
 import { commentSpamFilter } from '../etc/spamFilter';
 import Axios from 'axios';
+import checkUnscore from '../etc/checkUnscore';
 
 const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
@@ -164,6 +165,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       comment.fk_post_id = post_id;
 
       await commentRepo.save(comment);
+
+      const unscored = checkUnscore(post.body.concat(post.title));
+      if (!unscored) {
+        const postScoreRepo = getRepository(PostScore);
+        const score = new PostScore();
+        score.type = 'LIKE';
+        score.fk_post_id = args.id;
+        score.score = 5;
+        score.fk_user_id = ctx.user_id;
+        await postScoreRepo.save(score);
+      }
 
       const postScoreRepo = getRepository(PostScore);
       const score = new PostScore();

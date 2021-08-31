@@ -36,6 +36,7 @@ import esClient from '../search/esClient';
 import { buildFallbackRecommendedPosts, buildRecommendedPostsQuery } from '../search/buildQuery';
 import { pickRandomItems } from '../etc/pickRandomItems';
 import { shuffleArray } from '../etc/shuffleArray';
+import checkUnscore from '../etc/checkUnscore';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -290,7 +291,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         const posts = await getRepository(Post).findByIds(postIds);
         const normalized = normalize(posts);
         const ordered = postIds.map(id => normalized[id]);
-        return ordered;
+        return ordered.filter(post => post); // filter out nulls
       } catch (e) {
         return [];
       }
@@ -1081,13 +1082,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       await postRepo.save(post);
 
-      const postScoreRepo = getRepository(PostScore);
-      const score = new PostScore();
-      score.type = 'LIKE';
-      score.fk_post_id = args.id;
-      score.score = 5;
-      score.fk_user_id = ctx.user_id;
-      await postScoreRepo.save(score);
+      const unscored = checkUnscore(post.body.concat(post.title));
+      if (!unscored) {
+        const postScoreRepo = getRepository(PostScore);
+        const score = new PostScore();
+        score.type = 'LIKE';
+        score.fk_post_id = args.id;
+        score.score = 5;
+        score.fk_user_id = ctx.user_id;
+        await postScoreRepo.save(score);
+      }
 
       setTimeout(() => {
         searchSync.update(post.id);
