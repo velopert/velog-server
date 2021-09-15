@@ -131,6 +131,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('Bad Request');
       }
 
+      if (text.includes('<a href=')) {
+        await Axios.post(slackUrl, {
+          text: `스팸 의심!\n *userId*: ${ctx.user_id}\n*text*: ${text}`,
+        });
+        throw new ApolloError('Bad Request');
+      }
+
       const recentCommentsCount = await commentRepo.count({
         where: {
           fk_user_id: ctx.user_id,
