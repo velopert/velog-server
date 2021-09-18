@@ -68,7 +68,7 @@
     "ramda": "^0.27.1",
     "remove": "^0.1.5",
     "remove-markdown": "^0.3.0",
-    "sanitize-html": "^1.20.0",
+    "sanitize-html": "^2.3.2",
     "serverless-http": "^1.9.0",
     "serverless-offline": "^4.1.4",
     "serverless-webpack": "^5.3.1",
