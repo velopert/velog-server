@@ -28,7 +28,7 @@ import PostRead from '../entity/PostRead';
 import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
-import spamFilter from '../etc/spamFilter';
+import { nextSpamFilter } from '../etc/spamFilter';
 import Axios from 'axios';
 import LRU from 'lru-cache';
 import { createLikeLog, createReadLog } from '../lib/bigQuery';
@@ -37,6 +37,7 @@ import { buildFallbackRecommendedPosts, buildRecommendedPostsQuery } from '../se
 import { pickRandomItems } from '../etc/pickRandomItems';
 import { shuffleArray } from '../etc/shuffleArray';
 import checkUnscore from '../etc/checkUnscore';
+import geoipCountry from 'geoip-country';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -698,7 +699,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = data.meta;
       post.thumbnail = data.thumbnail;
       post.is_private = data.is_private;
-      if (spamFilter(data.body) || spamFilter(data.title)) {
+
+      const isForeign = geoipCountry.lookup(ctx.ip)?.country !== 'KR';
+
+      if (nextSpamFilter(data.body, isForeign) || nextSpamFilter(data.title, isForeign, true)) {
         post.is_private = true;
         await Axios.post(slackUrl, {
           text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}`,
@@ -942,7 +946,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = meta;
       post.thumbnail = thumbnail;
 
-      if (spamFilter(body) || spamFilter(title)) {
+      const isForeign = geoipCountry.lookup(ctx.ip)?.country !== 'KR';
+
+      if (nextSpamFilter(body, isForeign) || nextSpamFilter(title, isForeign, true)) {
         post.is_private = true;
       }
 

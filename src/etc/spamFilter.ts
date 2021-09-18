@@ -42,6 +42,43 @@ export default function spamFilter(text: string) {
   return false;
 }
 
+function hasKorean(text: string) {
+  return /[ㄱ-힣]/g.test(text);
+}
+
+export function nextSpamFilter(text: string, isForeign: boolean, isTitle = false) {
+  let replaced = text.replace(/```([\s\S]*?)```/g, ''); // remove code blocks
+  // replace image markdown
+  replaced = replaced.replace(/!\[([\s\S]*?)\]\(([\s\S]*?)\)/g, '');
+
+  const alphanumericKorean = replaced
+    .replace(/[^a-zA-Zㄱ-힣0-9 \n]/g, '') // remove non-korean
+    .toLowerCase();
+
+  const hasLink = /http/.test(replaced);
+
+  if (!isTitle && isForeign && hasLink) {
+    const lines = replaced.split('\n').filter(line => line.trim().length > 1);
+    const koreanLinesCount = lines.filter(line => hasKorean(line)).length;
+    const confidence = koreanLinesCount / lines.length;
+
+    return confidence < 0.3;
+  }
+
+  if (bannedKeywords.some(keyword => alphanumericKorean.includes(keyword))) {
+    return true;
+  }
+
+  const score = bannedAltKeywords.reduce((acc, current) => {
+    if (alphanumericKorean.includes(current)) {
+      return acc + 1;
+    }
+    return acc;
+  }, 0);
+
+  if (score >= 2 && isForeign) return true;
+}
+
 export function commentSpamFilter(text: string) {
   const noKorean = !/[ㄱ-힣]/g.test(text);
   if (noKorean && text.includes('http')) {
