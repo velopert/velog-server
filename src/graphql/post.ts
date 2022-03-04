@@ -1037,8 +1037,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         console.log(e);
       }
 
-      purgeRecentPosts();
-      purgeUser(ctx.user_id);
+      try {
+        await Promise.all([purgeRecentPosts(), purgeUser(ctx.user_id)]);
+      } catch (e) {}
 
       return true;
     },
