@@ -321,11 +321,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       await cache.remove(`ssr:/@${username}/${post.url_slug}`);
 
       try {
-        const result = await purgePost(post.id);
-        console.log(result.data);
-      } catch (e) {
-        console.error(e);
-      }
+        await purgePost(post.id);
+      } catch (e) {}
 
       return true;
     },
