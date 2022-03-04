@@ -6,7 +6,7 @@ import logger from 'koa-logger';
 import compress from 'kompression';
 import routes from './routes';
 import schema from './graphql/schema';
-import { consumeUser } from './lib/token';
+import { consumeUser, resetTokenCookie } from './lib/token';
 import createLoaders, { Loaders } from './lib/createLoader';
 import entities from './entity';
 import loadVariables from './loadVariable';
@@ -36,6 +36,7 @@ export type ApolloContext = {
 
 const apollo = new ApolloServer({
   schema,
+  introspection: process.env.NODE_ENV === 'development',
   context: async ({ ctx }: { ctx: Context }) => {
     try {
       // await consumeUser(ctx);
@@ -44,8 +45,7 @@ const apollo = new ApolloServer({
         loaders: createLoaders(),
         ip: ctx.state.ipaddr,
         unsetCookie: () => {
-          ctx.cookies.set('access_token');
-          ctx.cookies.set('referesh_token');
+          resetTokenCookie(ctx);
         },
       };
     } catch (e) {
