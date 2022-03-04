@@ -10,7 +10,8 @@ const cors: Middleware = (ctx, next) => {
     /^https:\/\/velog.io$/,
     /^https:\/\/alpha.velog.io$/,
     /^https:\/\/prod.velog.io$/,
-    /https:\/\/(.*)--velog.netlify.com/
+    /https:\/\/(.*)--velog.netlify.com/,
+    /https:\/\/velog.graphcdn.app/,
   ];
 
   if (process.env.NODE_ENV === 'development') {
