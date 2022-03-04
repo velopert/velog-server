@@ -16,7 +16,7 @@ export const generateToken = async (payload: any, options?: SignOptions): Promis
   const jwtOptions: SignOptions = {
     issuer: 'velog.io',
     expiresIn: '7d',
-    ...options
+    ...options,
   };
   const variables = await loadVariables();
   const secretKey = SECRET_KEY || variables.secretKey;
@@ -47,32 +47,37 @@ export const decodeToken = async <T = any>(token: string): Promise<T> => {
   });
 };
 
+const domains = ['.velog.io', undefined, 'velog.graphcdn.app'];
 export function setTokenCookie(
   ctx: Context,
   tokens: { accessToken: string; refreshToken: string }
 ) {
-  // set cookie
-  ctx.cookies.set('access_token', tokens.accessToken, {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60,
-    domain: '.velog.io'
-  });
+  domains.forEach(domain => {
+    // set cookie
+    ctx.cookies.set('access_token', tokens.accessToken, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60,
+      domain: domain,
+    });
 
-  ctx.cookies.set('refresh_token', tokens.refreshToken, {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 30,
-    domain: '.velog.io'
+    ctx.cookies.set('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 1000 * 60 * 60 * 24 * 30,
+      domain: domain,
+    });
   });
+}
 
-  // Following codes are for webpack-dev-server proxy
-  ctx.cookies.set('access_token', tokens.accessToken, {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60
-  });
-
-  ctx.cookies.set('refresh_token', tokens.refreshToken, {
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 30
+export function resetTokenCookie(ctx: Context) {
+  domains.forEach(domain => {
+    ctx.cookies.set('access_token', '', {
+      maxAge: 0,
+      domain,
+    });
+    ctx.cookies.set('refresh_token', '', {
+      maxAge: 0,
+      domain,
+    });
   });
 }
 

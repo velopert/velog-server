@@ -13,6 +13,7 @@ import sendMail from '../lib/sendMail';
 import { commentSpamFilter } from '../etc/spamFilter';
 import Axios from 'axios';
 import checkUnscore from '../etc/checkUnscore';
+import { purgePost } from '../lib/graphcdn';
 
 const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
@@ -271,6 +272,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         console.log(e);
       }
 
+      try {
+        await purgePost(post.id);
+      } catch (e) {}
+
       return comment;
     },
     removeComment: async (parent: any, { id }: any, ctx) => {
@@ -314,6 +319,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       await cache.remove(`ssr:/@${username}/${post.url_slug}`);
+
+      try {
+        await purgePost(post.id);
+      } catch (e) {}
 
       return true;
     },

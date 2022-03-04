@@ -80,7 +80,6 @@ export default class User {
   async refreshUserToken(tokenId: string, refreshTokenExp: number, originalRefreshToken: string) {
     const now = new Date().getTime();
     const diff = refreshTokenExp * 1000 - now;
-    console.log('refreshing..');
     let refreshToken = originalRefreshToken;
     // renew refresh token if remaining life is less than 15d
     if (diff < 1000 * 60 * 60 * 24 * 15) {

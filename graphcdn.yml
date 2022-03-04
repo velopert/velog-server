@@ -1,0 +1,16 @@
+# GraphCDN configuration. Learn more at https://docs.graphcdn.io/docs/cli
+scopes:
+  AUTHENTICATED: cookie:access_token
+rootTypeNames:
+  query: Query
+  mutation: Mutation
+rules:
+  - types:
+      - Query
+    maxAge: 900
+    swr: 900
+    scope: AUTHENTICATED
+    description: Cache everything (default)
+name: velog
+originUrl: https://v2.velog.io/graphql
+schema: http://localhost:5000/graphql

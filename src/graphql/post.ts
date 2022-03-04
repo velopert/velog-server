@@ -38,6 +38,7 @@ import { pickRandomItems } from '../etc/pickRandomItems';
 import { shuffleArray } from '../etc/shuffleArray';
 import checkUnscore from '../etc/checkUnscore';
 import geoipCountry from 'geoip-country';
+import { purgeRecentPosts, purgeUser } from '../lib/graphcdn';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -783,6 +784,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await searchSync.update(post.id);
       }
 
+      purgeRecentPosts();
+      purgeUser(ctx.user_id);
+
       return post;
     },
     createPostHistory: async (parent: any, args: CreatePostHistoryArgs, ctx) => {
@@ -1032,6 +1036,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         console.log('Failed to remove post from cache or elasticsearch');
         console.log(e);
       }
+
+      purgeRecentPosts();
+      purgeUser(ctx.user_id);
 
       return true;
     },
