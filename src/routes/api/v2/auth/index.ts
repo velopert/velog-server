@@ -9,7 +9,12 @@ import EmailAuth from '../../../../entity/EmailAuth';
 import shortid = require('shortid');
 import { createAuthEmail } from '../../../../etc/emailTemplates';
 import sendMail from '../../../../lib/sendMail';
-import { generateToken, decodeToken, setTokenCookie } from '../../../../lib/token';
+import {
+  generateToken,
+  decodeToken,
+  setTokenCookie,
+  resetTokenCookie,
+} from '../../../../lib/token';
 import { decode } from 'punycode';
 import UserProfile from '../../../../entity/UserProfile';
 import VelogConfig from '../../../../entity/VelogConfig';
@@ -32,9 +37,7 @@ auth.post('/sendmail', async ctx => {
     email: string;
   };
   const schema = Joi.object().keys({
-    email: Joi.string()
-      .email()
-      .required()
+    email: Joi.string().email().required(),
   });
   if (!validateBody(ctx, schema)) return false;
 
@@ -43,7 +46,7 @@ auth.post('/sendmail', async ctx => {
   // find user by email
   try {
     const user = await getRepository(User).findOne({
-      email: email.toLowerCase()
+      email: email.toLowerCase(),
     });
     // create email
     const emailAuth = new EmailAuth();
@@ -63,7 +66,7 @@ auth.post('/sendmail', async ctx => {
       await sendMail({
         to: email,
         ...emailTemplate,
-        from: 'verify@velog.io'
+        from: 'verify@velog.io',
       });
     } catch (e) {
       if (process.env.NODE_ENV !== 'development') {
@@ -72,7 +75,7 @@ auth.post('/sendmail', async ctx => {
     }
 
     ctx.body = {
-      registered: !!user
+      registered: !!user,
     };
   } catch (e) {
     ctx.throw(500, e);
@@ -89,7 +92,7 @@ auth.get('/code/:code', async ctx => {
   try {
     // check code
     const emailAuth = await getRepository(EmailAuth).findOne({
-      code
+      code,
     });
     if (!emailAuth) {
       ctx.status = 404;
@@ -98,7 +101,7 @@ auth.get('/code/:code', async ctx => {
 
     if (emailAuth.logged) {
       ctx.body = {
-        name: 'TOKEN_ALREADY_USED'
+        name: 'TOKEN_ALREADY_USED',
       };
       ctx.status = 403;
       return;
@@ -108,7 +111,7 @@ auth.get('/code/:code', async ctx => {
     if (diff > 1000 * 60 * 60 * 24 || emailAuth.logged) {
       ctx.status = 410;
       ctx.body = {
-        name: 'EXPIRED_CODE'
+        name: 'EXPIRED_CODE',
       };
       return;
     }
@@ -116,7 +119,7 @@ auth.get('/code/:code', async ctx => {
 
     // check user with code
     const user = await getRepository(User).findOne({
-      email
+      email,
     });
 
     if (!user) {
@@ -124,18 +127,18 @@ auth.get('/code/:code', async ctx => {
       const registerToken = await generateToken(
         {
           email,
-          id: emailAuth.id
+          id: emailAuth.id,
         },
         { expiresIn: '1h', subject: 'email-register' }
       );
 
       ctx.body = {
         email,
-        register_token: registerToken
+        register_token: registerToken,
       };
     } else {
       const profile = await getRepository(UserProfile).findOne({
-        fk_user_id: user.id
+        fk_user_id: user.id,
       });
       if (!profile) return;
       const tokens = await user.generateUserToken();
@@ -146,8 +149,8 @@ auth.get('/code/:code', async ctx => {
         profile,
         tokens: {
           access_token: tokens.accessToken,
-          refresh_token: tokens.refreshToken
-        }
+          refresh_token: tokens.refreshToken,
+        },
       };
       await getRepository(EmailAuth).save(emailAuth);
     }
@@ -189,27 +192,22 @@ auth.post('/register/local', async ctx => {
     register_token: Joi.string().required(),
     form: Joi.object()
       .keys({
-        display_name: Joi.string()
-          .min(1)
-          .max(45)
-          .required(),
+        display_name: Joi.string().min(1).max(45).required(),
         username: Joi.string()
           .regex(/^[a-z0-9-_]+$/)
           .min(3)
           .max(16)
           .required(),
-        short_bio: Joi.string()
-          .allow('')
-          .max(140)
+        short_bio: Joi.string().allow('').max(140),
       })
-      .required()
+      .required(),
   });
 
   if (!validateBody(ctx, schema)) return;
 
   const {
     register_token,
-    form: { username, short_bio, display_name }
+    form: { username, short_bio, display_name },
   }: RequestBody = ctx.request.body;
 
   // check token
@@ -219,13 +217,13 @@ auth.post('/register/local', async ctx => {
     if (decoded.sub !== 'email-register') {
       ctx.status = 400;
       ctx.body = {
-        name: 'INVALID_TOKEN'
+        name: 'INVALID_TOKEN',
       };
       return;
     }
   } catch (e) {
     ctx.body = {
-      name: 'INVALID_TOKEN'
+      name: 'INVALID_TOKEN',
     };
     return;
   }
@@ -240,7 +238,7 @@ auth.post('/register/local', async ctx => {
     ctx.status = 409;
     ctx.body = {
       name: 'ALREADY_EXISTS',
-      payload: email === exists.email ? 'email' : 'username'
+      payload: email === exists.email ? 'email' : 'username',
     };
     return;
   }
@@ -285,8 +283,8 @@ auth.post('/register/local', async ctx => {
     profile,
     tokens: {
       access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken
-    }
+      refresh_token: tokens.refreshToken,
+    },
   };
 });
 
@@ -299,12 +297,7 @@ auth.get('/check', async ctx => {
 });
 auth.post('/logout', async ctx => {
   // clears cookies
-  ctx.cookies.set('access_token', '', {
-    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
-  });
-  ctx.cookies.set('refresh_token', '', {
-    domain: process.env.NODE_ENV === 'development' ? undefined : '.velog.io'
-  });
+  resetTokenCookie(ctx);
   ctx.status = 204;
 });
 auth.post('/certify', async ctx => {});
