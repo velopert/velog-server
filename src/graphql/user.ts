@@ -63,8 +63,8 @@ async function updateUserProfile(userId: string, patch: Partial<UserProfile>) {
   const userProfileRepo = getRepository(UserProfile);
   const profile = await userProfileRepo.findOne({
     where: {
-      fk_user_id: userId
-    }
+      fk_user_id: userId,
+    },
   });
   if (!profile) {
     throw new ApolloError('Failed to retrieve user profile');
@@ -93,11 +93,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const seriesRepo = getRepository(Series);
       const seriesList = await seriesRepo.find({
         where: {
-          fk_user_id: parent.id
+          fk_user_id: parent.id,
         },
         order: {
-          updated_at: 'DESC'
-        }
+          updated_at: 'DESC',
+        },
       });
       return seriesList;
     },
@@ -107,7 +107,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
       const userMetaRepo = getRepository(UserMeta);
       return userMetaRepo.findOne({ fk_user_id: user_id });
-    }
+    },
   },
   Query: {
     user: async (parent: any, { id, username }: any) => {
@@ -116,13 +116,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if (username) {
           const user = await repo.findOne({
             where: {
-              username
-            }
+              username,
+            },
           });
           return user;
         }
         const user = await repo.findOne({
-          id
+          id,
         });
         return user;
       } catch (e) {
@@ -146,23 +146,27 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
       return generateToken(
         {
-          user_id: ctx.user_id
+          user_id: ctx.user_id,
         },
         {
           subject: 'unregister_token',
-          expiresIn: '5m'
+          expiresIn: '5m',
         }
       );
-    }
+    },
   },
   Mutation: {
+    logout: async (_, __, ctx) => {
+      ctx.unsetCookie();
+      return true;
+    },
     update_about: async (parent: any, args: { about: string }, ctx) => {
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
       }
 
       return updateUserProfile(ctx.user_id, {
-        about: args.about
+        about: args.about,
       });
     },
     update_thumbnail: async (parent: any, args: { url: string | null }, ctx) => {
@@ -171,7 +175,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       return updateUserProfile(ctx.user_id, {
-        thumbnail: args.url
+        thumbnail: args.url,
       });
     },
     update_profile: async (
@@ -189,7 +193,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       return updateUserProfile(ctx.user_id, {
         display_name: args.display_name,
-        short_bio: args.short_bio
+        short_bio: args.short_bio,
       });
     },
     update_velog_title: async (parent: any, args: { title: string }, ctx) => {
@@ -205,8 +209,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const velogConfigRepo = getRepository(VelogConfig);
       const velogConfig = await velogConfigRepo.findOne({
         where: {
-          fk_user_id: ctx.user_id
-        }
+          fk_user_id: ctx.user_id,
+        },
       });
       if (!velogConfig) throw new ApolloError('Failed to retrieve velog config');
       velogConfig.title = args.title;
@@ -225,7 +229,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const valid = Object.keys(args.profile_links).every(key => allowedKeys.includes(key));
       if (!valid) throw new ApolloError('profile_links contains invalid key', 'BAD_REQUEST');
       return updateUserProfile(ctx.user_id, {
-        profile_links: args.profile_links
+        profile_links: args.profile_links,
       });
     },
     update_email_rules: async (
@@ -237,8 +241,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const userMetaRepo = getRepository(UserMeta);
       const userMeta = await userMetaRepo.findOne({
         where: {
-          fk_user_id: ctx.user_id
-        }
+          fk_user_id: ctx.user_id,
+        },
       });
       if (!userMeta) {
         throw new ApolloError('Could not find user_meta');
@@ -264,6 +268,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       ctx.unsetCookie();
       await userRepo.remove(user);
       return true;
-    }
-  }
+    },
+  },
 };
