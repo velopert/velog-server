@@ -47,7 +47,7 @@ export const decodeToken = async <T = any>(token: string): Promise<T> => {
   });
 };
 
-const domains = ['.velog.io', undefined];
+const domains = ['.velog.io', undefined, 'v2cdn.velog.io', 'v2.velog.io'];
 export function setTokenCookie(
   ctx: Context,
   tokens: { accessToken: string; refreshToken: string }
