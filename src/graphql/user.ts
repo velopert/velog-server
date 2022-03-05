@@ -56,6 +56,7 @@ export const typeDef = gql`
     update_social_info(profile_links: JSON!): UserProfile
     update_email_rules(notification: Boolean!, promotion: Boolean!): UserMeta
     unregister(token: String!): Boolean
+    logout: Boolean!
   }
 `;
 
