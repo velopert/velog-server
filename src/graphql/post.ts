@@ -110,6 +110,7 @@ export const typeDef = gql`
   extend type Query {
     post(id: ID, username: String, url_slug: String): Post
     posts(cursor: ID, limit: Int, username: String, temp_only: Boolean, tag: String): [Post]
+    recentPosts(cursor: ID, limit: Int): [Post]
     trendingPosts(offset: Int, limit: Int, timeframe: String): [Post]
     searchPosts(keyword: String!, offset: Int, limit: Int, username: String): SearchResult
     postHistories(post_id: ID): [PostHistory]
@@ -493,6 +494,50 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (username) {
         query.andWhere('user.username = :username', { username });
       }
+
+      // pagination
+      if (cursor) {
+        const post = await getRepository(Post).findOne({
+          id: cursor,
+        });
+        if (!post) {
+          throw new ApolloError('invalid cursor');
+        }
+        query.andWhere('post.released_at < :date', {
+          date: post.released_at,
+          id: post.id,
+        });
+        query.orWhere('post.released_at = :date AND post.id < :id', {
+          date: post.released_at,
+          id: post.id,
+        });
+      }
+
+      const posts = await query.getMany();
+      return posts;
+    },
+    recentPosts: async (parent: any, { cursor, limit = 20 }: PostsArgs, context) => {
+      if (limit > 100) {
+        throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
+      }
+
+      const query = getManager()
+        .createQueryBuilder(Post, 'post')
+        .limit(limit)
+        .orderBy('post.released_at', 'DESC')
+        .addOrderBy('post.id', 'DESC')
+        .leftJoinAndSelect('post.user', 'user');
+
+      if (!context.user_id) {
+        query.where('is_private = false');
+      } else {
+        query.where('(is_private = false OR post.fk_user_id = :user_id)', {
+          user_id: context.user_id,
+        });
+      }
+      // .where('is_private = false');
+
+      query.andWhere('is_temp = false');
 
       // pagination
       if (cursor) {
