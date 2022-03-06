@@ -38,7 +38,7 @@ import { pickRandomItems } from '../etc/pickRandomItems';
 import { shuffleArray } from '../etc/shuffleArray';
 import checkUnscore from '../etc/checkUnscore';
 import geoipCountry from 'geoip-country';
-import { purgeRecentPosts, purgeUser } from '../lib/graphcdn';
+import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -1035,6 +1035,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await Promise.all([
           is_temp ? null : searchSync.update(post.id),
           cache.remove(...cacheKeys),
+          purgePost(post.id),
         ]);
       } catch (e) {
         console.log(e);
@@ -1083,7 +1084,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       try {
-        await Promise.all([purgeRecentPosts(), purgeUser(ctx.user_id)]);
+        await Promise.all([purgeRecentPosts(), purgeUser(ctx.user_id), purgePost(post.id)]);
       } catch (e) {}
 
       return true;
