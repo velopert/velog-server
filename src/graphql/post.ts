@@ -571,6 +571,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!selectedTimeframe) {
         throw new ApolloError('Invalid timeframe', 'BAD_REQUEST');
       }
+
+      if (timeframe === 'year') {
+        console.log('trendingPosts - year', { offset, limit, ip: ctx.ip });
+      }
       if (timeframe === 'year' && offset > 1000) {
         console.log('Detected GraphQL Abuse', ctx.ip);
         return [];
