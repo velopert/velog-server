@@ -560,7 +560,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const posts = await query.getMany();
       return posts;
     },
-    trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'month' }) => {
+    trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'month' }, ctx) => {
       const timeframes: [string, number][] = [
         ['day', 1],
         ['week', 7],
@@ -571,6 +571,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!selectedTimeframe) {
         throw new ApolloError('Invalid timeframe', 'BAD_REQUEST');
       }
+      if (timeframe === 'year' && offset > 1000) {
+        console.log('Detected GraphQL Abuse', ctx.ip);
+        return [];
+      }
+
       if (limit > 100) {
         throw new ApolloError('Limit is too high', 'BAD_REQUEST');
       }
