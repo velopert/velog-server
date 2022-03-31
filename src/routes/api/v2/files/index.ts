@@ -88,7 +88,7 @@ files.post('/create-url', authorized, async ctx => {
       await Axios.post(slackUrl, {
         text: `blacklist uploaded image | ${ctx.ip} ${user.username}`,
       });
-      throw new Error('Server is offline.');
+      // throw new Error('Server is offline.');
     }
 
     const signedUrl = generateSignedUrl(path, filename);
