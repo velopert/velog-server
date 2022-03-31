@@ -8,6 +8,7 @@ import authorized from '../../../../lib/middlewares/authorized';
 import UserImage from '../../../../entity/UserImage';
 import { getRepository } from 'typeorm';
 import createLoaders from '../../../../lib/createLoader';
+import Axios from 'axios';
 
 const BUCKET_NAME = 's3.images.velog.io';
 
@@ -15,8 +16,13 @@ const files = new Router();
 
 const s3 = new AWS.S3({
   region: 'ap-northeast-2',
-  signatureVersion: 'v4'
+  signatureVersion: 'v4',
 });
+
+const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
+
+const blacklistUsername = (process.env.BLACKLIST_USERNAME ?? '').split(',');
+const blacklistIp = (process.env.BLACKLIST_IP ?? '').split(',');
 
 const generateSignedUrl = (path: string, filename: string) => {
   const contentType = mime.lookup(filename);
@@ -34,14 +40,14 @@ const generateSignedUrl = (path: string, filename: string) => {
   return s3.getSignedUrl('putObject', {
     Bucket: BUCKET_NAME,
     Key: uploadPath,
-    ContentType: contentType
+    ContentType: contentType,
   });
 };
 
 export const generateUploadPath = ({
   id,
   type,
-  username
+  username,
 }: {
   username: string;
   id: string;
@@ -59,7 +65,7 @@ files.post('/create-url', authorized, async ctx => {
   const schema = Joi.object().keys({
     type: Joi.string().valid('post', 'profile'),
     filename: Joi.string().required(),
-    payload: Joi.any()
+    payload: Joi.any(),
   });
 
   if (!validateBody(ctx, schema)) return;
@@ -77,13 +83,21 @@ files.post('/create-url', authorized, async ctx => {
     await userImageRepo.save(userImage);
 
     const path = generateUploadPath({ type, id: userImage.id, username: user.username });
+
+    if (blacklistUsername.includes(user.username) || blacklistIp.includes(ctx.state.ipaddr)) {
+      await Axios.post(slackUrl, {
+        text: `blacklist uploaded image | ${ctx.ip} ${user.username}`,
+      });
+      throw new Error('Server is offline.');
+    }
+
     const signedUrl = generateSignedUrl(path, filename);
     userImage.path = `${path}/${filename}`;
     await userImageRepo.save(userImage);
 
     ctx.body = {
-      image_path: `https://images.velog.io/${userImage.path}`,
-      signed_url: signedUrl
+      image_path: `https://media.vlpt.us/${userImage.path}`,
+      signed_url: signedUrl,
     };
   } catch (e) {
     if (e.name === 'ContentTypeError') {
