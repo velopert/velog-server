@@ -39,6 +39,7 @@ import { shuffleArray } from '../etc/shuffleArray';
 import checkUnscore from '../etc/checkUnscore';
 import geoipCountry from 'geoip-country';
 import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
+import imageService from '../services/imageService';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -841,6 +842,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       purgeRecentPosts();
       purgeUser(ctx.user_id);
 
+      setTimeout(async () => {
+        const images = await imageService.getImagesOf(post.id);
+        await imageService.trackImages(images, data.body);
+      }, 0);
+
       return post;
     },
     createPostHistory: async (parent: any, args: CreatePostHistoryArgs, ctx) => {
@@ -1049,6 +1055,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       } catch (e) {
         console.log(e);
       }
+
+      setTimeout(async () => {
+        const images = await imageService.getImagesOf(post.id);
+        await imageService.trackImages(images, body);
+      }, 0);
 
       return post;
     },

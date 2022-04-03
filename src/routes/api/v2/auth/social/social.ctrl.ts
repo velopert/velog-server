@@ -8,7 +8,7 @@ import {
   SocialProvider,
   generateSocialLoginLink,
   SocialProfile,
-  redirectUri
+  redirectUri,
 } from '../../../../../lib/social';
 import Joi from 'joi';
 import { validateBody } from '../../../../../lib/utils';
@@ -21,10 +21,12 @@ import AWS from 'aws-sdk';
 import { getFacebookAccessToken, getFacebookProfile } from '../../../../../lib/social/facebook';
 import { getGoogleAccessToken, getGoogleProfile } from '../../../../../lib/social/google';
 import UserMeta from '../../../../../entity/UserMeta';
+import UserImageCloudflare from '../../../../../entity/UserImageCloudflare';
+import cloudflareImages from '../../../../../lib/cloudflareImages';
 
 const s3 = new AWS.S3({
   region: 'ap-northeast-2',
-  signatureVersion: 'v4'
+  signatureVersion: 'v4',
 });
 
 const {
@@ -34,7 +36,7 @@ const {
   FACEBOOK_SECRET,
   GOOGLE_ID,
   GOOGLE_SECRET,
-  CLIENT_HOST
+  CLIENT_HOST,
 } = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
@@ -60,8 +62,8 @@ async function getSocialAccount(params: { uid: number | string; provider: Social
   const socialAccount = await socialAccountRepo.findOne({
     where: {
       social_id: params.uid.toString(),
-      provider: params.provider
-    }
+      provider: params.provider,
+    },
   });
   return socialAccount;
 }
@@ -79,7 +81,7 @@ async function syncProfileImage(url: string, user: User) {
   const uploadPath = generateUploadPath({
     id: userImage.id,
     username: user.username,
-    type: 'profile'
+    type: 'profile',
   });
   const key = `${uploadPath}/social.${result.extension}`;
 
@@ -89,13 +91,42 @@ async function syncProfileImage(url: string, user: User) {
       Bucket: 's3.images.velog.io',
       Key: key,
       Body: result.stream,
-      ContentType: result.contentType
+      ContentType: result.contentType,
     })
     .promise();
 
   result.cleanup();
 
   return `https://images.velog.io/${key}`;
+}
+
+async function syncProfileImageWithCloudflare(url: string, user: User) {
+  const result = await downloadFile(url);
+
+  const filename = `social_profile.${result.extension}`;
+  const repo = getRepository(UserImageCloudflare);
+
+  //convert readstream to buffer
+  const buffer = await new Promise<Buffer>((resolve, reject) => {
+    const buffers: Buffer[] = [];
+    result.stream.on('data', (data: Buffer) => buffers.push(data));
+    result.stream.on('end', () => resolve(Buffer.concat(buffers)));
+    result.stream.on('error', reject);
+  });
+
+  const fileSize = buffer.length;
+  const uploadResult = await cloudflareImages.upload(buffer, filename);
+  const userImageCloudflare = new UserImageCloudflare();
+
+  userImageCloudflare.fk_user_id = user.id;
+  userImageCloudflare.type = 'profile';
+  userImageCloudflare.result_id = uploadResult.result.id;
+  userImageCloudflare.tracked = true;
+  userImageCloudflare.filesize = fileSize;
+  userImageCloudflare.filename = filename;
+  await repo.save(userImageCloudflare);
+
+  return `https://imagedelivery.net/v7-TZByhOiJbNM9RaUdzSA/${uploadResult.result.id}/public`;
 }
 
 /**
@@ -119,18 +150,13 @@ export const socialRegister: Middleware = async ctx => {
 
   // check postbody schema
   const schema = Joi.object().keys({
-    display_name: Joi.string()
-      .min(1)
-      .max(45)
-      .required(),
+    display_name: Joi.string().min(1).max(45).required(),
     username: Joi.string()
       .regex(/^[a-z0-9-_]+$/)
       .min(3)
       .max(16)
       .required(),
-    short_bio: Joi.string()
-      .allow('')
-      .max(140)
+    short_bio: Joi.string().allow('').max(140),
   });
 
   if (!validateBody(ctx, schema)) return;
@@ -164,7 +190,7 @@ export const socialRegister: Middleware = async ctx => {
       ctx.status = 409;
       ctx.body = {
         name: 'ALREADY_EXISTS',
-        payload: email === exists.email ? 'email' : 'username'
+        payload: email === exists.email ? 'email' : 'username',
       };
       return;
     }
@@ -196,13 +222,9 @@ export const socialRegister: Middleware = async ctx => {
     profile.display_name = display_name;
     profile.short_bio = short_bio;
 
-    if (decoded.profile.thumbnail) {
-      try {
-        const imageUrl = await syncProfileImage(decoded.profile.thumbnail, user);
-        profile.thumbnail = imageUrl;
-      } catch (e) {}
+    if (decoded?.profile.thumbnail) {
+      profile.thumbnail = decoded?.profile.thumbnail;
     }
-
     await userProfileRepo.save(profile);
 
     // create velog config and meta
@@ -221,9 +243,21 @@ export const socialRegister: Middleware = async ctx => {
       profile,
       tokens: {
         access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken
-      }
+        refresh_token: tokens.refreshToken,
+      },
     };
+
+    setTimeout(async () => {
+      if (decoded?.profile.thumbnail) {
+        try {
+          const imageUrl = await syncProfileImageWithCloudflare(decoded.profile.thumbnail, user);
+          profile.thumbnail = imageUrl;
+          await userProfileRepo.save(profile);
+        } catch (e) {
+          console.log(e);
+        }
+      }
+    }, 0);
     // create token
     // set token
     // return data
@@ -243,12 +277,12 @@ export const githubCallback: Middleware = async (ctx, next) => {
     const accessToken = await getGithubAccessToken({
       code,
       clientId: GITHUB_ID,
-      clientSecret: GITHUB_SECRET
+      clientSecret: GITHUB_SECRET,
     });
     const profile = await getGithubProfile(accessToken);
     const socialAccount = await getSocialAccount({
       uid: profile.uid,
-      provider: 'github'
+      provider: 'github',
     });
 
     ctx.state.profile = profile;
@@ -275,12 +309,12 @@ export const googleCallback: Middleware = async (ctx, next) => {
       code,
       clientId: GOOGLE_ID,
       clientSecret: GOOGLE_SECRET,
-      redirectUri: `${redirectUri}google`
+      redirectUri: `${redirectUri}google`,
     });
     const profile = await getGoogleProfile(accessToken);
     const socialAccount = await getSocialAccount({
       uid: profile.uid,
-      provider: 'google'
+      provider: 'google',
     });
 
     ctx.state.profile = profile;
@@ -309,12 +343,12 @@ export const facebookCallback: Middleware = async (ctx, next) => {
       code,
       clientId: FACEBOOK_ID,
       clientSecret: FACEBOOK_SECRET,
-      redirectUri: `${redirectUri}facebook`
+      redirectUri: `${redirectUri}facebook`,
     });
     const profile = await getFacebookProfile(accessToken);
     const socialAccount = await getSocialAccount({
       uid: profile.uid,
-      provider: 'facebook'
+      provider: 'facebook',
     });
 
     ctx.state.profile = profile;
@@ -361,7 +395,7 @@ export const socialCallback: Middleware = async ctx => {
     let user: User | undefined = undefined;
     if (profile.email) {
       user = await userRepo.findOne({
-        email: profile.email
+        email: profile.email,
       });
     }
 
@@ -381,16 +415,16 @@ export const socialCallback: Middleware = async ctx => {
     const registerTokenInfo = {
       profile,
       accessToken,
-      provider
+      provider,
     };
 
     const registerToken = await generateToken(registerTokenInfo, {
-      expiresIn: '1h'
+      expiresIn: '1h',
     });
 
     // set register token to cookie
     ctx.cookies.set('register_token', registerToken, {
-      maxAge: 1000 * 60 * 60
+      maxAge: 1000 * 60 * 60,
     });
 
     const redirectUrl =

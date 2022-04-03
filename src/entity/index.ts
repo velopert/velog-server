@@ -20,6 +20,7 @@ import UserProfile from './UserProfile';
 import VelogConfig from './VelogConfig';
 import UrlSlugHistory from './UrlSlugHistory';
 import PostReadLog from './PostReadLog';
+import UserImageCloudflare from './UserImageCloudflare';
 
 const entities = [
   AdminUser,
@@ -43,7 +44,8 @@ const entities = [
   UserProfile,
   VelogConfig,
   UrlSlugHistory,
-  PostReadLog
+  PostReadLog,
+  UserImageCloudflare,
 ];
 
 export default entities;

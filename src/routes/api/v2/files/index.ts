@@ -9,6 +9,11 @@ import UserImage from '../../../../entity/UserImage';
 import { getRepository } from 'typeorm';
 import createLoaders from '../../../../lib/createLoader';
 import Axios from 'axios';
+import multer from '@koa/multer';
+import cloudflareImages from '../../../../lib/cloudflareImages';
+import UserImageCloudflare from '../../../../entity/UserImageCloudflare';
+import Post from '../../../../entity/Post';
+import imageService from '../../../../services/imageService';
 
 const BUCKET_NAME = 's3.images.velog.io';
 
@@ -107,4 +112,71 @@ files.post('/create-url', authorized, async ctx => {
     ctx.throw(500, e);
   }
 });
+
+const upload = multer({
+  limits: {
+    fileSize: 1024 * 1024 * 30,
+  },
+});
+files.post('/upload', authorized, upload.single('image'), async ctx => {
+  type RequestBody = {
+    type: string;
+    ref_id?: string;
+  };
+  const { type, ref_id } = ctx.request.body as RequestBody;
+  if (!['post', 'profile'].includes(type)) {
+    ctx.throw(400, 'Invalid type');
+  }
+
+  const userId = ctx.state.user_id;
+
+  const isAbuse = await imageService.detectAbuse(userId);
+  if (isAbuse) {
+    // too many request
+    ctx.throw(429, 'Too many request');
+  }
+
+  if (type === 'post') {
+    const postRepo = getRepository(Post);
+    const post = await postRepo.findOne(ref_id);
+    if (post?.fk_user_id !== userId) {
+      ctx.throw(403);
+    }
+  }
+
+  const userImageCloudflare = new UserImageCloudflare();
+  userImageCloudflare.filesize = ctx.request.file.size;
+  userImageCloudflare.filename = ctx.request.file.originalname;
+  userImageCloudflare.ref_id = ref_id ?? null;
+  userImageCloudflare.type = type;
+  userImageCloudflare.fk_user_id = userId;
+  userImageCloudflare.tracked = false;
+
+  if (type === 'profile') {
+    userImageCloudflare.tracked = true;
+  }
+
+  try {
+    const data = await cloudflareImages.upload(
+      ctx.request.file.buffer,
+      ctx.request.file.originalname
+    );
+    userImageCloudflare.result_id = data.result.id;
+    ctx.body = data;
+
+    const repo = getRepository(UserImageCloudflare);
+    await repo.save(userImageCloudflare);
+    ctx.body = {
+      path: `https://imagedelivery.net/v7-TZByhOiJbNM9RaUdzSA/${data.result.id}/public`,
+    };
+  } catch (e) {
+    ctx.throw(e);
+    return;
+  }
+
+  setTimeout(() => {
+    imageService.untrackPastImages(userId).catch(console.error);
+  }, 0);
+});
+
 export default files;
