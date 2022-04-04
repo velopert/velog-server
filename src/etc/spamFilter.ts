@@ -65,7 +65,13 @@ export function nextSpamFilter(text: string, isForeign: boolean, isTitle = false
     return confidence < 0.3;
   }
 
-  if (bannedKeywords.some(keyword => alphanumericKorean.includes(keyword))) {
+  const spaceReplaced = alphanumericKorean.replace(/\s/g, '');
+
+  if (
+    bannedKeywords.some(
+      keyword => alphanumericKorean.includes(keyword) || spaceReplaced.includes(keyword)
+    )
+  ) {
     return true;
   }
 
