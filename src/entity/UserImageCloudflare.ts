@@ -17,7 +17,7 @@ export default class UserImageCloudflare {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @ManyToOne(type => User, { cascade: true, eager: true })
+  @ManyToOne(type => User, user => user.id, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 
