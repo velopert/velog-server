@@ -1104,8 +1104,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       try {
-        await Promise.all([purgeRecentPosts(), purgeUser(ctx.user_id), purgePost(post.id)]);
+        await Promise.all([purgeRecentPosts(), purgeUser(ctx.user_id), purgePost(id)]);
       } catch (e) {}
+
+      setTimeout(() => {
+        imageService.untrackImagesOfDeletedPost(id).catch(console.error);
+      }, 0);
 
       return true;
     },

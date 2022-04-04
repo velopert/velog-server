@@ -49,6 +49,20 @@ const imageService = {
     return this.userImageCloudflareRepo.save(images);
   },
 
+  async untrackImagesOfDeletedPost(postId: string) {
+    const images = await this.userImageCloudflareRepo.find({
+      where: {
+        type: 'post',
+        ref_id: postId,
+      },
+    });
+    console.log(`Untracking ${images.length} images of post ${postId}`);
+    images.forEach(image => {
+      image.tracked = false;
+    });
+    return this.userImageCloudflareRepo.save(images);
+  },
+
   async detectAbuse(userId: string) {
     const imageCountLastHour = await this.userImageCloudflareRepo.count({
       where: {
