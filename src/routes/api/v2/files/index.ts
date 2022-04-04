@@ -14,6 +14,7 @@ import cloudflareImages from '../../../../lib/cloudflareImages';
 import UserImageCloudflare from '../../../../entity/UserImageCloudflare';
 import Post from '../../../../entity/Post';
 import imageService from '../../../../services/imageService';
+import User from '../../../../entity/User';
 
 const BUCKET_NAME = 's3.images.velog.io';
 
@@ -130,6 +131,13 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
 
   const userId = ctx.state.user_id;
 
+  const user = await getRepository(User).findOne(userId);
+
+  if (!user) {
+    ctx.throw(401, 'Invalid user');
+    return;
+  }
+
   const isAbuse = await imageService.detectAbuse(userId);
   if (isAbuse) {
     // too many request
@@ -166,17 +174,25 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
 
     const repo = getRepository(UserImageCloudflare);
     await repo.save(userImageCloudflare);
+    const image = `https://imagedelivery.net/v7-TZByhOiJbNM9RaUdzSA/${data.result.id}/public`;
+
+    imageService
+      .notifyImageUploadResult({
+        username: user.username,
+        image,
+        userImageCloudflare,
+      })
+      .catch(console.error);
+
     ctx.body = {
-      path: `https://imagedelivery.net/v7-TZByhOiJbNM9RaUdzSA/${data.result.id}/public`,
+      path: image,
     };
   } catch (e) {
     ctx.throw(e);
     return;
   }
 
-  setTimeout(() => {
-    imageService.untrackPastImages(userId).catch(console.error);
-  }, 0);
+  imageService.untrackPastImages(userId).catch(console.error);
 });
 
 export default files;
