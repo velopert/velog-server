@@ -84,17 +84,17 @@ const imageService = {
       }
     }
 
-    const imageCountLastTenSeconds = await this.userImageCloudflareRepo.count({
+    const imageCountLastMinute = await this.userImageCloudflareRepo.count({
       where: {
         fk_user_id: userId,
-        created_at: MoreThan(new Date(Date.now() - 1000 * 10).toISOString()),
+        created_at: MoreThan(new Date(Date.now() - 1000 * 60).toISOString()),
       },
     });
 
-    if (imageCountLastTenSeconds > 15) {
+    if (imageCountLastMinute >= 20) {
       const username = (await getRepository(User).findOne(userId))?.username;
       sendSlackMessage(
-        `User ${username} (${userId}) is blocked due to uploading ${imageCountLastTenSeconds} images in the last 10 seconds. `
+        `User ${username} (${userId}) is blocked due to uploading ${imageCountLastMinute} images in a minute.`
       );
       return true;
     }
