@@ -63,7 +63,7 @@
     "kompression": "^1.0.2",
     "languagedetect": "^2.0.0",
     "lru-cache": "^6.0.0",
-    "marked": "^0.8.0",
+    "marked": "^4.0.10",
     "mime-types": "^2.1.24",
     "nanoid": "^2.0.3",
     "p-queue": "6.6.2",
