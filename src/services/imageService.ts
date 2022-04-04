@@ -92,7 +92,7 @@ const imageService = {
 *type*: ${type}
 *ref_id*: ${ref_id}
 *filename*: ${filename}
-${image.replace('/public', '/w640')}`,
+${image.replace('/public', '/128x128')}`,
       SLACK_IMAGE
     );
   },
