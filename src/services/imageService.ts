@@ -86,12 +86,15 @@ const imageService = {
     userImageCloudflare: UserImageCloudflare;
   }) {
     const { fk_user_id, type, filesize, filename, ref_id } = userImageCloudflare;
-    sendSlackMessage(`*${username}* (${fk_user_id})
+    sendSlackMessage(
+      `*user*: ${username} (${fk_user_id})
 *size*: ${formatByte(filesize)}
 *type*: ${type}
 *ref_id*: ${ref_id}
-$filename*: ${filename}
-${image.replace('/public', '/128x128')}`);
+*filename*: ${filename}
+${image.replace('/public', '/128x128')}`,
+      SLACK_IMAGE
+    );
   },
 
   async detectAbuse(userId: string) {
