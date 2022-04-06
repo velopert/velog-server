@@ -15,6 +15,8 @@ import UserImageCloudflare from '../../../../entity/UserImageCloudflare';
 import Post from '../../../../entity/Post';
 import imageService from '../../../../services/imageService';
 import User from '../../../../entity/User';
+import UserImageNext from '../../../../entity/UserImageNext';
+import b2Manager from '../../../../lib/b2Manager';
 
 const BUCKET_NAME = 's3.images.velog.io';
 
@@ -119,6 +121,7 @@ const upload = multer({
     fileSize: 1024 * 1024 * 30,
   },
 });
+
 files.post('/upload', authorized, upload.single('image'), async ctx => {
   type RequestBody = {
     type: string;
@@ -152,47 +155,51 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
     }
   }
 
-  const userImageCloudflare = new UserImageCloudflare();
-  userImageCloudflare.filesize = ctx.request.file.size;
-  userImageCloudflare.filename = ctx.request.file.originalname;
-  userImageCloudflare.ref_id = ref_id ?? null;
-  userImageCloudflare.type = type;
-  userImageCloudflare.fk_user_id = userId;
-  userImageCloudflare.tracked = false;
+  const userImageNext = new UserImageNext();
+  userImageNext.filesize = ctx.request.file.size;
+  userImageNext.filename = ctx.request.file.originalname;
+  userImageNext.ref_id = ref_id ?? null;
+  userImageNext.type = type;
+  userImageNext.fk_user_id = userId;
+  userImageNext.tracked = false;
+
+  const imageRepo = getRepository(UserImageNext);
+  await imageRepo.save(userImageNext);
+  const filepath = generateUploadPath({
+    type,
+    id: userImageNext.id,
+    username: user.username,
+  }).concat(`/${encodeURI(userImageNext.filename)}`);
+  userImageNext.path = filepath;
 
   if (type === 'profile') {
-    userImageCloudflare.tracked = true;
+    userImageNext.tracked = true;
   }
 
   try {
-    const data = await cloudflareImages.upload(
-      ctx.request.file.buffer,
-      ctx.request.file.originalname
-    );
-    userImageCloudflare.result_id = data.result.id;
-    ctx.body = data;
+    const imageUrl = await b2Manager.upload(ctx.request.file.buffer, filepath);
 
-    const repo = getRepository(UserImageCloudflare);
-    await repo.save(userImageCloudflare);
-    const image = `https://imagedelivery.net/v7-TZByhOiJbNM9RaUdzSA/${data.result.id}/public`;
+    await imageRepo.save(userImageNext);
 
     imageService
       .notifyImageUploadResult({
         username: user.username,
-        image,
-        userImageCloudflare,
+        image: imageUrl,
+        userImage: userImageNext,
       })
       .catch(console.error);
 
     ctx.body = {
-      path: image,
+      path: imageUrl,
     };
   } catch (e) {
     ctx.throw(e);
     return;
   }
 
-  imageService.untrackPastImages(userId).catch(console.error);
+  if (type === 'profile') {
+    imageService.untrackPastImages(userId).catch(console.error);
+  }
 });
 
 export default files;

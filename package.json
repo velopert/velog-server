@@ -43,6 +43,7 @@
     "apollo-server-koa": "^2.9.3",
     "aws-sdk": "^2.455.0",
     "axios": "^0.19.0",
+    "backblaze-b2": "^1.7.0",
     "class-transformer": "^0.2.3",
     "dataloader": "^1.4.0",
     "date-fns": "^2.10.0",
@@ -107,6 +108,7 @@
   },
   "devDependencies": {
     "@koa/multer": "^3.0.0",
+    "@types/backblaze-b2": "^1.5.1",
     "multer": "^1.4.4"
   }
 }
