@@ -157,7 +157,7 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
 
   const userImageNext = new UserImageNext();
   userImageNext.filesize = ctx.request.file.size;
-  userImageNext.filename = ctx.request.file.originalname;
+  const filename = ctx.request.file.originalname;
   userImageNext.ref_id = ref_id ?? null;
   userImageNext.type = type;
   userImageNext.fk_user_id = userId;
@@ -169,7 +169,7 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
     type,
     id: userImageNext.id,
     username: user.username,
-  }).concat(`/${encodeURI(userImageNext.filename)}`);
+  }).concat(`/${filename}`);
   userImageNext.path = filepath;
 
   if (type === 'profile') {
@@ -177,20 +177,21 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
   }
 
   try {
-    const imageUrl = await b2Manager.upload(ctx.request.file.buffer, filepath);
+    const result = await b2Manager.upload(ctx.request.file.buffer, filepath);
 
+    userImageNext.file_id = result.fileId;
     await imageRepo.save(userImageNext);
 
     imageService
       .notifyImageUploadResult({
         username: user.username,
-        image: imageUrl,
+        image: result.url,
         userImage: userImageNext,
       })
       .catch(console.error);
 
     ctx.body = {
-      path: imageUrl,
+      path: result.url,
     };
   } catch (e) {
     ctx.throw(e);

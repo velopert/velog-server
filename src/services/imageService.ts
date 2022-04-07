@@ -1,7 +1,7 @@
-import UserImageCloudflare from '../entity/UserImageCloudflare';
 import { getRepository, MoreThan } from 'typeorm';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
 import User from '../entity/User';
+import UserImageNext from '../entity/UserImageNext';
 
 const { SLACK_IMAGE } = process.env;
 
@@ -16,12 +16,12 @@ const formatByte = (byte: number) => {
 };
 
 const imageService = {
-  get userImageCloudflareRepo() {
-    return getRepository(UserImageCloudflare);
+  get userImageRepo() {
+    return getRepository(UserImageNext);
   },
 
   async getImagesOf(postId: string) {
-    const images = await this.userImageCloudflareRepo.find({
+    const images = await this.userImageRepo.find({
       where: {
         ref_id: postId,
       },
@@ -30,7 +30,7 @@ const imageService = {
   },
 
   async untrackPastImages(userId: string) {
-    const images = await this.userImageCloudflareRepo.find({
+    const images = await this.userImageRepo.find({
       where: {
         type: 'profile',
         tracked: true,
@@ -47,22 +47,22 @@ const imageService = {
     rest.forEach(item => {
       item.tracked = false;
     });
-    await this.userImageCloudflareRepo.save(rest);
+    await this.userImageRepo.save(rest);
   },
 
-  async trackImages(images: UserImageCloudflare[], body: string) {
+  async trackImages(images: UserImageNext[], body: string) {
     for (let image of images) {
-      if (body.includes(image.result_id)) {
+      if (body.includes(image.id)) {
         image.tracked = true;
       } else {
         image.tracked = false;
       }
     }
-    return this.userImageCloudflareRepo.save(images);
+    return this.userImageRepo.save(images);
   },
 
   async untrackImagesOfDeletedPost(postId: string) {
-    const images = await this.userImageCloudflareRepo.find({
+    const images = await this.userImageRepo.find({
       where: {
         type: 'post',
         ref_id: postId,
@@ -72,33 +72,35 @@ const imageService = {
     images.forEach(image => {
       image.tracked = false;
     });
-    return this.userImageCloudflareRepo.save(images);
+    return this.userImageRepo.save(images);
   },
 
   /** for abuse monitoring */
   async notifyImageUploadResult({
     username,
     image,
-    userImageCloudflare,
+    userImage,
   }: {
     username: string;
     image: string;
-    userImageCloudflare: UserImageCloudflare;
+    userImage: UserImageNext;
   }) {
-    const { fk_user_id, type, filesize, filename, ref_id } = userImageCloudflare;
+    const { fk_user_id, type, filesize, ref_id } = userImage;
+    const filename = image.split('/').pop();
+
     sendSlackMessage(
       `*user*: ${username} (${fk_user_id})
 *size*: ${formatByte(filesize)}
 *type*: ${type}
 *ref_id*: ${ref_id}
 *filename*: ${filename}
-${image.replace('/public', '/128x128')}`,
+${image}`,
       SLACK_IMAGE
     );
   },
 
   async detectAbuse(userId: string) {
-    const imageCountLastHour = await this.userImageCloudflareRepo.count({
+    const imageCountLastHour = await this.userImageRepo.count({
       where: {
         fk_user_id: userId,
         created_at: MoreThan(new Date(Date.now() - 1000 * 60 * 60).toISOString()),
@@ -122,7 +124,7 @@ ${image.replace('/public', '/128x128')}`,
       }
     }
 
-    const imageCountLastMinute = await this.userImageCloudflareRepo.count({
+    const imageCountLastMinute = await this.userImageRepo.count({
       where: {
         fk_user_id: userId,
         created_at: MoreThan(new Date(Date.now() - 1000 * 60).toISOString()),
