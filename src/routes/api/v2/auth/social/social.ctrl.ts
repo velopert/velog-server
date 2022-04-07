@@ -23,6 +23,8 @@ import { getGoogleAccessToken, getGoogleProfile } from '../../../../../lib/socia
 import UserMeta from '../../../../../entity/UserMeta';
 import UserImageCloudflare from '../../../../../entity/UserImageCloudflare';
 import cloudflareImages from '../../../../../lib/cloudflareImages';
+import UserImageNext from '../../../../../entity/UserImageNext';
+import b2Manager from '../../../../../lib/b2Manager';
 
 const s3 = new AWS.S3({
   region: 'ap-northeast-2',
@@ -127,6 +129,44 @@ async function syncProfileImageWithCloudflare(url: string, user: User) {
   await repo.save(userImageCloudflare);
 
   return `https://imagedelivery.net/v7-TZByhOiJbNM9RaUdzSA/${uploadResult.result.id}/public`;
+}
+
+async function syncProfileImageWithB2(url: string, user: User) {
+  const result = await downloadFile(url);
+
+  const filename = `social_profile.${result.extension}`;
+  const repo = getRepository(UserImageNext);
+
+  //convert readstream to buffer
+  const buffer = await new Promise<Buffer>((resolve, reject) => {
+    const buffers: Buffer[] = [];
+    result.stream.on('data', (data: Buffer) => buffers.push(data));
+    result.stream.on('end', () => resolve(Buffer.concat(buffers)));
+    result.stream.on('error', reject);
+  });
+
+  const fileSize = buffer.length;
+  const userImage = new UserImageNext();
+  userImage.fk_user_id = user.id;
+  userImage.type = 'profile';
+  userImage.tracked = true;
+  userImage.filesize = fileSize;
+
+  await repo.save(userImage);
+
+  const uploadPath = generateUploadPath({
+    id: userImage.id,
+    type: 'profile',
+    username: user.username,
+  }).concat(`/${filename}`);
+
+  const uploadResult = await b2Manager.upload(buffer, uploadPath);
+
+  userImage.file_id = uploadResult.fileId;
+
+  await repo.save(userImage);
+
+  return uploadResult.url;
 }
 
 /**
@@ -250,7 +290,7 @@ export const socialRegister: Middleware = async ctx => {
     setTimeout(async () => {
       if (decoded?.profile.thumbnail) {
         try {
-          const imageUrl = await syncProfileImageWithCloudflare(decoded.profile.thumbnail, user);
+          const imageUrl = await syncProfileImageWithB2(decoded.profile.thumbnail, user);
           profile.thumbnail = imageUrl;
           await userProfileRepo.save(profile);
         } catch (e) {
