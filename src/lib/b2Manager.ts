@@ -18,7 +18,7 @@ class B2Manager {
     return this.instance!;
   }
 
-  private async authorize() {
+  async authorize() {
     // authorize every hour
     if (!this.lastAuthorization || Date.now() - this.lastAuthorization.getTime() > 1000 * 60 * 60) {
       console.log('authing');
@@ -40,16 +40,28 @@ class B2Manager {
   public async upload(buffer: Buffer, path: string) {
     await this.authorize();
     const { authorizationToken, uploadUrl } = await this.getUploadUrl();
-    await this.b2.uploadFile({
+    const result = await this.b2.uploadFile({
       uploadUrl,
       uploadAuthToken: authorizationToken,
       fileName: path,
       data: buffer,
       axios: {
-        timeout: 100000,
+        timeout: 250000,
       },
     });
-    return `https://velog.velcdn.com/${path}`;
+    const fileId: string = result.data.fileId;
+    return {
+      url: `https://velog.velcdn.com/${path}`,
+      fileId,
+    };
+  }
+
+  public async delete(fileId: string, path: string) {
+    await this.authorize();
+    return this.b2.deleteFileVersion({
+      fileId: fileId,
+      fileName: path,
+    });
   }
 }
 

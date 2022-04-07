@@ -1,10 +1,11 @@
 import '../env';
 import Database from '../database';
-import UserImageCloudflare from '../entity/UserImageCloudflare';
 import { getRepository, LessThan } from 'typeorm';
 import PQueue from 'p-queue';
 import cloudflareImages from '../lib/cloudflareImages';
 import { resolve } from 'dns';
+import UserImageNext from '../entity/UserImageNext';
+import b2Manager from '../lib/b2Manager';
 
 async function initialize() {
   try {
@@ -15,24 +16,25 @@ async function initialize() {
   }
 }
 
-async function bulkRemoveImages(images: UserImageCloudflare[]) {
-  const repo = getRepository(UserImageCloudflare);
-  const queue = new PQueue({ concurrency: 15, intervalCap: 50, interval: 60000 });
+async function bulkRemoveImages(images: UserImageNext[]) {
+  const repo = getRepository(UserImageNext);
+  await b2Manager.authorize();
+  const queue = new PQueue({ concurrency: 15, intervalCap: 100, interval: 60000 });
   console.log(`removing ${images.length} images`);
 
   images.forEach(image => {
     queue.add(async () => {
       try {
-        await cloudflareImages.delete(image.result_id);
+        await b2Manager.delete(image.file_id, image.path);
       } catch (e) {
-        console.log('Failed to remove', image.result_id);
+        console.log('Failed to remove', image.id, image.path);
         console.error(e);
       }
       await repo.delete(image.id);
     });
   });
 
-  let counter = 0;
+  let counter = 1;
   queue.on('next', () => {
     console.log(`${counter} / ${images.length}`);
     counter += 1;
@@ -43,13 +45,13 @@ async function bulkRemoveImages(images: UserImageCloudflare[]) {
 
 async function removeAllUntrackedImages() {
   // load all cf images
-  const repo = getRepository(UserImageCloudflare);
+  const repo = getRepository(UserImageNext);
 
   const beforeThreeDays = new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString();
   const images = await repo.find({
     where: {
       tracked: false,
-      created_at: LessThan(beforeThreeDays),
+      // created_at: LessThan(beforeThreeDays),
     },
   });
 
@@ -57,7 +59,7 @@ async function removeAllUntrackedImages() {
 }
 
 async function removeImagesOfUser(userId: string) {
-  const repo = getRepository(UserImageCloudflare);
+  const repo = getRepository(UserImageNext);
   const images = await repo.find({
     where: {
       fk_user_id: userId,
