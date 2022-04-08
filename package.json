@@ -40,7 +40,7 @@
     "@types/sanitize-html": "^1.18.2",
     "@types/shortid": "^0.0.29",
     "@types/tmp": "^0.1.0",
-    "apollo-server-koa": "^2.9.3",
+    "apollo-server-koa": "^2.14.2",
     "aws-sdk": "^2.455.0",
     "axios": "^0.19.0",
     "backblaze-b2": "^1.7.0",
