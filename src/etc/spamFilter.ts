@@ -69,7 +69,10 @@ export function nextSpamFilter(text: string, isForeign: boolean, isTitle = false
 
   if (
     bannedKeywords.some(
-      keyword => alphanumericKorean.includes(keyword) || spaceReplaced.includes(keyword)
+      keyword =>
+        text.includes(keyword) ||
+        alphanumericKorean.includes(keyword) ||
+        spaceReplaced.includes(keyword)
     )
   ) {
     return true;
