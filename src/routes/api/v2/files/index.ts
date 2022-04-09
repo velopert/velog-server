@@ -157,7 +157,10 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
 
   const userImageNext = new UserImageNext();
   userImageNext.filesize = ctx.request.file.size;
-  const filename = ctx.request.file.originalname;
+  const originalFileName = ctx.request.file.originalname;
+  const extension = originalFileName.split('.').pop();
+  const filename = `image.${extension}`;
+
   userImageNext.ref_id = ref_id ?? null;
   userImageNext.type = type;
   userImageNext.fk_user_id = userId;
@@ -169,7 +172,7 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
     type,
     id: userImageNext.id,
     username: user.username,
-  }).concat(`/${filename}`);
+  }).concat(`/${encodeURIComponent(decodeURI(filename))}`);
   userImageNext.path = filepath;
 
   if (type === 'profile') {
