@@ -8,3 +8,4 @@ dist
 .env.staging
 .env.production
 google-service-account.json
+settings.json

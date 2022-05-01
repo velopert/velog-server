@@ -4,10 +4,10 @@ import { getRepository } from 'typeorm';
 import User from '../entity/User';
 import loadVariables from '../loadVariable';
 
-const { SECRET_KEY } = process.env;
+const { SECRET_KEY, SECRET_KEY_FALLBACK } = process.env;
 
 if (!SECRET_KEY && process.env.NODE_ENV === 'development') {
-  const error = new Error('InvalidSecretKeyError');
+  const error = new Error('InvalidSECRET_KEYError');
   error.message = 'Secret key for JWT is missing.';
   if (process.env.npm_lifecycle_event !== 'typeorm') throw error;
 }
@@ -18,16 +18,14 @@ export const generateToken = async (payload: any, options?: SignOptions): Promis
     expiresIn: '7d',
     ...options,
   };
-  const variables = await loadVariables();
-  const secretKey = SECRET_KEY || variables.secretKey;
 
   if (!jwtOptions.expiresIn) {
     // removes expiresIn when expiresIn is given as undefined
     delete jwtOptions.expiresIn;
   }
   return new Promise((resolve, reject) => {
-    if (!secretKey) return;
-    jwt.sign(payload, secretKey, jwtOptions, (err, token) => {
+    if (!SECRET_KEY) return;
+    jwt.sign(payload, SECRET_KEY, jwtOptions, (err, token) => {
       if (err) reject(err);
       resolve(token);
     });
@@ -35,13 +33,15 @@ export const generateToken = async (payload: any, options?: SignOptions): Promis
 };
 
 export const decodeToken = async <T = any>(token: string): Promise<T> => {
-  const variables = await loadVariables();
-  const secretKey = SECRET_KEY || variables.secretKey;
-
   return new Promise((resolve, reject) => {
-    if (!secretKey) return;
-    jwt.verify(token, secretKey, (err, decoded) => {
-      if (err) reject(err);
+    if (!SECRET_KEY || !SECRET_KEY_FALLBACK) return;
+    jwt.verify(token, SECRET_KEY, (err, decoded) => {
+      if (err) {
+        jwt.verify(token, SECRET_KEY_FALLBACK, (err, decoded) => {
+          if (err) reject(err);
+          resolve(decoded as any);
+        });
+      }
       resolve(decoded as any);
     });
   });

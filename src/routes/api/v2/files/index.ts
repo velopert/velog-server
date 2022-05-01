@@ -185,14 +185,6 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
     userImageNext.file_id = result.fileId;
     await imageRepo.save(userImageNext);
 
-    imageService
-      .notifyImageUploadResult({
-        username: user.username,
-        image: result.url,
-        userImage: userImageNext,
-      })
-      .catch(console.error);
-
     ctx.body = {
       path: result.url,
     };
