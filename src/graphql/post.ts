@@ -1246,12 +1246,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const postReadRepo = getRepository(PostRead);
       const ipHash = hash(ctx.ip);
 
-      if (process.env.LOG_HASH) {
-        if (process.env.LOG_HASH.includes(ipHash)) {
-          sendSlackMessage(`${ctx.ip} viewed ${id}\nipHash: ${ipHash}`);
-        }
-      }
-
       createReadLog({
         ip: ctx.ip,
         postId: id,
