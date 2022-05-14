@@ -18,16 +18,14 @@ export const generateToken = async (payload: any, options?: SignOptions): Promis
     expiresIn: '7d',
     ...options,
   };
-  const variables = await loadVariables();
-  const secretKey = SECRET_KEY || variables.secretKey;
 
   if (!jwtOptions.expiresIn) {
     // removes expiresIn when expiresIn is given as undefined
     delete jwtOptions.expiresIn;
   }
   return new Promise((resolve, reject) => {
-    if (!secretKey) return;
-    jwt.sign(payload, secretKey, jwtOptions, (err, token) => {
+    if (!SECRET_KEY) return;
+    jwt.sign(payload, SECRET_KEY, jwtOptions, (err, token) => {
       if (err) reject(err);
       resolve(token);
     });
@@ -35,12 +33,9 @@ export const generateToken = async (payload: any, options?: SignOptions): Promis
 };
 
 export const decodeToken = async <T = any>(token: string): Promise<T> => {
-  const variables = await loadVariables();
-  const secretKey = SECRET_KEY || variables.secretKey;
-
   return new Promise((resolve, reject) => {
-    if (!secretKey) return;
-    jwt.verify(token, secretKey, (err, decoded) => {
+    if (!SECRET_KEY) return;
+    jwt.verify(token, SECRET_KEY, (err, decoded) => {
       if (err) reject(err);
       resolve(decoded as any);
     });

@@ -5,16 +5,6 @@ import UserImageNext from '../entity/UserImageNext';
 
 const { SLACK_IMAGE } = process.env;
 
-const formatByte = (byte: number) => {
-  if (byte < 1024) {
-    return `${byte}B`;
-  }
-  if (byte < 1024 * 1024) {
-    return `${Math.round(byte / 1024)}KB`;
-  }
-  return `${Math.round(byte / 1024 / 1024)}MB`;
-};
-
 const imageService = {
   get userImageRepo() {
     return getRepository(UserImageNext);
@@ -73,30 +63,6 @@ const imageService = {
       image.tracked = false;
     });
     return this.userImageRepo.save(images);
-  },
-
-  /** for abuse monitoring */
-  async notifyImageUploadResult({
-    username,
-    image,
-    userImage,
-  }: {
-    username: string;
-    image: string;
-    userImage: UserImageNext;
-  }) {
-    const { fk_user_id, type, filesize, ref_id } = userImage;
-    const filename = image.split('/').pop();
-
-    sendSlackMessage(
-      `*user*: ${username} (${fk_user_id})
-*size*: ${formatByte(filesize)}
-*type*: ${type}
-*ref_id*: ${ref_id}
-*filename*: ${filename}
-${image}`,
-      SLACK_IMAGE
-    );
   },
 
   async detectAbuse(userId: string) {

@@ -40,6 +40,7 @@ import checkUnscore from '../etc/checkUnscore';
 import geoipCountry from 'geoip-country';
 import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 import imageService from '../services/imageService';
+import { sendSlackMessage } from '../lib/sendSlackMessage';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -1245,6 +1246,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const postReadRepo = getRepository(PostRead);
       const ipHash = hash(ctx.ip);
 
+      if (process.env.LOG_HASH) {
+        if (process.env.LOG_HASH.includes(ipHash)) {
+          sendSlackMessage(`${ctx.ip} viewed ${id}\nipHash: ${ipHash}`);
+        }
+      }
+
       createReadLog({
         ip: ctx.ip,
         postId: id,
@@ -1257,6 +1264,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .andWhere('fk_post_id = :postId', { postId: id })
         .andWhere("created_at > (NOW() - INTERVAL '24 HOURS')")
         .getOne();
+
       if (viewed) return false;
       const postRead = new PostRead();
       postRead.fk_post_id = id;
