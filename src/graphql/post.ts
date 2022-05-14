@@ -395,6 +395,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             .where('post.id = :id', { id })
             .getOne();
 
+          if (!post || ((post.is_temp || post.is_private) && post.fk_user_id !== ctx.user_id)) {
+            return null;
+          }
+
           return post;
         }
         let post = await getManager()
