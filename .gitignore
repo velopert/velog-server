@@ -8,3 +8,6 @@ dist
 .env.staging
 .env.production
 google-service-account.json
+cloudflare
+db
+settings.json
