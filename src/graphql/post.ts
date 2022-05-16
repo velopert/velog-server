@@ -761,12 +761,19 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.thumbnail = data.thumbnail;
       post.is_private = data.is_private;
 
-      const isForeign = geoipCountry.lookup(ctx.ip)?.country !== 'KR';
+      const allowList = ['KR', 'GB', ''];
+      const country = geoipCountry.lookup(ctx.ip)?.country ?? '';
+      const isForeign = !allowList.includes(country);
+      const blockList = ['IN', 'PK', 'CN', 'VN', 'TH'];
 
-      if (nextSpamFilter(data.body, isForeign) || nextSpamFilter(data.title, isForeign, true)) {
+      if (
+        blockList.includes(country) ||
+        nextSpamFilter(data.body, isForeign) ||
+        nextSpamFilter(data.title, isForeign, true)
+      ) {
         post.is_private = true;
         await Axios.post(slackUrl, {
-          text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}`,
+          text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}, country: ${country}`,
         });
       }
 
