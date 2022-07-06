@@ -262,9 +262,6 @@ export const socialRegister: Middleware = async ctx => {
     profile.display_name = display_name;
     profile.short_bio = short_bio;
 
-    if (decoded?.profile.thumbnail) {
-      profile.thumbnail = decoded?.profile.thumbnail;
-    }
     await userProfileRepo.save(profile);
 
     // create velog config and meta
@@ -273,6 +270,16 @@ export const socialRegister: Middleware = async ctx => {
 
     const userMeta = new UserMeta();
     userMeta.fk_user_id = user.id;
+
+    if (decoded?.profile.thumbnail) {
+      try {
+        const imageUrl = await syncProfileImageWithB2(decoded.profile.thumbnail, user);
+        profile.thumbnail = imageUrl;
+        await userProfileRepo.save(profile);
+      } catch (e) {
+        console.log(e);
+      }
+    }
 
     await Promise.all([velogConfigRepo.save(velogConfig), userMetaRepo.save(userMeta)]);
 
@@ -286,22 +293,12 @@ export const socialRegister: Middleware = async ctx => {
         refresh_token: tokens.refreshToken,
       },
     };
-
-    setTimeout(async () => {
-      if (decoded?.profile.thumbnail) {
-        try {
-          const imageUrl = await syncProfileImageWithB2(decoded.profile.thumbnail, user);
-          profile.thumbnail = imageUrl;
-          await userProfileRepo.save(profile);
-        } catch (e) {
-          console.log(e);
-        }
-      }
-    }, 0);
     // create token
     // set token
     // return data
-  } catch (e) {}
+  } catch (e) {
+    console.log(e);
+  }
 };
 
 /**
