@@ -280,7 +280,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     },
     removeComment: async (parent: any, { id }: any, ctx) => {
       const commentRepo = getRepository(Comment);
-      const comment = await commentRepo.findOne(id);
+      const comment = await commentRepo.findOne(id, { relations: ['post'] });
 
       if (!comment) {
         throw new ApolloError('Comment not found');
@@ -288,7 +288,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
       }
-      if (ctx.user_id !== comment.fk_user_id) {
+      if (ctx.user_id !== comment.fk_user_id && comment?.post.fk_user_id !== ctx.user_id) {
         throw new ApolloError('No permission');
       }
 
