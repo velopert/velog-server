@@ -764,7 +764,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const allowList = ['KR', 'GB', ''];
       const country = geoipCountry.lookup(ctx.ip)?.country ?? '';
       const isForeign = !allowList.includes(country);
-      const blockList = ['IN', 'PK', 'CN', 'VN', 'TH'];
+      const blockList = ['IN', 'PK', 'CN', 'VN', 'TH', 'PH'];
 
       if (
         blockList.includes(country) ||
