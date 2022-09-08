@@ -109,7 +109,6 @@ export const postsSitemap: Middleware = async ctx => {
       .orderBy('released_at', 'ASC')
       .getMany();
 
-    console.log(posts);
     const links: SitemapLink[] = posts.map(post => ({
       location: `https://velog.io/@${post.user.username}/${encodeURI(post.url_slug)}`,
       // TODO: implement release_updated_at
