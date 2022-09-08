@@ -45,8 +45,8 @@ ${link.priority ? `<priority>${link.priority}</priority>` : ''}
 export const sitemapIndex: Middleware = ctx => {
   const months = listAllMonths();
   const sitemaps = months
-    .map(month => `https://velog.io/sitemaps/posts-${month}.xml`)
-    .concat('https://velog.io/sitemaps/general.xml')
+    .map(month => `https://v2.velog.io/sitemaps/posts-${month}.xml`)
+    .concat('https://v2.velog.io/sitemaps/general.xml')
     .map(location => `<sitemap><loc>${location}</loc></sitemap>`)
     .join('');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
