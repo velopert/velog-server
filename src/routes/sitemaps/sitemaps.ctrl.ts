@@ -42,11 +42,22 @@ ${link.priority ? `<priority>${link.priority}</priority>` : ''}
   return xml;
 }
 
-export const sitemapIndex: Middleware = ctx => {
+export const sitemapIndex: Middleware = async ctx => {
   const months = listAllMonths();
-  const sitemaps = months
-    .map(month => `https://v2.velog.io/sitemaps/posts-${month}.xml`)
-    .concat('https://v2.velog.io/sitemaps/general.xml')
+
+  const postCount = await getRepository(Post).count({
+    where: {
+      is_temp: false,
+      is_private: false,
+    },
+  });
+
+  const pages = Math.floor(postCount / 2500);
+  const array = new Array(pages).fill(0).map((_, i) => i + 1);
+
+  const sitemaps = array
+    .map(page => `https://velog.io/sitemaps/posts-${page}.xml`)
+    .concat('https://velog.io/sitemaps/general.xml')
     .map(location => `<sitemap><loc>${location}</loc></sitemap>`)
     .join('');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -83,11 +94,7 @@ export const generalSitemap: Middleware = ctx => {
 
 export const postsSitemap: Middleware = async ctx => {
   ctx.set('Content-Type', 'text/xml');
-  const month = ctx.params.month;
-
-  const firstDay = new Date(`${month}-01`);
-  const nextMonthFirstDay = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1);
-  const lastDay = new Date(nextMonthFirstDay.getTime() - 1);
+  const page = parseInt(ctx.params.page, 10);
 
   // ctx.body = { firstDay, lastDay };
   try {
@@ -97,9 +104,12 @@ export const postsSitemap: Middleware = async ctx => {
       .leftJoin('post.user', 'user')
       .where('is_temp = false')
       .andWhere('is_private = false')
-      .andWhere('released_at >= :firstDay', { firstDay: firstDay.toISOString() })
-      .andWhere('released_at < :lastDay', { lastDay: lastDay.toISOString() })
+      .offset((page - 1) * 2500)
+      .limit(2500)
+      .orderBy('released_at', 'ASC')
       .getMany();
+
+    console.log(posts);
     const links: SitemapLink[] = posts.map(post => ({
       location: `https://velog.io/@${post.user.username}/${encodeURI(post.url_slug)}`,
       // TODO: implement release_updated_at
