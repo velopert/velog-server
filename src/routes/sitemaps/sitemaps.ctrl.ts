@@ -45,8 +45,8 @@ ${link.priority ? `<priority>${link.priority}</priority>` : ''}
 export const sitemapIndex: Middleware = ctx => {
   const months = listAllMonths();
   const sitemaps = months
-    .map(month => `https://v2.velog.io/sitemaps/posts-${month}.xml`)
-    .concat('https://v2.velog.io/sitemaps/general.xml')
+    .map(month => `https://velog.io/sitemaps/posts-${month}.xml`)
+    .concat('https://velog.io/sitemaps/general.xml')
     .map(location => `<sitemap><loc>${location}</loc></sitemap>`)
     .join('');
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -63,18 +63,18 @@ export const generalSitemap: Middleware = ctx => {
     {
       location: 'https://velog.io/',
       changefreq: 'daily',
-      priority: 1
+      priority: 1,
     },
     {
       location: 'https://velog.io/recent',
       changefreq: 'always',
-      priority: 1
+      priority: 1,
     },
     {
       location: 'https://velog.io/tags',
       changefreq: 'weekly',
-      priority: 0.8
-    }
+      priority: 0.8,
+    },
   ];
 
   ctx.set('Content-Type', 'text/xml');
@@ -105,7 +105,7 @@ export const postsSitemap: Middleware = async ctx => {
       // TODO: implement release_updated_at
       // lastmod: new Date(post.updated_at).toISOString(),
       priority: 0.5,
-      changefreq: 'weekly'
+      changefreq: 'weekly',
     }));
     ctx.body = generateSitemap(links);
   } catch (e) {
