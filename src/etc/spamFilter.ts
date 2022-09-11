@@ -47,8 +47,9 @@ function hasKorean(text: string) {
 }
 
 export function nextSpamFilter(text: string, isForeign: boolean, isTitle = false) {
-  const includesChinese = /[\u4e00-\u9fa5]/.test(text);
-  if (includesChinese) return true;
+  const includesCN = /[\u4e00-\u9fa5]/.test(text);
+  const includesKR = /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/.test(text);
+  if (includesCN && !includesKR) return true;
 
   let replaced = text.replace(/```([\s\S]*?)```/g, ''); // remove code blocks
   // replace image markdown
