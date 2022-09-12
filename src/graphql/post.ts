@@ -1022,10 +1022,20 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       post.meta = meta;
       post.thumbnail = thumbnail;
 
-      const isForeign = geoipCountry.lookup(ctx.ip)?.country !== 'KR';
+      const allowList = ['KR', 'GB', ''];
+      const country = geoipCountry.lookup(ctx.ip)?.country ?? '';
+      const isForeign = !allowList.includes(country);
+      const blockList = ['IN', 'PK', 'CN', 'VN', 'TH', 'PH'];
 
-      if (nextSpamFilter(body, isForeign) || nextSpamFilter(title, isForeign, true)) {
+      if (
+        blockList.includes(country) ||
+        nextSpamFilter(body, isForeign) ||
+        nextSpamFilter(title, isForeign, true)
+      ) {
         post.is_private = true;
+        await Axios.post(slackUrl, {
+          text: `스팸 의심 (수정) !\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}, country: ${country}`,
+        });
       }
 
       // TODO: if url_slug changes, create url_slug_alias
