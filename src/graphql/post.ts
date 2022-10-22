@@ -766,9 +766,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const isForeign = !allowList.includes(country);
       const blockList = ['IN', 'PK', 'CN', 'VN', 'TH', 'PH'];
 
+      const user = await getRepository(User).findOne(ctx.user_id, {
+        relations: ['profile'],
+      });
+
+      const extraText = data.tags
+        .join('')
+        .concat(user?.profile.short_bio ?? '', user?.profile.display_name ?? '');
+
       if (
         blockList.includes(country) ||
-        nextSpamFilter(data.body, isForeign) ||
+        nextSpamFilter(data.body.concat(extraText), isForeign) ||
         nextSpamFilter(data.title, isForeign, true)
       ) {
         post.is_private = true;
@@ -1027,9 +1035,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const isForeign = !allowList.includes(country);
       const blockList = ['IN', 'PK', 'CN', 'VN', 'TH', 'PH'];
 
+      const user = await getRepository(User).findOne(ctx.user_id, {
+        relations: ['profile'],
+      });
+
+      const extraText = tags
+        .join('')
+        .concat(user?.profile.short_bio ?? '', user?.profile.display_name ?? '');
+
       if (
         blockList.includes(country) ||
-        nextSpamFilter(body, isForeign) ||
+        nextSpamFilter(body.concat(extraText), isForeign) ||
         nextSpamFilter(title, isForeign, true)
       ) {
         post.is_private = true;
