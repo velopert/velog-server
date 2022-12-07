@@ -271,6 +271,8 @@ export const socialRegister: Middleware = async ctx => {
     const userMeta = new UserMeta();
     userMeta.fk_user_id = user.id;
 
+    await Promise.all([velogConfigRepo.save(velogConfig), userMetaRepo.save(userMeta)]);
+
     if (decoded?.profile.thumbnail) {
       try {
         const imageUrl = await syncProfileImageWithB2(decoded.profile.thumbnail, user);
@@ -280,8 +282,6 @@ export const socialRegister: Middleware = async ctx => {
         console.log(e);
       }
     }
-
-    await Promise.all([velogConfigRepo.save(velogConfig), userMetaRepo.save(userMeta)]);
 
     const tokens = await user.generateUserToken();
     setTokenCookie(ctx, tokens);
