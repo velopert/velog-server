@@ -57,7 +57,7 @@
     "inquirer": "^7.0.0",
     "ioredis": "^4.14.1",
     "joi": "^14.3.1",
-    "jsonwebtoken": "^8.4.0",
+    "jsonwebtoken": "^9.0.0",
     "koa": "^2.8.1",
     "koa-bodyparser": "^4.2.1",
     "koa-logger": "^3.2.1",
