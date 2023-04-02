@@ -1,0 +1,601 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id         String   @id(map: "PK_06744d221bb6145dc61e5dc441d") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  User       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_548ae43e47192962c941abbc4d1")
+
+  @@index([fk_user_id], map: "IDX_548ae43e47192962c941abbc4d")
+  @@map("admin_users")
+}
+
+model AuthToken {
+  id         String   @id(map: "PK_41e9ddfbb32da18c4e85e45c2fd") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  disabled   Boolean  @default(false)
+  User       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_71e1bb3fd8c767a404b1a6a211e")
+
+  @@map("auth_tokens")
+}
+
+model Category {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name         String?        @db.VarChar(255)
+  url_slug     String?        @db.VarChar(255)
+  order        Int?
+  parent       String?        @db.VarChar(255)
+  fk_user_id   String?        @db.Uuid
+  private      Boolean?       @default(false)
+  created_at   DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime       @default(now()) @db.Timestamptz(6)
+  User         User?          @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  PostCategory PostCategory[]
+
+  @@index([url_slug], map: "categories_url_slug")
+  @@index([fk_user_id, parent, order], map: "category_order_of_user")
+  @@map("categories")
+}
+
+model Comment {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id  String?  @db.Uuid
+  fk_user_id  String?  @db.Uuid
+  text        String?
+  likes       Int?     @default(0)
+  meta_json   String?
+  reply_to    String?  @db.Uuid
+  level       Int?     @default(0)
+  has_replies Boolean? @default(false)
+  deleted     Boolean? @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  Post        Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User        User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "comments_created_at")
+  @@index([deleted])
+  @@index([fk_post_id])
+  @@index([fk_user_id, deleted], map: "comments_fk_user_id_idx")
+  @@map("comments")
+}
+
+model EmailAuth {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code       String?  @unique @db.VarChar(255)
+  email      String?  @db.VarChar(255)
+  logged     Boolean? @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("email_auth")
+}
+
+model EmailCert {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  code       String?  @unique @db.VarChar(255)
+  fk_user_id String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  status     Boolean? @default(true)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([fk_user_id], map: "email_cert_fk_user_id")
+  @@map("email_cert")
+}
+
+model Feed {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id String?  @db.Uuid
+  fk_user_id String?  @db.Uuid
+  reason     Json?
+  score      Int?     @default(1)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "feeds_created_at")
+  @@map("feeds")
+}
+
+model FollowTag {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String?  @db.Uuid
+  fk_tag_id  String?  @db.Uuid
+  score      Int?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Tag        Tag?     @relation(fields: [fk_tag_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@map("follow_tag")
+}
+
+model FollowUser {
+  id                                         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id                                 String?  @db.Uuid
+  fk_follow_user_id                          String?  @db.Uuid
+  score                                      Int?
+  created_at                                 DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                                 DateTime @default(now()) @db.Timestamptz(6)
+  users_follow_user_fk_follow_user_idTousers User?    @relation("follow_user_fk_follow_user_idTousers", fields: [fk_follow_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  users_follow_user_fk_user_idTousers        User?    @relation("follow_user_fk_user_idTousers", fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@map("follow_user")
+}
+
+model Migrations {
+  id        Int    @id(map: "PK_8c82d7f526340ab734260ea46be") @default(autoincrement())
+  timestamp BigInt
+  name      String @db.VarChar
+
+  @@map("migrations")
+}
+
+model PostHistory {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id  String?  @db.Uuid
+  title       String?  @db.VarChar(255)
+  body        String?
+  is_release  Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  is_markdown Boolean  @default(false)
+  Post        Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "post_histories_created_at")
+  @@index([fk_post_id], map: "post_histories_fk_post_id")
+  @@map("post_histories")
+}
+
+model PostImage {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id String?  @db.Uuid
+  fk_user_id String?  @db.Uuid
+  path       String?  @db.VarChar(255)
+  filesize   Int?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@map("post_images")
+}
+
+model PostLike {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id String?  @db.Uuid
+  fk_user_id String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([fk_post_id, fk_user_id], map: "post_likes_fk_post_id_fk_user_id")
+  @@index([created_at], map: "post_likes_created_at")
+  @@index([fk_user_id], map: "post_likes_fk_user_id")
+  @@map("post_likes")
+}
+
+model PostReadLog {
+  id              String   @id(map: "PK_bc18dad4a9c6ab3bf5a8605f9e7") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id      String   @db.Uuid
+  fk_user_id      String   @db.Uuid
+  percentage      Float    @db.Real
+  resume_title_id String?  @db.VarChar(255)
+  created_at      DateTime @default(now()) @db.Timestamp(6)
+  updated_at      DateTime @default(now()) @db.Timestamp(6)
+  Post            Post     @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_7b37d3334ab7d049a97f8b2ee0c")
+  User            User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_d4fd1d180f05445287d377ba49c")
+
+  @@index([fk_post_id], map: "IDX_7b37d3334ab7d049a97f8b2ee0")
+  @@index([updated_at], map: "IDX_b5a284ac996f5c21be43611214")
+  @@index([fk_user_id], map: "IDX_d4fd1d180f05445287d377ba49")
+  @@map("post_read_logs")
+}
+
+model PostRead {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  ip_hash    String?  @db.VarChar(255)
+  fk_user_id String?  @db.Uuid
+  fk_post_id String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "post_reads_created_at")
+  @@index([fk_post_id], map: "post_reads_fk_post_id")
+  @@index([fk_user_id], map: "post_reads_fk_user_id")
+  @@index([ip_hash, fk_post_id], map: "post_reads_ip_hash_fk_post_id")
+  @@map("post_reads")
+}
+
+model PostScore {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type       String?  @db.VarChar(255)
+  fk_user_id String?  @db.Uuid
+  fk_post_id String?  @db.Uuid
+  score      Float?   @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "post_scores_created_at")
+  @@index([fk_post_id], map: "post_scores_fk_post_id")
+  @@index([fk_user_id], map: "post_scores_fk_user_id")
+  @@map("post_scores")
+}
+
+model PostTagLegacy {
+  fk_post_id String @db.Uuid
+  fk_tag_id  String @db.Uuid
+  Post       Post   @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, map: "FK_3d4d13db047f2b2ca7671b84034")
+  Tag        Tag    @relation(fields: [fk_tag_id], references: [id], onDelete: Cascade, map: "FK_4de7a827965a085c53d7983f480")
+
+  @@id([fk_post_id, fk_tag_id], map: "PK_0734929674029206aa2b8b4554a")
+  @@index([fk_post_id], map: "IDX_3d4d13db047f2b2ca7671b8403")
+  @@index([fk_tag_id], map: "IDX_4de7a827965a085c53d7983f48")
+  @@map("post_tags")
+}
+
+model Post {
+  id                String                   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title             String?                  @db.VarChar(255)
+  body              String?
+  short_description String?                  @db.VarChar(255)
+  thumbnail         String?                  @db.VarChar(500)
+  is_markdown       Boolean?
+  is_temp           Boolean?
+  fk_user_id        String?                  @db.Uuid
+  original_post_id  String?                  @db.Uuid
+  url_slug          String?                  @db.VarChar(255)
+  likes             Int?                     @default(0)
+  meta              Json?                    @default("{}")
+  views             Int?                     @default(0)
+  created_at        DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime                 @default(now()) @db.Timestamptz(6)
+  is_private        Boolean                  @default(false)
+  released_at       DateTime?                @default(now()) @db.Timestamptz(6)
+  tsv               Unsupported("tsvector")?
+  Comment           Comment[]
+  Feed              Feed[]
+  PostHistory       PostHistory[]
+  PostImage         PostImage[]
+  PostLike          PostLike[]
+  PostReadLog       PostReadLog[]
+  PostRead          PostRead[]
+  PostScore         PostScore[]
+  PostTagLegacy     PostTagLegacy[]
+  User              User?                    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  PostCategory      PostCategory[]
+  PostTag           PostTag[]
+  SeriesPost        SeriesPost[]
+  UrlSlugHistory    UrlSlugHistory[]
+
+  @@index([created_at], map: "posts_created_at")
+  @@index([fk_user_id], map: "posts_fk_user_id")
+  @@index([is_private], map: "posts_is_private")
+  @@index([is_temp], map: "posts_is_temp")
+  @@index([released_at], map: "posts_released_at")
+  @@index([released_at(sort: Desc), id(sort: Desc)], map: "posts_released_at_idx")
+  @@index([tsv], map: "posts_tsv", type: Gin)
+  @@index([url_slug], map: "posts_url_slug")
+  @@map("posts")
+}
+
+model PostCategory {
+  id             String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id     String?   @db.Uuid
+  fk_category_id String?   @db.Uuid
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @db.Timestamptz(6)
+  Category       Category? @relation(fields: [fk_category_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  Post           Post?     @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([fk_post_id, fk_category_id])
+  @@map("posts_categories")
+}
+
+model PostTag {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id String?  @db.Uuid
+  fk_tag_id  String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  Tag        Tag?     @relation(fields: [fk_tag_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([fk_post_id, fk_tag_id])
+  @@map("posts_tags")
+}
+
+model Series {
+  id          String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id  String?      @db.Uuid
+  name        String?      @db.VarChar(255)
+  description String?
+  thumbnail   String?      @db.VarChar(255)
+  url_slug    String?      @db.VarChar(255)
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime     @default(now()) @db.Timestamptz(6)
+  User        User?        @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  SeriesPost  SeriesPost[]
+
+  @@index([created_at], map: "series_created_at")
+  @@index([fk_user_id], map: "series_fk_user_id")
+  @@index([fk_user_id, url_slug], map: "series_fk_user_id_url_slug")
+  @@index([updated_at], map: "series_updated_at")
+  @@map("series")
+}
+
+model SeriesPost {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_series_id String?  @db.Uuid
+  fk_post_id   String?  @db.Uuid
+  index        Int?
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @db.Timestamptz(6)
+  Post         Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  Series       Series?  @relation(fields: [fk_series_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([fk_post_id], map: "series_posts_fk_post_id")
+  @@index([fk_series_id], map: "series_posts_fk_series_id")
+  @@map("series_posts")
+}
+
+model SocialAccount {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  social_id    String?  @db.VarChar(255)
+  access_token String?  @db.VarChar(255)
+  provider     String?  @db.VarChar(255)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @db.Timestamptz(6)
+  fk_user_id   String?  @db.Uuid
+  User         User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([provider, social_id], map: "social_accounts_provider_social_id")
+  @@map("social_accounts")
+}
+
+model TagAlias {
+  id                                   String   @id(map: "PK_8eddc983e5df66c0c2644e33152") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_tag_id                            String   @db.Uuid
+  fk_alias_tag_id                      String   @db.Uuid
+  created_at                           DateTime @default(now()) @db.Timestamp(6)
+  updated_at                           DateTime @default(now()) @db.Timestamp(6)
+  tags_tag_alias_fk_tag_idTotags       Tag      @relation("tag_alias_fk_tag_idTotags", fields: [fk_tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_38921256eca6f24170411db8ac7")
+  tags_tag_alias_fk_alias_tag_idTotags Tag      @relation("tag_alias_fk_alias_tag_idTotags", fields: [fk_alias_tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_7b79c9ec6899a16e12374462dfc")
+
+  @@index([fk_tag_id], map: "IDX_38921256eca6f24170411db8ac")
+  @@index([fk_alias_tag_id], map: "IDX_7b79c9ec6899a16e12374462df")
+  @@map("tag_alias")
+}
+
+model Tag {
+  id                                        String          @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                                      String?         @unique @db.VarChar(255)
+  created_at                                DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at                                DateTime        @default(now()) @db.Timestamptz(6)
+  description                               String?         @db.VarChar(255)
+  thumbnail                                 String?         @db.VarChar(255)
+  name_filtered                             String?         @db.VarChar(255)
+  is_alias                                  Boolean         @default(false)
+  FollowTag                                 FollowTag[]
+  PostTagLegacy                             PostTagLegacy[]
+  PostTag                                   PostTag[]
+  tag_alias_tag_alias_fk_tag_idTotags       TagAlias[]      @relation("tag_alias_fk_tag_idTotags")
+  tag_alias_tag_alias_fk_alias_tag_idTotags TagAlias[]      @relation("tag_alias_fk_alias_tag_idTotags")
+
+  @@index([is_alias], map: "tags_is_alias")
+  @@index([name_filtered], map: "tags_name_filtered")
+  @@map("tags")
+}
+
+model UrlSlugHistory {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id String?  @db.Uuid
+  fk_user_id String?  @db.Uuid
+  url_slug   String?  @db.VarChar(255)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "url_slug_histories_created_at")
+  @@index([url_slug], map: "url_slug_histories_url_slug")
+  @@map("url_slug_histories")
+}
+
+model UserImage {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String?  @db.Uuid
+  path       String?  @db.VarChar(255)
+  filesize   Int?
+  type       String?  @db.VarChar(255)
+  ref_id     String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([fk_user_id], map: "user_images_fk_user_id")
+  @@index([ref_id], map: "user_images_ref_id")
+  @@index([type], map: "user_images_type")
+  @@map("user_images")
+}
+
+model UserImageCloudflare {
+  id         String   @id(map: "PK_2895f99b8fa2dec81b3ac82c2e3") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String   @db.Uuid
+  filesize   Int
+  type       String   @db.VarChar(255)
+  ref_id     String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  result_id  String   @db.VarChar(64)
+  tracked    Boolean
+  filename   String   @db.VarChar(255)
+  User       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_47800d2104cdf1e4c7999e6357a")
+
+  @@index([created_at], map: "IDX_3e1934c686ba81d69d94c7eaca")
+  @@index([fk_user_id], map: "IDX_47800d2104cdf1e4c7999e6357")
+  @@index([result_id], map: "IDX_889aa4a3b67cfe2860497cf352")
+  @@index([ref_id], map: "IDX_9dcb58703dd449a2b9d4f1837d")
+  @@index([tracked], map: "IDX_ecec86174f01962d927345e45b")
+  @@map("user_images_cloudflare")
+}
+
+model UserImageNext {
+  id         String   @id(map: "PK_a1b3395aa09fbb4233f15ae06eb") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String   @db.Uuid
+  filesize   Int
+  type       String   @db.VarChar(255)
+  ref_id     String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  tracked    Boolean
+  file_id    String?  @db.VarChar(255)
+  path       String?  @db.VarChar(512)
+  User       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_9d2936750a40b9b10b860c8f772")
+
+  @@index([tracked], map: "IDX_0c612fa2d1476216b46248ba97")
+  @@index([fk_user_id], map: "IDX_9d2936750a40b9b10b860c8f77")
+  @@index([ref_id], map: "IDX_a46dbd7f1bb6c6583c57fd63a0")
+  @@index([created_at], map: "IDX_db3cf1ab4238e91d026b5a8977")
+  @@map("user_images_next")
+}
+
+model UserMeta {
+  id                 String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id         String?  @db.Uuid
+  email_notification Boolean? @default(false)
+  email_promotion    Boolean? @default(false)
+  created_at         DateTime @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime @default(now()) @db.Timestamptz(6)
+  User               User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([fk_user_id], map: "user_meta_fk_user_id")
+  @@map("user_meta")
+}
+
+model UserProfile {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  display_name  String?  @db.VarChar(255)
+  short_bio     String?  @db.VarChar(255)
+  thumbnail     String?  @db.VarChar(255)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+  fk_user_id    String?  @unique @db.Uuid
+  profile_links Json     @default("{}")
+  about         String   @default("")
+  User          User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade)
+
+  @@index([fk_user_id], map: "user_profiles_fk_user_id")
+  @@map("user_profiles")
+}
+
+model UserThumbnail {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_user_id String?  @db.Uuid
+  path       String?  @db.VarChar(255)
+  filesize   Int?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@map("user_thumbnails")
+}
+
+model User {
+  id                                               String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username                                         String?               @unique @db.VarChar(255)
+  email                                            String?               @unique @db.VarChar(255)
+  created_at                                       DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at                                       DateTime              @default(now()) @db.Timestamptz(6)
+  is_certified                                     Boolean?              @default(false)
+  AdminUser                                        AdminUser[]
+  AuthToken                                        AuthToken[]
+  Category                                         Category[]
+  Comment                                          Comment[]
+  EmailCert                                        EmailCert[]
+  Feed                                             Feed[]
+  FollowTag                                        FollowTag[]
+  follow_user_follow_user_fk_follow_user_idTousers FollowUser[]          @relation("follow_user_fk_follow_user_idTousers")
+  follow_user_follow_user_fk_user_idTousers        FollowUser[]          @relation("follow_user_fk_user_idTousers")
+  PostImage                                        PostImage[]
+  PostLike                                         PostLike[]
+  PostReadLog                                      PostReadLog[]
+  PostRead                                         PostRead[]
+  PostScore                                        PostScore[]
+  Post                                             Post[]
+  Series                                           Series[]
+  SocialAccount                                    SocialAccount[]
+  UserImage                                        UserImage[]
+  UserImageCloudflare                              UserImageCloudflare[]
+  UserImageNext                                    UserImageNext[]
+  UserMeta                                         UserMeta[]
+
+  UserThumbnail              UserThumbnail[]
+  VelogConfig                VelogConfig?
+  UrlSlugHistory             UrlSlugHistory[]
+  ExternalIntegration        ExternalIntegration[]
+  ExternalIntegrationHistory ExternalIntegrationHistory[]
+  userProfile                UserProfile?
+
+  @@index([email], map: "users_email")
+  @@index([username], map: "users_username")
+  @@map("users")
+}
+
+model VelogConfig {
+  id         String   @id(map: "PK_24f36353fb78d23293b7a3f15df") @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  title      String?  @db.VarChar(255)
+  logo_image String?  @db.VarChar(255)
+  fk_user_id String   @unique(map: "REL_8b5be783e08f563452ec0c489e") @db.Uuid
+  User       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "FK_8b5be783e08f563452ec0c489e1")
+
+  @@map("velog_configs")
+}
+
+model ExternalIntegration {
+  id             String  @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user           User    @relation(fields: [fk_user_id], references: [id])
+  code           String  @unique @db.VarChar(64)
+  is_consumed    Boolean @default(false)
+  app_identifier String  @db.VarChar(64)
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  fk_user_id String   @db.Uuid
+
+  @@index([fk_user_id])
+  @@index([app_identifier])
+  @@map("external_integrations")
+}
+
+model ExternalIntegrationHistory {
+  id             String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user           User   @relation(fields: [fk_user_id], references: [id])
+  app_identifier String @db.VarChar(64)
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  fk_user_id String   @db.Uuid
+
+  @@unique([app_identifier, fk_user_id])
+  @@index([fk_user_id])
+  @@index([app_identifier])
+  @@map("external_integration_histories")
+}

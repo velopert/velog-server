@@ -8,6 +8,7 @@ import UserProfile from '../entity/UserProfile';
 import { checkEmpty } from '../lib/utils';
 import UserMeta from '../entity/UserMeta';
 import { generateToken, decodeToken } from '../lib/token';
+import externalInterationService from '../services/externalIntegrationService';
 
 export const typeDef = gql`
   type User {
@@ -57,6 +58,7 @@ export const typeDef = gql`
     update_email_rules(notification: Boolean!, promotion: Boolean!): UserMeta
     unregister(token: String!): Boolean
     logout: Boolean!
+    acceptIntegration: String!
   }
 `;
 
@@ -256,7 +258,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     unregister: async (parent: any, args: { token: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
       const decoded = await decodeToken<{ user_id: string; sub: string }>(args.token);
-      console.log(decoded);
+
       if (decoded.sub !== 'unregister_token') {
         throw new ApolloError('invalid unregister_token', 'BAD_REQUEST');
       }
@@ -269,6 +271,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       ctx.unsetCookie();
       await userRepo.remove(user);
       return true;
+    },
+    acceptIntegration: async (_, __, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      const code = await externalInterationService.createIntegrationCode(ctx.user_id);
+      return code;
     },
   },
 };

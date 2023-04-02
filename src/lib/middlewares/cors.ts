@@ -18,9 +18,9 @@ const cors: Middleware = (ctx, next) => {
     allowedHosts.push(/^http:\/\/localhost/);
   }
   const { origin } = ctx.headers;
-  const valid = allowedHosts.some(regex => regex.test(ctx.headers.origin));
+  const valid = allowedHosts.some(regex => regex.test(ctx.headers.origin as any));
   if (!valid) return next();
-  ctx.set('Access-Control-Allow-Origin', origin);
+  ctx.set('Access-Control-Allow-Origin', origin as any);
   ctx.set('Access-Control-Allow-Credentials', 'true');
   if (ctx.method === 'OPTIONS') {
     ctx.set(

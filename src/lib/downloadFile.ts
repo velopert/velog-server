@@ -5,7 +5,7 @@ import fs from 'fs';
 
 export default async function downloadFile(url: string) {
   const response = await axios.get(encodeURI(url), {
-    responseType: 'stream'
+    responseType: 'stream',
   });
   const contentType = response.headers['content-type'];
   const extension = mimeTypes.extension(contentType);
@@ -14,7 +14,7 @@ export default async function downloadFile(url: string) {
   const writeStream = fs.createWriteStream(tmpObject.name);
   response.data.pipe(writeStream);
 
-  await new Promise(resolve => {
+  await new Promise<void>(resolve => {
     writeStream.on('finish', () => {
       resolve();
     });
@@ -31,6 +31,6 @@ export default async function downloadFile(url: string) {
     extension,
     contentType,
     stats,
-    cleanup
+    cleanup,
   };
 }

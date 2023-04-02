@@ -78,7 +78,7 @@ auth.post('/sendmail', async ctx => {
       registered: !!user,
     };
   } catch (e) {
-    ctx.throw(500, e);
+    ctx.throw('Internal Error', 500);
   }
 });
 
@@ -142,7 +142,7 @@ auth.get('/code/:code', async ctx => {
       });
       if (!profile) return;
       const tokens = await user.generateUserToken();
-      setTokenCookie(ctx, tokens);
+      setTokenCookie(ctx as any, tokens);
       emailAuth.logged = true;
       ctx.body = {
         ...user,
@@ -155,7 +155,7 @@ auth.get('/code/:code', async ctx => {
       await getRepository(EmailAuth).save(emailAuth);
     }
   } catch (e) {
-    ctx.throw(500, e);
+    ctx.throw('Internal Error', 500);
   }
 });
 
@@ -277,7 +277,7 @@ auth.post('/register/local', async ctx => {
   await Promise.all([velogConfigRepo.save(velogConfig), userMetaRepo.save(userMeta)]);
 
   const tokens = await user.generateUserToken();
-  setTokenCookie(ctx, tokens);
+  setTokenCookie(ctx as any, tokens);
   ctx.body = {
     ...user,
     profile,
@@ -297,7 +297,7 @@ auth.get('/check', async ctx => {
 });
 auth.post('/logout', async ctx => {
   // clears cookies
-  resetTokenCookie(ctx);
+  resetTokenCookie(ctx as any);
   ctx.status = 204;
 });
 auth.post('/certify', async ctx => {});

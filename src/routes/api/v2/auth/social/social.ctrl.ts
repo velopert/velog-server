@@ -25,6 +25,7 @@ import UserImageCloudflare from '../../../../../entity/UserImageCloudflare';
 import cloudflareImages from '../../../../../lib/cloudflareImages';
 import UserImageNext from '../../../../../entity/UserImageNext';
 import b2Manager from '../../../../../lib/b2Manager';
+import externalInterationService from '../../../../../services/externalIntegrationService';
 
 const s3 = new AWS.S3({
   region: 'ap-northeast-2',
@@ -328,7 +329,7 @@ export const githubCallback: Middleware = async (ctx, next) => {
     ctx.state.provider = 'github';
     return next();
   } catch (e) {
-    ctx.throw(500, e);
+    ctx.throw('Internal Error', 500);
   }
 };
 
@@ -360,7 +361,7 @@ export const googleCallback: Middleware = async (ctx, next) => {
     ctx.state.provider = 'google';
     return next();
   } catch (e) {
-    ctx.throw(500, e);
+    ctx.throw('Internal Error', 500);
   }
 };
 
@@ -394,7 +395,7 @@ export const facebookCallback: Middleware = async (ctx, next) => {
     ctx.state.provider = 'facebook';
     return next();
   } catch (e) {
-    ctx.throw(500, e);
+    ctx.throw(500);
   }
 };
 
@@ -423,6 +424,15 @@ export const socialCallback: Middleware = async ctx => {
 
       const state = ctx.query.state ? (JSON.parse(ctx.query.state) as { next: string }) : null;
       const next = ctx.query.next || state?.next || '/';
+
+      if (next.includes('user-integrate')) {
+        const isIntegrated = await externalInterationService.checkIntegrated(user.id);
+        if (isIntegrated) {
+          const code = await externalInterationService.createIntegrationCode(user.id);
+          ctx.redirect(`https://api.codenary.co.kr/integrate-velog?code=${code}`);
+          return;
+        }
+      }
 
       ctx.redirect(encodeURI(redirectUrl.concat(next)));
       return;
@@ -470,7 +480,7 @@ export const socialCallback: Middleware = async ctx => {
         : 'https://velog.io/register?social=1';
     ctx.redirect(encodeURI(redirectUrl));
   } catch (e) {
-    ctx.throw(500, e);
+    ctx.throw('Internal Error', 500);
   }
 };
 export const getSocialProfile: Middleware = async ctx => {
@@ -495,13 +505,16 @@ export const getSocialProfile: Middleware = async ctx => {
  */
 export const socialRedirect: Middleware = async ctx => {
   const { provider } = ctx.params;
-  const { next } = ctx.query;
+  const { next, isIntegrate } = ctx.query;
   const validated = ['facebook', 'google', 'github'].includes(provider);
   if (!validated) {
     ctx.status = 400;
     return;
   }
 
-  const loginUrl = generateSocialLoginLink(provider, next);
+  const loginUrl = generateSocialLoginLink(provider, {
+    isIntegrate: isIntegrate === '1',
+    next,
+  });
   ctx.redirect(loginUrl);
 };
