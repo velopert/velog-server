@@ -1,6 +1,8 @@
 import nanoid from 'nanoid';
 import db from '../lib/db';
 import { decodeToken, generateToken } from '../lib/token';
+import { SerializedPost } from './postService';
+import Axios from 'axios';
 
 const externalInterationService = {
   async createIntegrationCode(userId: string) {
@@ -77,6 +79,15 @@ const externalInterationService = {
     if (decoded.type !== 'integration') return null;
     return decoded;
   },
+  async notifyWebhook(params: NotifyParams) {
+    const webhook = process.env.CODENARY_WEBHOOK;
+    if (!webhook) return;
+    Axios.post(webhook, params, {
+      headers: {
+        Authorization: `Token ${process.env.CODENARY_API_KEY}`,
+      },
+    }).catch(console.error);
+  },
 };
 
 type IntegrationTokenData = {
@@ -84,5 +95,15 @@ type IntegrationTokenData = {
   type: 'integration';
   app_identifier: 'codenary';
 };
+
+type NotifyParams =
+  | {
+      type: 'created' | 'updated';
+      post: SerializedPost;
+    }
+  | {
+      type: 'deleted';
+      post_id: string;
+    };
 
 export default externalInterationService;

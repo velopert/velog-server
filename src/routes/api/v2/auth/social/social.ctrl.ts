@@ -429,7 +429,7 @@ export const socialCallback: Middleware = async ctx => {
         const isIntegrated = await externalInterationService.checkIntegrated(user.id);
         if (isIntegrated) {
           const code = await externalInterationService.createIntegrationCode(user.id);
-          ctx.redirect(`https://api.codenary.co.kr/integrate-velog?code=${code}`);
+          ctx.redirect(`${process.env.CODENARY_CALLBACK}?code=${code}`);
           return;
         }
       }

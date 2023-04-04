@@ -281,7 +281,7 @@ model Post {
   PostTagLegacy     PostTagLegacy[]
   User              User?                    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   PostCategory      PostCategory[]
-  PostTag           PostTag[]
+  postTags          PostTag[]
   SeriesPost        SeriesPost[]
   UrlSlugHistory    UrlSlugHistory[]
 
@@ -316,7 +316,7 @@ model PostTag {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   updated_at DateTime @default(now()) @db.Timestamptz(6)
   Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  Tag        Tag?     @relation(fields: [fk_tag_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  tag        Tag?     @relation(fields: [fk_tag_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@unique([fk_post_id, fk_tag_id])
   @@map("posts_tags")
