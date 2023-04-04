@@ -10,33 +10,46 @@ export const redirectUri =
     ? `http://localhost:5000${redirectPath}`
     : `https://${API_HOST}${redirectPath}`;
 
-export function generateSocialLoginLink(provider: SocialProvider, next: string = '/') {
-  const generators = {
-    github(next: string) {
-      const redirectUriWithNext = `${redirectUri}github?next=${next}`;
-      return `https://github.com/login/oauth/authorize?scope=user:email&client_id=${GITHUB_ID}&redirect_uri=${redirectUriWithNext}`;
-    },
-    facebook(next: string) {
-      const state = JSON.stringify({ next });
-      const callbackUri = `${redirectUri}facebook`;
-      return `https://www.facebook.com/v4.0/dialog/oauth?client_id=${FACEBOOK_ID}&redirect_uri=${callbackUri}&state=${state}&scope=email,public_profile`;
-    },
-    google(next: string) {
-      const callback = `${redirectUri}google`;
-      const oauth2Client = new google.auth.OAuth2(GOOGLE_ID, GOOGLE_SECRET, callback);
-      const url = oauth2Client.generateAuthUrl({
-        scope: [
-          'https://www.googleapis.com/auth/userinfo.email',
-          'https://www.googleapis.com/auth/userinfo.profile'
-        ],
-        state: JSON.stringify({ next })
-      });
-      return url;
-    }
-  };
+type Options = {
+  next: string;
+  isIntegrate?: boolean;
+};
 
+const generators = {
+  github({ next, isIntegrate }: Options) {
+    const redirectUriWithOptions = `${redirectUri}github?next=${next}&isIntegrate=${
+      isIntegrate ? 1 : 0
+    }`;
+    return `https://github.com/login/oauth/authorize?scope=user:email&client_id=${GITHUB_ID}&redirect_uri=${redirectUriWithOptions}`;
+  },
+  facebook({ next, isIntegrate }: Options) {
+    const state = JSON.stringify({ next, isIntegrate: isIntegrate ? 1 : 0 });
+    const callbackUri = `${redirectUri}facebook`;
+    return `https://www.facebook.com/v4.0/dialog/oauth?client_id=${FACEBOOK_ID}&redirect_uri=${callbackUri}&state=${state}&scope=email,public_profile`;
+  },
+  google({ next, isIntegrate }: Options) {
+    const callback = `${redirectUri}google`;
+    const oauth2Client = new google.auth.OAuth2(GOOGLE_ID, GOOGLE_SECRET, callback);
+    const url = oauth2Client.generateAuthUrl({
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ],
+      state: JSON.stringify({ next, isIntegrate: isIntegrate ? 1 : 0 }),
+    });
+    return url;
+  },
+};
+
+export function generateSocialLoginLink(
+  provider: SocialProvider,
+  { next = '/', isIntegrate = false }: Options
+) {
   const generator = generators[provider];
-  return generator(encodeURI(next));
+  return generator({
+    next: encodeURI(next),
+    isIntegrate,
+  });
 }
 
 export type SocialProfile = {

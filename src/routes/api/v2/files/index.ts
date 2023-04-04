@@ -107,12 +107,12 @@ files.post('/create-url', authorized, async ctx => {
       image_path: `https://media.vlpt.us/${userImage.path}`,
       signed_url: signedUrl,
     };
-  } catch (e) {
+  } catch (e: any) {
     if (e.name === 'ContentTypeError') {
       ctx.status = 401;
       return;
     }
-    ctx.throw(500, e);
+    ctx.throw('Internal Error', 500);
   }
 });
 
@@ -122,7 +122,7 @@ const upload = multer({
   },
 });
 
-files.post('/upload', authorized, upload.single('image'), async ctx => {
+files.post('/upload', authorized as any, upload.single('image'), async ctx => {
   type RequestBody = {
     type: string;
     ref_id?: string;
@@ -189,7 +189,7 @@ files.post('/upload', authorized, upload.single('image'), async ctx => {
       path: result.url,
     };
   } catch (e) {
-    ctx.throw(e);
+    ctx.throw(500);
     return;
   }
 

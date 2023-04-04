@@ -4,10 +4,10 @@ export function generateUnsubscribeToken(userId: string, meta: string) {
   return generateToken(
     {
       meta,
-      user_id: userId
+      user_id: userId,
     },
     {
-      subject: 'unsubscribe-email'
+      subject: 'unsubscribe-email',
     }
   );
 }
@@ -17,4 +17,4 @@ export default function optimizeImage(url: string, width: number) {
   return url.replace('://images', '://img').concat(`?w=${width}`);
 }
 
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(() => resolve(), ms));
+export const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(() => resolve(), ms));

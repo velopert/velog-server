@@ -1,5 +1,6 @@
-import { Context } from 'koa';
+import { Context, ParameterizedContext } from 'koa';
 import Joi, { SchemaLike } from 'joi';
+import Router from '@koa/router';
 
 export function normalize<T>(
   array: T[],
@@ -32,13 +33,13 @@ export function groupById<T>(order: string[], data: T[], idResolver: (row: T) =>
 /***
  * Validates Request Body with Joi
  */
-export const validateBody = (ctx: Context, schema: SchemaLike) => {
-  const validation = Joi.validate(ctx.request.body, schema);
+export const validateBody = (ctx: any, schema: SchemaLike) => {
+  const validation = Joi.validate((ctx.request as any).body, schema);
   if (validation.error) {
     ctx.status = 400;
     ctx.body = {
       name: 'WRONG_SCHEMA',
-      payload: validation.error
+      payload: validation.error,
     };
     return false;
   }

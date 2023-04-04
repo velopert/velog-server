@@ -43,10 +43,7 @@ export const decodeToken = async <T = any>(token: string): Promise<T> => {
 };
 
 const domains = ['.velog.io', undefined];
-export function setTokenCookie(
-  ctx: Context,
-  tokens: { accessToken: string; refreshToken: string }
-) {
+export function setTokenCookie(ctx: any, tokens: { accessToken: string; refreshToken: string }) {
   domains.forEach(domain => {
     // set cookie
     ctx.cookies.set('access_token', tokens.accessToken, {
@@ -125,6 +122,7 @@ export const consumeUser: Middleware = async (ctx: Context, next) => {
       throw new Error('NoAccessToken');
     }
     const accessTokenData = await decodeToken<AccessTokenData>(accessToken);
+
     ctx.state.user_id = accessTokenData.user_id;
     // refresh token when life < 30mins
     const diff = accessTokenData.exp * 1000 - new Date().getTime();

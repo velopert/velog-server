@@ -41,6 +41,8 @@ import geoipCountry from 'geoip-country';
 import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 import imageService from '../services/imageService';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
+import externalInterationService from '../services/externalIntegrationService';
+import postService from '../services/postService';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -859,6 +861,20 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await searchSync.update(post.id);
       }
 
+      if (!data.is_temp && !data.is_private) {
+        setImmediate(async () => {
+          if (!ctx.user_id) return;
+          const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
+          if (!isIntegrated) return;
+          const serializedPost = await postService.findPostById(post.id);
+          if (!serializedPost) return;
+          externalInterationService.notifyWebhook({
+            type: 'created',
+            post: serializedPost,
+          });
+        });
+      }
+
       purgeRecentPosts();
       purgeUser(ctx.user_id);
 
@@ -1094,6 +1110,32 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         console.log(e);
       }
 
+      if (!is_temp && !is_private) {
+        setImmediate(async () => {
+          if (!ctx.user_id) return;
+          const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
+          if (!isIntegrated) return;
+          const serializedPost = await postService.findPostById(post.id);
+          if (!serializedPost) return;
+          externalInterationService.notifyWebhook({
+            type: 'updated',
+            post: serializedPost,
+          });
+        });
+      }
+
+      if (!post.is_private && is_private) {
+        setImmediate(async () => {
+          if (!ctx.user_id) return;
+          const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
+          if (!isIntegrated) return;
+          externalInterationService.notifyWebhook({
+            type: 'deleted',
+            post_id: post.id,
+          });
+        });
+      }
+
       setTimeout(async () => {
         const images = await imageService.getImagesOf(post.id);
         await imageService.trackImages(images, body);
@@ -1144,6 +1186,19 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       try {
         await Promise.all([purgeRecentPosts(), purgeUser(ctx.user_id), purgePost(id)]);
       } catch (e) {}
+
+      setImmediate(async () => {
+        if (post.is_temp || post.is_private) return;
+        if (!ctx.user_id) return;
+        const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
+        if (!isIntegrated) return;
+        const serializedPost = await postService.findPostById(post.id);
+        if (!serializedPost) return;
+        externalInterationService.notifyWebhook({
+          type: 'deleted',
+          post_id: post.id,
+        });
+      });
 
       setTimeout(() => {
         imageService.untrackImagesOfDeletedPost(id).catch(console.error);

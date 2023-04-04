@@ -3,7 +3,6 @@ import bodyParser from 'koa-bodyparser';
 import { ApolloServer } from 'apollo-server-koa';
 import { createConnection, getConnectionManager, getConnection } from 'typeorm';
 import logger from 'koa-logger';
-import compress from 'kompression';
 import routes from './routes';
 import schema from './graphql/schema';
 import { consumeUser, resetTokenCookie } from './lib/token';
@@ -24,7 +23,6 @@ app.use(cors);
 app.use(bodyParser());
 app.use(consumeUser);
 app.use(routes.routes()).use(routes.allowedMethods());
-app.use(compress());
 app.use(keepAlive);
 
 export type ApolloContext = {
@@ -54,6 +52,6 @@ const apollo = new ApolloServer({
   },
   tracing: process.env.NODE_ENV === 'development',
 });
-apollo.applyMiddleware({ app, cors: false });
+apollo.applyMiddleware({ app: app as any, cors: false });
 
 export default app;
