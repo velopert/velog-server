@@ -24,13 +24,17 @@ codenary.get('/profile', async ctx => {
     ctx.throw(401);
     return;
   }
-  const decoded = await externalInterationService.decodeIntegrationToken(ctx.request.query.token);
-  if (!decoded) {
+  try {
+    const decoded = await externalInterationService.decodeIntegrationToken(ctx.request.query.token);
+    if (!decoded) {
+      ctx.throw(401);
+      return;
+    }
+    const user = await userService.getPublicProfileById(decoded.integrated_user_id);
+    ctx.body = user;
+  } catch (e) {
     ctx.throw(401);
-    return;
   }
-  const user = await userService.getPublicProfileById(decoded.integrated_user_id);
-  ctx.body = user;
 });
 
 codenary.get('/posts', async ctx => {
