@@ -422,14 +422,18 @@ export const socialCallback: Middleware = async ctx => {
       const redirectUrl =
         process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : `https://${CLIENT_HOST}`;
 
-      const state = ctx.query.state ? (JSON.parse(ctx.query.state) as { next: string }) : null;
+      const state = ctx.query.state
+        ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
+        : null;
       const next = ctx.query.next || state?.next || '/';
 
-      if (next.includes('user-integrate')) {
+      if (next.includes('user-integrate') && state) {
         const isIntegrated = await externalInterationService.checkIntegrated(user.id);
         if (isIntegrated) {
           const code = await externalInterationService.createIntegrationCode(user.id);
-          ctx.redirect(`${process.env.CODENARY_CALLBACK}?code=${code}`);
+          ctx.redirect(
+            `${process.env.CODENARY_CALLBACK}?code=${code}&state=${state.integrateState}`
+          );
           return;
         }
       }
@@ -451,10 +455,28 @@ export const socialCallback: Middleware = async ctx => {
       const tokens = await user.generateUserToken();
       setTokenCookie(ctx, tokens);
       const redirectUrl =
-        process.env.NODE_ENV === 'development' ? 'https://localhost:3000/' : 'https://velog.io/';
-      ctx.redirect(encodeURI(redirectUrl));
-      console.log('user');
-      console.log(encodeURI(redirectUrl));
+        process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : `https://${CLIENT_HOST}`;
+
+      const state = ctx.query.state
+        ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
+        : null;
+
+      console.log(state);
+
+      const next = ctx.query.next || state?.next || '/';
+
+      if (next.includes('user-integrate') && state) {
+        const isIntegrated = await externalInterationService.checkIntegrated(user.id);
+        if (isIntegrated) {
+          const code = await externalInterationService.createIntegrationCode(user.id);
+          ctx.redirect(
+            `${process.env.CODENARY_CALLBACK}?code=${code}&state=${state.integrateState}`
+          );
+          return;
+        }
+      }
+
+      ctx.redirect(encodeURI(redirectUrl.concat(next)));
       return;
     }
 
@@ -505,7 +527,7 @@ export const getSocialProfile: Middleware = async ctx => {
  */
 export const socialRedirect: Middleware = async ctx => {
   const { provider } = ctx.params;
-  const { next, isIntegrate } = ctx.query;
+  const { next, isIntegrate, integrateState } = ctx.query;
   const validated = ['facebook', 'google', 'github'].includes(provider);
   if (!validated) {
     ctx.status = 400;
@@ -515,6 +537,7 @@ export const socialRedirect: Middleware = async ctx => {
   const loginUrl = generateSocialLoginLink(provider, {
     isIntegrate: isIntegrate === '1',
     next,
+    integrateState,
   });
   ctx.redirect(loginUrl);
 };
