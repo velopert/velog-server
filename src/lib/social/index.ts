@@ -13,21 +13,22 @@ export const redirectUri =
 type Options = {
   next: string;
   isIntegrate?: boolean;
+  integrateState?: string;
 };
 
 const generators = {
-  github({ next, isIntegrate }: Options) {
+  github({ next, isIntegrate, integrateState }: Options) {
     const redirectUriWithOptions = `${redirectUri}github?next=${next}&isIntegrate=${
       isIntegrate ? 1 : 0
-    }`;
+    }&integrateState=${integrateState ?? ''}`;
     return `https://github.com/login/oauth/authorize?scope=user:email&client_id=${GITHUB_ID}&redirect_uri=${redirectUriWithOptions}`;
   },
-  facebook({ next, isIntegrate }: Options) {
-    const state = JSON.stringify({ next, isIntegrate: isIntegrate ? 1 : 0 });
+  facebook({ next, isIntegrate, integrateState }: Options) {
+    const state = JSON.stringify({ next, isIntegrate: isIntegrate ? 1 : 0, integrateState });
     const callbackUri = `${redirectUri}facebook`;
     return `https://www.facebook.com/v4.0/dialog/oauth?client_id=${FACEBOOK_ID}&redirect_uri=${callbackUri}&state=${state}&scope=email,public_profile`;
   },
-  google({ next, isIntegrate }: Options) {
+  google({ next, isIntegrate, integrateState }: Options) {
     const callback = `${redirectUri}google`;
     const oauth2Client = new google.auth.OAuth2(GOOGLE_ID, GOOGLE_SECRET, callback);
     const url = oauth2Client.generateAuthUrl({
@@ -35,7 +36,7 @@ const generators = {
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile',
       ],
-      state: JSON.stringify({ next, isIntegrate: isIntegrate ? 1 : 0 }),
+      state: JSON.stringify({ next, isIntegrate: isIntegrate ? 1 : 0, integrateState }),
     });
     return url;
   },
@@ -43,12 +44,13 @@ const generators = {
 
 export function generateSocialLoginLink(
   provider: SocialProvider,
-  { next = '/', isIntegrate = false }: Options
+  { next = '/', isIntegrate = false, integrateState }: Options
 ) {
   const generator = generators[provider];
   return generator({
     next: encodeURI(next),
     isIntegrate,
+    integrateState,
   });
 }
 
