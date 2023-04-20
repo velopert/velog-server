@@ -259,7 +259,7 @@ model Post {
   thumbnail         String?                  @db.VarChar(500)
   is_markdown       Boolean?
   is_temp           Boolean?
-  fk_user_id        String?                  @db.Uuid
+  fk_user_id        String                   @db.Uuid
   original_post_id  String?                  @db.Uuid
   url_slug          String?                  @db.VarChar(255)
   likes             Int?                     @default(0)
@@ -279,7 +279,7 @@ model Post {
   PostRead          PostRead[]
   PostScore         PostScore[]
   PostTagLegacy     PostTagLegacy[]
-  User              User?                    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user              User                     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
   PostCategory      PostCategory[]
   postTags          PostTag[]
   SeriesPost        SeriesPost[]

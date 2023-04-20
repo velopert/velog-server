@@ -1,4 +1,4 @@
-import { Post, PostTag, Tag } from '@prisma/client';
+import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
 import userService from './userService';
 import removeMd from 'remove-markdown';
@@ -13,7 +13,6 @@ const postService = {
         })
       : null;
 
-    const user = await userService.getPublicProfileById(userId);
     const limitedSize = Math.min(50, size);
 
     const posts = await db.post.findMany({
@@ -33,6 +32,7 @@ const postService = {
             tag: true,
           },
         },
+        user: true,
       },
     });
 
@@ -50,6 +50,7 @@ const postService = {
             tag: true,
           },
         },
+        user: true,
       },
     });
 
@@ -63,11 +64,12 @@ const postService = {
       postTags: (PostTag & {
         tag: Tag | null;
       })[];
+      user: User;
     }
   ) {
     return {
       id: post.id,
-      url: `https://velog.io/@${post.fk_user_id}/${encodeURI(post.url_slug ?? '')}`,
+      url: `https://velog.io/@${post.user.username}/${encodeURI(post.url_slug ?? '')}`,
       title: post.title!,
       thumbnail: post.thumbnail,
       released_at: post.released_at!,
