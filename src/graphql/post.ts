@@ -525,6 +525,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return posts;
     },
     recentPosts: async (parent: any, { cursor, limit = 20 }: PostsArgs, context) => {
+      console.log({ cursor, limit, ip: context.ip });
       if (limit > 100) {
         throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
       }
@@ -569,6 +570,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return posts;
     },
     trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'month' }, ctx) => {
+      console.log({ offset, limit, timeframe, ip: ctx.ip });
       const timeframes: [string, number][] = [
         ['day', 1],
         ['week', 7],
