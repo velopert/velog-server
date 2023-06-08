@@ -291,7 +291,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         email: Joi.string().email().required(),
       });
 
-      if (validateArgs(args, schema)) {
+      if (!validateArgs(args, schema)) {
         throw new ApolloError('Invalid email format', 'BAD_REQUEST');
       }
 
@@ -309,8 +309,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('Email already exists', 'ALEADY_EXISTS');
       }
 
-      const code = shortid.generate();
-      const updateEmailCacheKey = cache.generateKey.updateEmailKey(code);
+      const id = shortid.generate();
+      const code = cache.generateKey.changeEmailKey(id);
       const data = JSON.stringify({ userId: user.id, email: args.email });
 
       const template = createChangeEmail(user.username, args.email, code);
@@ -329,7 +329,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw e;
       }
 
-      cache.client?.set(updateEmailCacheKey, data, 'EX', 60 * 5); // 5 minute
+      cache.client?.set(code, data, 'EX', 60 * 5); // 5 minute
 
       return true;
     },

@@ -5,7 +5,7 @@ interface CacheGenerateKey {
   postCacheKey: (username: string, postUrlSlug: string) => string;
   userCacheKey: (username: string) => string;
   postSeriesKey: (username: string, seriesUrlSlug: string) => string;
-  updateEmailKey: (code: string) => string;
+  changeEmailKey: (code: string) => string;
 }
 
 class Cache {
@@ -41,7 +41,7 @@ class Cache {
       userCacheKey: (username: string) => `ssr:/@${username}`,
       postSeriesKey: (username: string, seriesUrlSlug: string) =>
         `ssr:/@${username}/series/${seriesUrlSlug}`,
-      updateEmailKey: (code: string) => `email:/${code}`,
+      changeEmailKey: (code: string) => `${code}-email`,
     };
   }
 }
