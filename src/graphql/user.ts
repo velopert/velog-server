@@ -5,10 +5,15 @@ import { getRepository, getManager } from 'typeorm';
 import VelogConfig from '../entity/VelogConfig';
 import Series from '../entity/Series';
 import UserProfile from '../entity/UserProfile';
-import { checkEmpty } from '../lib/utils';
+import { checkEmpty, validateArgs, validateBody } from '../lib/utils';
 import UserMeta from '../entity/UserMeta';
 import { generateToken, decodeToken } from '../lib/token';
 import externalInterationService from '../services/externalIntegrationService';
+import shortid from 'shortid';
+import cache from '../cache';
+import { createChangeEmail } from '../etc/emailTemplates';
+import sendMail from '../lib/sendMail';
+import Joi from 'joi';
 
 export const typeDef = gql`
   type User {
@@ -59,6 +64,8 @@ export const typeDef = gql`
     unregister(token: String!): Boolean
     logout: Boolean!
     acceptIntegration: String!
+    tryChangeEmail(email: String!): Boolean
+    confirmChangeEmail(code: String!): Boolean
   }
 `;
 
@@ -276,6 +283,58 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
       const code = await externalInterationService.createIntegrationCode(ctx.user_id);
       return code;
+    },
+    tryChangeEmail: async (_, args: { email: string }, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+
+      const schema = Joi.object().keys({
+        email: Joi.string().email().required(),
+      });
+
+      if (validateArgs(args, schema)) {
+        throw new ApolloError('Invalid email format', 'BAD_REQUEST');
+      }
+
+      const userRepo = getRepository(User);
+      const user = await userRepo.findOne(ctx.user_id);
+      if (!user) throw new ApolloError('Could not find user account');
+
+      const existsEmail = await userRepo.findOne({
+        where: {
+          email: args.email.toLowerCase(),
+        },
+      });
+
+      if (existsEmail) {
+        throw new ApolloError('Email already exists', 'ALEADY_EXISTS');
+      }
+
+      const code = shortid.generate();
+      const updateEmailCacheKey = cache.generateKey.updateEmailKey(code);
+      const data = JSON.stringify({ userId: user.id, email: args.email });
+
+      const template = createChangeEmail(user.username, args.email, code);
+
+      try {
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Login URL: http://${process.env.CLIENT_HOST}/email-change?code=${code}`);
+        } else {
+          await sendMail({
+            to: args.email,
+            from: 'verify@velog.io',
+            ...template,
+          });
+        }
+      } catch (e) {
+        throw e;
+      }
+
+      cache.client?.set(updateEmailCacheKey, data, 'EX', 60 * 5); // 5 minute
+
+      return true;
+    },
+    confirmChangeEmail: async (_, args: { code: string }, ctx) => {
+      return true;
     },
   },
 };
