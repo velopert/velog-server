@@ -311,7 +311,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       const id = shortid.generate();
       const code = cache.generateKey.changeEmailKey(id);
-      const data = JSON.stringify({ userId: user.id, email: args.email });
+      const data = JSON.stringify({ userId: user.id, email: args.email.toLowerCase() });
 
       const template = createChangeEmail(user.username, args.email, code);
 
@@ -334,6 +334,30 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     confirmChangeEmail: async (_, args: { code: string }, ctx) => {
+      const { code } = args;
+
+      const metadata = await cache.client?.get(code);
+
+      if (!metadata) {
+        throw new ApolloError('Data not found', 'BAD_REQUEST');
+      }
+
+      const { userId, email } = JSON.parse(metadata) as { userId: string; email: string };
+
+      if (userId !== ctx.user_id) {
+        throw new AuthenticationError('No permission to change the email');
+      }
+
+      const userRepo = getRepository(User);
+      const user = await userRepo.findOne(userId);
+
+      if (!user) {
+        throw new ApolloError('User not found', 'NOT_FOUND');
+      }
+
+      user!.email = email;
+      await userRepo.save(user);
+
       return true;
     },
   },
