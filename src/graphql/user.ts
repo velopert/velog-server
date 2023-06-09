@@ -48,11 +48,15 @@ export const typeDef = gql`
     email_notification: Boolean
     email_promotion: Boolean
   }
+  type EmailDuplicated {
+    isDuplicated: Boolean
+  }
   extend type Query {
     user(id: ID, username: String): User
     velog_config(username: String): VelogConfig
     auth: User
     unregister_token: String
+    checkDuplicatedEmail(email: String!): EmailDuplicated
   }
   extend type Mutation {
     update_about(about: String!): UserProfile
@@ -163,6 +167,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           expiresIn: '5m',
         }
       );
+    },
+    checkDuplicatedEmail: async (_, args: { email: string }, ctx) => {
+      const userRepo = getRepository(User);
+      const user = await userRepo.findOne({
+        where: {
+          email: args.email,
+        },
+      });
+      return { isDuplicated: !!user };
     },
   },
   Mutation: {
@@ -329,7 +342,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw e;
       }
 
-      cache.client?.set(code, data, 'EX', 60 * 5); // 5 minute
+      cache.client?.set(code, data, 'EX', 60 * 30); // 30 minute
 
       return true;
     },
@@ -357,6 +370,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       user!.email = email;
       await userRepo.save(user);
+      await cache.client?.del(code);
 
       return true;
     },
