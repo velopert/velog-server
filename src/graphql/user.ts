@@ -347,6 +347,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     confirmChangeEmail: async (_, args: { code: string }, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+
       const { code } = args;
 
       const metadata = await cache.client?.get(code);
