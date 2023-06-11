@@ -310,9 +310,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       if (!user) throw new ApolloError('Could not find user account');
 
-      const existsEmail = await userService.findUserByEmail(args.email);
+      const emailExists = await userService.findUserByEmail(args.email);
 
-      if (existsEmail) {
+      if (emailExists) {
         throw new ApolloError('Email already exists', 'ALEADY_EXISTS');
       }
 
