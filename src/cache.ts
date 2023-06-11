@@ -41,7 +41,7 @@ class Cache {
       userCacheKey: (username: string) => `ssr:/@${username}`,
       postSeriesKey: (username: string, seriesUrlSlug: string) =>
         `ssr:/@${username}/series/${seriesUrlSlug}`,
-      changeEmailKey: (code: string) => `${code}-email`,
+      changeEmailKey: (code: string) => `changeEmailCode:${code}`,
     };
   }
 }

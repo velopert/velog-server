@@ -14,6 +14,7 @@ import cache from '../cache';
 import { createChangeEmail } from '../etc/emailTemplates';
 import sendMail from '../lib/sendMail';
 import Joi from 'joi';
+import userService from '../services/userService';
 
 export const typeDef = gql`
   type User {
@@ -48,15 +49,12 @@ export const typeDef = gql`
     email_notification: Boolean
     email_promotion: Boolean
   }
-  type EmailDuplicated {
-    isDuplicated: Boolean
-  }
   extend type Query {
     user(id: ID, username: String): User
     velog_config(username: String): VelogConfig
     auth: User
     unregister_token: String
-    checkDuplicatedEmail(email: String!): EmailDuplicated
+    emailExists(email: String!): boolean
   }
   extend type Mutation {
     update_about(about: String!): UserProfile
@@ -68,7 +66,7 @@ export const typeDef = gql`
     unregister(token: String!): Boolean
     logout: Boolean!
     acceptIntegration: String!
-    tryChangeEmail(email: String!): Boolean
+    initiateChangeEmail(email: String!): Boolean
     confirmChangeEmail(code: String!): Boolean
   }
 `;
@@ -168,7 +166,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         }
       );
     },
-    checkDuplicatedEmail: async (_, args: { email: string }, ctx) => {
+    emailExists: async (_, args: { email: string }, ctx) => {
       const userRepo = getRepository(User);
       const user = await userRepo.findOne({
         where: {
@@ -297,7 +295,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const code = await externalInterationService.createIntegrationCode(ctx.user_id);
       return code;
     },
-    tryChangeEmail: async (_, args: { email: string }, ctx) => {
+    initiateChangeEmail: async (_, args: { email: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
 
       const schema = Joi.object().keys({
@@ -308,15 +306,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('Invalid email format', 'BAD_REQUEST');
       }
 
-      const userRepo = getRepository(User);
-      const user = await userRepo.findOne(ctx.user_id);
+      const user = await userService.findUserById(ctx.user_id);
+
       if (!user) throw new ApolloError('Could not find user account');
 
-      const existsEmail = await userRepo.findOne({
-        where: {
-          email: args.email.toLowerCase(),
-        },
-      });
+      const existsEmail = await userService.findUserByEmail(args.email);
 
       if (existsEmail) {
         throw new ApolloError('Email already exists', 'ALEADY_EXISTS');
@@ -349,9 +343,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     confirmChangeEmail: async (_, args: { code: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
 
-      const { code } = args;
-
-      const metadata = await cache.client?.get(code);
+      const metadata = await cache.client?.get(args.code);
 
       if (!metadata) {
         throw new ApolloError('Data not found', 'BAD_REQUEST');
@@ -363,16 +355,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new AuthenticationError('No permission to change the email');
       }
 
-      const userRepo = getRepository(User);
-      const user = await userRepo.findOne(userId);
+      const user = await userService.findUserById(ctx.user_id);
 
       if (!user) {
         throw new ApolloError('User not found', 'NOT_FOUND');
       }
 
-      user!.email = email;
-      await userRepo.save(user);
-      await cache.client?.del(code);
+      userService.updateUser(ctx.user_id, { email });
+      cache.client?.del(args.code);
 
       return true;
     },
