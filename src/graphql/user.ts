@@ -1,19 +1,14 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, AuthenticationError, ApolloError } from 'apollo-server-koa';
 import User from '../entity/User';
-import { getRepository, getManager } from 'typeorm';
+import { getRepository } from 'typeorm';
 import VelogConfig from '../entity/VelogConfig';
 import Series from '../entity/Series';
 import UserProfile from '../entity/UserProfile';
-import { checkEmpty, validateArgs, validateBody } from '../lib/utils';
+import { checkEmpty } from '../lib/utils';
 import UserMeta from '../entity/UserMeta';
 import { generateToken, decodeToken } from '../lib/token';
 import externalInterationService from '../services/externalIntegrationService';
-import shortid from 'shortid';
-import cache from '../cache';
-import { createChangeEmail } from '../etc/emailTemplates';
-import sendMail from '../lib/sendMail';
-import Joi from 'joi';
 import userService from '../services/userService';
 
 export const typeDef = gql`
@@ -54,7 +49,7 @@ export const typeDef = gql`
     velog_config(username: String): VelogConfig
     auth: User
     unregister_token: String
-    emailExists(email: String!): boolean
+    emailExists(email: String!): Boolean
   }
   extend type Mutation {
     update_about(about: String!): UserProfile
@@ -167,13 +162,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       );
     },
     emailExists: async (_, args: { email: string }, ctx) => {
-      const userRepo = getRepository(User);
-      const user = await userRepo.findOne({
-        where: {
-          email: args.email,
-        },
-      });
-      return { isDuplicated: !!user };
+      const user = await userService.findUserByEmail(args.email);
+      return !!user;
     },
   },
   Mutation: {
@@ -297,74 +287,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     },
     initiateChangeEmail: async (_, args: { email: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
-
-      const schema = Joi.object().keys({
-        email: Joi.string().email().required(),
-      });
-
-      if (!validateArgs(args, schema)) {
-        throw new ApolloError('Invalid email format', 'BAD_REQUEST');
-      }
-
-      const user = await userService.findUserById(ctx.user_id);
-
-      if (!user) throw new ApolloError('Could not find user account');
-
-      const emailExists = await userService.findUserByEmail(args.email);
-
-      if (emailExists) {
-        throw new ApolloError('Email already exists', 'ALEADY_EXISTS');
-      }
-
-      const id = shortid.generate();
-      const code = cache.generateKey.changeEmailKey(id);
-      const data = JSON.stringify({ userId: user.id, email: args.email.toLowerCase() });
-
-      const template = createChangeEmail(user.username, args.email, code);
-
-      try {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Login URL: http://${process.env.CLIENT_HOST}/email-change?code=${code}`);
-        } else {
-          await sendMail({
-            to: args.email,
-            from: 'verify@velog.io',
-            ...template,
-          });
-        }
-      } catch (e) {
-        throw e;
-      }
-
-      cache.client?.set(code, data, 'EX', 60 * 30); // 30 minute
-
-      return true;
+      return await userService.initiateChangeEmail(ctx.user_id, args.email);
     },
     confirmChangeEmail: async (_, args: { code: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
-
-      const metadata = await cache.client?.get(args.code);
-
-      if (!metadata) {
-        throw new ApolloError('Data not found', 'BAD_REQUEST');
-      }
-
-      const { userId, email } = JSON.parse(metadata) as { userId: string; email: string };
-
-      if (userId !== ctx.user_id) {
-        throw new AuthenticationError('No permission to change the email');
-      }
-
-      const user = await userService.findUserById(ctx.user_id);
-
-      if (!user) {
-        throw new ApolloError('User not found', 'NOT_FOUND');
-      }
-
-      userService.updateUser(ctx.user_id, { email });
-      cache.client?.del(args.code);
-
-      return true;
+      return await userService.confirmChangeEmail(ctx.user_id, args.code);
     },
   },
 };
