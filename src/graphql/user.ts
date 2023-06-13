@@ -1,7 +1,7 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, AuthenticationError, ApolloError } from 'apollo-server-koa';
 import User from '../entity/User';
-import { getRepository, getManager } from 'typeorm';
+import { getRepository } from 'typeorm';
 import VelogConfig from '../entity/VelogConfig';
 import Series from '../entity/Series';
 import UserProfile from '../entity/UserProfile';
@@ -9,6 +9,7 @@ import { checkEmpty } from '../lib/utils';
 import UserMeta from '../entity/UserMeta';
 import { generateToken, decodeToken } from '../lib/token';
 import externalInterationService from '../services/externalIntegrationService';
+import userService from '../services/userService';
 
 export const typeDef = gql`
   type User {
@@ -48,6 +49,7 @@ export const typeDef = gql`
     velog_config(username: String): VelogConfig
     auth: User
     unregister_token: String
+    emailExists(email: String!): Boolean
   }
   extend type Mutation {
     update_about(about: String!): UserProfile
@@ -59,6 +61,8 @@ export const typeDef = gql`
     unregister(token: String!): Boolean
     logout: Boolean!
     acceptIntegration: String!
+    initiateChangeEmail(email: String!): Boolean
+    confirmChangeEmail(code: String!): Boolean
   }
 `;
 
@@ -156,6 +160,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           expiresIn: '5m',
         }
       );
+    },
+    emailExists: async (_, args: { email: string }, ctx) => {
+      const user = await userService.findUserByEmail(args.email);
+      return !!user;
     },
   },
   Mutation: {
@@ -276,6 +284,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
       const code = await externalInterationService.createIntegrationCode(ctx.user_id);
       return code;
+    },
+    initiateChangeEmail: async (_, args: { email: string }, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await userService.initiateChangeEmail(ctx.user_id, args.email);
+    },
+    confirmChangeEmail: async (_, args: { code: string }, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await userService.confirmChangeEmail(ctx.user_id, args.code);
     },
   },
 };

@@ -11,3 +11,4 @@ google-service-account.json
 cloudflare
 db
 settings.json
+.DS_Store

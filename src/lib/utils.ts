@@ -46,6 +46,12 @@ export const validateBody = (ctx: any, schema: SchemaLike) => {
   return true;
 };
 
+export const validateArgs = <T extends unknown>(args: T, schema: SchemaLike): boolean => {
+  const validate = Joi.validate<T>(args, schema);
+  if (validate.error) return false;
+  return true;
+};
+
 export const escapeForUrl = (text: string): string => {
   return text
     .replace(
