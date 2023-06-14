@@ -88,6 +88,7 @@
     "tslint": "^5.12.1",
     "tslint-config-airbnb": "^5.11.1",
     "tslint-config-prettier": "^1.17.0",
+    "tsyringe": "^4.7.0",
     "typeorm": "^0.2.22",
     "typescript": "^5.0.3",
     "webpack": "^4.41.5",
@@ -95,7 +96,7 @@
   },
   "scripts": {
     "offline": "sls offline --port 5001",
-    "dev": "NODE_ENV=development ts-node-dev --respawn --transpile-only ./src/server.ts",
+    "dev": "NODE_ENV=development nodemon --watch './**/*.ts' --exec 'ts-node --transpile-only' ./src/server.ts",
     "start:server": "NODE_ENV=development ts-node ./src/server.ts --transpile-only ",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "dev:sync": "yarn typeorm schema:sync",
@@ -110,6 +111,7 @@
   "devDependencies": {
     "@koa/multer": "^3.0.0",
     "@types/backblaze-b2": "^1.5.1",
-    "multer": "^1.4.4"
+    "multer": "^1.4.4",
+    "nodemon": "^2.0.22"
   }
 }
