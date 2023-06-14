@@ -1,11 +1,9 @@
-import type { Post, PostTag, Tag, User } from '@prisma/client';
-import { injectable } from 'tsyringe';
+import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
 import removeMd from 'remove-markdown';
 
-@injectable()
-export default class PostService {
-  public async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
+const postService = {
+  async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
     const cursorPost = cursor
       ? await db.post.findUnique({
           where: {
@@ -36,9 +34,11 @@ export default class PostService {
         user: true,
       },
     });
+
     return posts.map(this.serialize);
-  }
-  public async findPostById(id: string) {
+  },
+
+  async findPostById(id: string) {
     const post = await db.post.findUnique({
       where: {
         id,
@@ -54,9 +54,11 @@ export default class PostService {
     });
 
     if (!post) return null;
+
     return this.serialize(post);
-  }
-  private serialize(
+  },
+
+  serialize(
     post: Post & {
       postTags: (PostTag & {
         tag: Tag | null;
@@ -82,8 +84,10 @@ export default class PostService {
       body: post.body!,
       tags: post.postTags.map(pt => pt.tag!.name!),
     };
-  }
-}
+  },
+};
+
+export default postService;
 
 type FindPostParams = {
   userId: string;

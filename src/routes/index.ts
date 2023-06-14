@@ -8,6 +8,8 @@ import sitemaps from './sitemaps';
 import PostRead from '../entity/PostRead';
 import { BigQuery } from '@google-cloud/bigquery';
 import { createReadLog } from '../lib/bigQuery';
+import { container } from 'tsyringe';
+import UserService from '../services/userService';
 
 const bigQueryClient = new BigQuery({
   projectId: 'velog-14',
@@ -23,6 +25,12 @@ routes.use('/sitemaps', sitemaps.routes());
 // routes.use('/atom', rss.routes());
 
 routes.get('/', async ctx => {
+  const userService = container.resolve(UserService);
+
+  console.log(
+    'userService',
+    await userService.findUserById('72fa8bd9-8d7a-44d0-bb69-135511d28bb1')
+  );
   ctx.body = {
     message: 'hello world',
     ips: ctx.state.ipaddr,

@@ -1,7 +1,7 @@
 import nanoid from 'nanoid';
 import db from '../lib/db';
 import { decodeToken, generateToken } from '../lib/token';
-import { SerializedPost } from './postService';
+import { SerializedPost } from '../services/postService';
 import Axios from 'axios';
 
 const externalInterationService = {

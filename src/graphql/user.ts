@@ -10,6 +10,8 @@ import UserMeta from '../entity/UserMeta';
 import { generateToken, decodeToken } from '../lib/token';
 import externalInterationService from '../services/externalIntegrationService';
 import userService from '../services/userService';
+import UserService from '../services/userService';
+import { container } from 'tsyringe';
 
 export const typeDef = gql`
   type User {
@@ -162,6 +164,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       );
     },
     emailExists: async (_, args: { email: string }, ctx) => {
+      const userService = container.resolve(UserService);
       const user = await userService.findUserByEmail(args.email);
       return !!user;
     },
@@ -287,10 +290,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     },
     initiateChangeEmail: async (_, args: { email: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      const userService = container.resolve(UserService);
       return await userService.initiateChangeEmail(ctx.user_id, args.email);
     },
     confirmChangeEmail: async (_, args: { code: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      const userService = container.resolve(UserService);
       return await userService.confirmChangeEmail(ctx.user_id, args.code);
     },
   },

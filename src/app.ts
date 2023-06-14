@@ -12,6 +12,7 @@ import loadVariables from './loadVariable';
 import cors from './lib/middlewares/cors';
 import { keepAlive } from './lib/middlewares/keepAlive';
 import { ipaddr } from './lib/middlewares/ipaddr';
+import { setupContainer } from './lib/middlewares/setupContainer';
 
 const app = new Koa();
 

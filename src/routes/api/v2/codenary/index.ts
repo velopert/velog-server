@@ -1,7 +1,8 @@
 import Router from '@koa/router';
 import externalInterationService from '../../../../services/externalIntegrationService';
-import userService from '../../../../services/userService';
-import postService from '../../../../services/postService';
+import UserService from '../../../../services/userService';
+import { container } from 'tsyringe';
+import PostService from '../../../../services/postService';
 
 const codenary = new Router();
 
@@ -30,6 +31,7 @@ codenary.get('/profile', async ctx => {
       ctx.throw(401);
       return;
     }
+    const userService = container.resolve(UserService);
     const user = await userService.getPublicProfileById(decoded.integrated_user_id);
     ctx.body = user;
   } catch (e) {
@@ -55,6 +57,7 @@ codenary.get('/posts', async ctx => {
     return;
   }
 
+  const postService = container.resolve(PostService);
   const posts = await postService.findPublicPostsByUserId({
     userId: user_id,
     size: size ? parseInt(size) : 20,

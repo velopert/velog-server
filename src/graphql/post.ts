@@ -43,6 +43,8 @@ import imageService from '../services/imageService';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
+import { container } from 'tsyringe';
+import PostService from '../services/postService';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -866,6 +868,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           if (!ctx.user_id) return;
           const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
           if (!isIntegrated) return;
+          const postService = container.resolve(PostService);
           const serializedPost = await postService.findPostById(post.id);
           if (!serializedPost) return;
           externalInterationService.notifyWebhook({
@@ -1115,6 +1118,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           if (!ctx.user_id) return;
           const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
           if (!isIntegrated) return;
+          const postService = container.resolve(PostService);
           const serializedPost = await postService.findPostById(post.id);
           if (!serializedPost) return;
           externalInterationService.notifyWebhook({
@@ -1192,6 +1196,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         if (!ctx.user_id) return;
         const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
         if (!isIntegrated) return;
+        const postService = container.resolve(PostService);
         const serializedPost = await postService.findPostById(post.id);
         if (!serializedPost) return;
         externalInterationService.notifyWebhook({
