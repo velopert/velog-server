@@ -90,7 +90,7 @@ const userService = {
 
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Login URL: http://${process.env.CLIENT_HOST}/email-change?code=${code}`);
+        console.log(`Login URL: http://${process.env.CLIENT_V2_HOST}/email-change?code=${code}`);
       } else {
         await sendMail({
           to: email,

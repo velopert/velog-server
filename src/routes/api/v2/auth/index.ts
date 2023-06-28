@@ -58,9 +58,9 @@ auth.post('/sendmail', async ctx => {
     try {
       if (process.env.NODE_ENV === 'development') {
         console.log(
-          `Login URL: ${ctx.request.header.origin}/${user ? 'email-login' : 'register'}?code=${
-            emailAuth.code
-          }`
+          `Login URL: http://${process.env.CLIENT_V2_HOST}/${
+            user ? 'email-login' : 'register'
+          }?code=${emailAuth.code}`
         );
       } else {
         await sendMail({

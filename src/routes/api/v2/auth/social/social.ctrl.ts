@@ -40,6 +40,7 @@ const {
   GOOGLE_ID,
   GOOGLE_SECRET,
   CLIENT_HOST,
+  CLIENT_V2_HOST,
 } = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
@@ -420,7 +421,9 @@ export const socialCallback: Middleware = async ctx => {
       const tokens = await user.generateUserToken();
       setTokenCookie(ctx, tokens);
       const redirectUrl =
-        process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : `https://${CLIENT_HOST}`;
+        process.env.NODE_ENV === 'development'
+          ? `http://${CLIENT_V2_HOST}`
+          : `https://${CLIENT_HOST}`;
 
       const state = ctx.query.state
         ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
@@ -455,7 +458,9 @@ export const socialCallback: Middleware = async ctx => {
       const tokens = await user.generateUserToken();
       setTokenCookie(ctx, tokens);
       const redirectUrl =
-        process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : `https://${CLIENT_HOST}`;
+        process.env.NODE_ENV === 'development'
+          ? `http://${CLIENT_V2_HOST}`
+          : `https://${CLIENT_HOST}`;
 
       const state = ctx.query.state
         ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })

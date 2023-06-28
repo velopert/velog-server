@@ -7,7 +7,7 @@ const { GITHUB_ID, FACEBOOK_ID, GOOGLE_ID, GOOGLE_SECRET, API_HOST } = process.e
 const redirectPath = `/api/v2/auth/social/callback/`;
 export const redirectUri =
   process.env.NODE_ENV === 'development'
-    ? `http://localhost:5000${redirectPath}`
+    ? `http://localhost:5002${redirectPath}`
     : `https://${API_HOST}${redirectPath}`;
 
 type Options = {
