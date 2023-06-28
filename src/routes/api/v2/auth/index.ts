@@ -58,16 +58,17 @@ auth.post('/sendmail', async ctx => {
     try {
       if (process.env.NODE_ENV === 'development') {
         console.log(
-          `Login URL: http://${process.env.CLIENT_HOST}/${user ? 'email-login' : 'register'}?code=${
+          `Login URL: ${ctx.request.header.origin}/${user ? 'email-login' : 'register'}?code=${
             emailAuth.code
           }`
         );
+      } else {
+        await sendMail({
+          to: email,
+          ...emailTemplate,
+          from: 'verify@velog.io',
+        });
       }
-      await sendMail({
-        to: email,
-        ...emailTemplate,
-        from: 'verify@velog.io',
-      });
     } catch (e) {
       if (process.env.NODE_ENV !== 'development') {
         throw e;
