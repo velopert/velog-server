@@ -41,6 +41,7 @@ const {
   GOOGLE_SECRET,
   CLIENT_HOST,
   CLIENT_V2_HOST,
+  CLIENT_V3_HOST,
 } = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
@@ -422,9 +423,10 @@ export const socialCallback: Middleware = async ctx => {
       setTokenCookie(ctx, tokens);
       const redirectUrl =
         process.env.NODE_ENV === 'development'
-          ? `http://${CLIENT_V2_HOST}`
+          ? `http://${CLIENT_V3_HOST}`
           : `https://${CLIENT_HOST}`;
 
+      console.log('redirectUrl', redirectUrl);
       const state = ctx.query.state
         ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
         : null;
