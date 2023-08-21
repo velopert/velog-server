@@ -1207,74 +1207,96 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     likePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
+      const LIKE_POST_MUTATION = `
+        mutation likePost {
+          likePost(input: { postId: "002dcfb2-d2d9-4df2-bad1-4d493dda2b95"}) {
+            liked
+          }
+        }
+      `;
 
-      createLikeLog({
-        ip: ctx.ip,
-        postId: args.id,
-        userId: ctx.user_id,
-      });
-
-      // find post
-      const postRepo = getRepository(Post);
-      const post = await postRepo.findOne(args.id);
-
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-
-      // check already liked
-      const postLikeRepo = getRepository(PostLike);
-      const alreadyLiked = await postLikeRepo.findOne({
-        where: {
-          fk_post_id: args.id,
-          fk_user_id: ctx.user_id,
-        },
-      });
-
-      // exists
-      if (alreadyLiked) {
-        return post;
-      }
-
-      const postLike = new PostLike();
-      postLike.fk_post_id = args.id;
-      postLike.fk_user_id = ctx.user_id;
+      const host =
+        process.env.NODE_ENV === 'development'
+          ? `http://${process.env.API_V3_HOST}/graphql`
+          : `https://${process.env.API_V3_HOST}/graphql`;
 
       try {
-        await postLikeRepo.save(postLike);
-      } catch (e) {
-        return post;
+        const { data } = await Axios.post(
+          host,
+          {
+            operationName: 'likePost',
+            query: LIKE_POST_MUTATION,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            withCredentials: true,
+          }
+        );
+
+        console.log('datas', data);
+        return data;
+      } catch (error) {
+        console.log(error);
+        throw error;
       }
 
-      const count = await postLikeRepo.count({
-        where: {
-          fk_post_id: args.id,
-        },
-      });
-
-      post.likes = count;
-
-      await postRepo.save(post);
-
-      const unscored = checkUnscore(post.body.concat(post.title));
-      if (!unscored) {
-        const postScoreRepo = getRepository(PostScore);
-        const score = new PostScore();
-        score.type = 'LIKE';
-        score.fk_post_id = args.id;
-        score.score = 5;
-        score.fk_user_id = ctx.user_id;
-        await postScoreRepo.save(score);
-      }
-
-      setTimeout(() => {
-        searchSync.update(post.id);
-      }, 0);
-
-      return post;
+      // if (!ctx.user_id) {
+      //   throw new AuthenticationError('Not Logged In');
+      // }
+      // createLikeLog({
+      //   ip: ctx.ip,
+      //   postId: args.id,
+      //   userId: ctx.user_id,
+      // });
+      // // find post
+      // const postRepo = getRepository(Post);
+      // const post = await postRepo.findOne(args.id);
+      // if (!post) {
+      //   throw new ApolloError('Post not found', 'NOT_FOUND');
+      // }
+      // // check already liked
+      // const postLikeRepo = getRepository(PostLike);
+      // const alreadyLiked = await postLikeRepo.findOne({
+      //   where: {
+      //     fk_post_id: args.id,
+      //     fk_user_id: ctx.user_id,
+      //   },
+      // });
+      // // exists
+      // if (alreadyLiked) {
+      //   return post;
+      // }
+      // const postLike = new PostLike();
+      // postLike.fk_post_id = args.id;
+      // postLike.fk_user_id = ctx.user_id;
+      // try {
+      //   await postLikeRepo.save(postLike);
+      // } catch (e) {
+      //   return post;
+      // }
+      // const count = await postLikeRepo.count({
+      //   where: {
+      //     fk_post_id: args.id,
+      //   },
+      // });
+      // post.likes = count;
+      // await postRepo.save(post);
+      // const unscored = checkUnscore(post.body.concat(post.title));
+      // if (!unscored) {
+      //   const postScoreRepo = getRepository(PostScore);
+      //   const score = new PostScore();
+      //   score.type = 'LIKE';
+      //   score.fk_post_id = args.id;
+      //   score.score = 5;
+      //   score.fk_user_id = ctx.user_id;
+      //   await postScoreRepo.save(score);
+      // }
+      // setTimeout(() => {
+      //   searchSync.update(post.id);
+      // }, 0);
+      // return post;
     },
     unlikePost: async (parent: any, args, ctx) => {
       if (!ctx.user_id) {
