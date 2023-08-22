@@ -12,6 +12,7 @@ import loadVariables from './loadVariable';
 import cors from './lib/middlewares/cors';
 import { keepAlive } from './lib/middlewares/keepAlive';
 import { ipaddr } from './lib/middlewares/ipaddr';
+import Cookies from 'cookies';
 
 const app = new Koa();
 
@@ -30,6 +31,7 @@ export type ApolloContext = {
   loaders: Loaders;
   ip: string;
   unsetCookie: () => void;
+  cookies: Cookies;
 };
 
 const apollo = new ApolloServer({
@@ -45,6 +47,7 @@ const apollo = new ApolloServer({
         unsetCookie: () => {
           resetTokenCookie(ctx);
         },
+        cookies: ctx.cookies,
       };
     } catch (e) {
       return {};

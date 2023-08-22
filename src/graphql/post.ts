@@ -29,7 +29,7 @@ import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
 import { nextSpamFilter } from '../etc/spamFilter';
-import Axios from 'axios';
+import Axios, { AxiosResponse } from 'axios';
 import LRU from 'lru-cache';
 import { createLikeLog, createReadLog } from '../lib/bigQuery';
 import esClient from '../search/esClient';
@@ -1209,20 +1209,24 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     likePost: async (parent: any, args, ctx) => {
       const LIKE_POST_MUTATION = `
         mutation likePost {
-          likePost(input: { postId: "002dcfb2-d2d9-4df2-bad1-4d493dda2b95"}) {
+          likePost(input: { postId: "${args.id}"}) {
+            id
             liked
           }
         }
       `;
 
-      const host =
+      const endpoint =
         process.env.NODE_ENV === 'development'
           ? `http://${process.env.API_V3_HOST}/graphql`
           : `https://${process.env.API_V3_HOST}/graphql`;
 
       try {
-        const { data } = await Axios.post(
-          host,
+        const cookies = ctx.cookies;
+        const accessToken = cookies.get('access_token');
+
+        const res = await Axios.post<AxiosResponse<LikePostResponse>>(
+          endpoint,
           {
             operationName: 'likePost',
             query: LIKE_POST_MUTATION,
@@ -1230,16 +1234,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           {
             headers: {
               'Content-Type': 'application/json',
+              authorization: `Bearer ${accessToken}`,
             },
             withCredentials: true,
           }
         );
 
-        console.log('datas', data);
-        return data;
+        return res.data.data.likePost;
       } catch (error) {
-        console.log(error);
-        throw error;
+        throw new ApolloError('Failed to like post');
       }
 
       // if (!ctx.user_id) {
@@ -1401,4 +1404,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
   },
+};
+
+type LikePostResponse = {
+  likePost: {
+    id: string;
+    liked: boolean;
+  };
 };
