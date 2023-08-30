@@ -95,7 +95,7 @@
   },
   "scripts": {
     "offline": "sls offline --port 5001",
-    "dev": "NODE_ENV=development NODE_ENV=development nodemon --watch ./src --exec \"ts-node --transpileOnly ./src/server.ts\" -e ts",
+    "dev": "NODE_ENV=development nodemon --watch ./src --exec \"ts-node --transpileOnly ./src/server.ts\" -e ts",
     "start:server": "NODE_ENV=development ts-node ./src/server.ts --transpile-only ",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "dev:sync": "yarn typeorm schema:sync",
