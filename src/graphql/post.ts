@@ -1212,6 +1212,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           likePost(input: { postId: "${args.id}"}) {
             id
             liked
+            likes
           }
         }
       `;
@@ -1244,62 +1245,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       } catch (error) {
         throw new ApolloError('Failed to like post');
       }
-
-      // if (!ctx.user_id) {
-      //   throw new AuthenticationError('Not Logged In');
-      // }
-      // createLikeLog({
-      //   ip: ctx.ip,
-      //   postId: args.id,
-      //   userId: ctx.user_id,
-      // });
-      // // find post
-      // const postRepo = getRepository(Post);
-      // const post = await postRepo.findOne(args.id);
-      // if (!post) {
-      //   throw new ApolloError('Post not found', 'NOT_FOUND');
-      // }
-      // // check already liked
-      // const postLikeRepo = getRepository(PostLike);
-      // const alreadyLiked = await postLikeRepo.findOne({
-      //   where: {
-      //     fk_post_id: args.id,
-      //     fk_user_id: ctx.user_id,
-      //   },
-      // });
-      // // exists
-      // if (alreadyLiked) {
-      //   return post;
-      // }
-      // const postLike = new PostLike();
-      // postLike.fk_post_id = args.id;
-      // postLike.fk_user_id = ctx.user_id;
-      // try {
-      //   await postLikeRepo.save(postLike);
-      // } catch (e) {
-      //   return post;
-      // }
-      // const count = await postLikeRepo.count({
-      //   where: {
-      //     fk_post_id: args.id,
-      //   },
-      // });
-      // post.likes = count;
-      // await postRepo.save(post);
-      // const unscored = checkUnscore(post.body.concat(post.title));
-      // if (!unscored) {
-      //   const postScoreRepo = getRepository(PostScore);
-      //   const score = new PostScore();
-      //   score.type = 'LIKE';
-      //   score.fk_post_id = args.id;
-      //   score.score = 5;
-      //   score.fk_user_id = ctx.user_id;
-      //   await postScoreRepo.save(score);
-      // }
-      // setTimeout(() => {
-      //   searchSync.update(post.id);
-      // }, 0);
-      // return post;
     },
     unlikePost: async (parent: any, args, ctx) => {
       if (!ctx.user_id) {

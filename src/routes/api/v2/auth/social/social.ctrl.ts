@@ -423,10 +423,9 @@ export const socialCallback: Middleware = async ctx => {
       setTokenCookie(ctx, tokens);
       const redirectUrl =
         process.env.NODE_ENV === 'development'
-          ? `http://${CLIENT_V3_HOST}`
+          ? `http://${CLIENT_V2_HOST}`
           : `https://${CLIENT_HOST}`;
 
-      console.log('redirectUrl', redirectUrl);
       const state = ctx.query.state
         ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
         : null;
@@ -443,7 +442,7 @@ export const socialCallback: Middleware = async ctx => {
         }
       }
 
-      ctx.redirect(encodeURI(redirectUrl.concat(next)));
+      ctx.redirect(decodeURI(redirectUrl.concat(next)));
       return;
     }
 
