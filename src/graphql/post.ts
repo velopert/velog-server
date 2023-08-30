@@ -1207,6 +1207,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     likePost: async (parent: any, args, ctx) => {
+      if (!ctx.user_id) {
+        throw new AuthenticationError('Not Logged In');
+      }
+
       const LIKE_POST_MUTATION = `
         mutation likePost {
           likePost(input: { postId: "${args.id}"}) {
@@ -1237,7 +1241,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
               'Content-Type': 'application/json',
               authorization: `Bearer ${accessToken}`,
             },
-            withCredentials: true,
           }
         );
 
@@ -1251,54 +1254,43 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new AuthenticationError('Not Logged In');
       }
 
-      // find post
-      const postRepo = getRepository(Post);
-      const post = await postRepo.findOne(args.id);
+      const UNLIKE_POST_MUTATION = `
+        mutation unlikePost {
+          unlikePost(input: { postId: "${args.id}"}) {
+            id
+            liked
+            likes
+          }
+        }
+      `;
 
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
+      const endpoint =
+        process.env.NODE_ENV === 'development'
+          ? `http://${process.env.API_V3_HOST}/graphql`
+          : `https://${process.env.API_V3_HOST}/graphql`;
+
+      try {
+        const cookies = ctx.cookies;
+        const accessToken = cookies.get('access_token');
+
+        const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
+          endpoint,
+          {
+            operationName: 'unlikePost',
+            query: UNLIKE_POST_MUTATION,
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+
+        return res.data.data.unlikePost;
+      } catch (error) {
+        throw new ApolloError('Failed to like post');
       }
-
-      // check already liked
-      const postLikeRepo = getRepository(PostLike);
-      const postLike = await postLikeRepo.findOne({
-        where: {
-          fk_post_id: args.id,
-          fk_user_id: ctx.user_id,
-        },
-      });
-
-      // not exists
-      if (!postLike) {
-        return post;
-      }
-
-      await postLikeRepo.remove(postLike);
-
-      const count = await postLikeRepo.count({
-        where: {
-          fk_post_id: args.id,
-        },
-      });
-
-      post.likes = count;
-
-      await postRepo.save(post);
-
-      const postScoreRepo = getRepository(PostScore);
-      await postScoreRepo
-        .createQueryBuilder()
-        .delete()
-        .where('fk_post_id = :postId', { postId: args.id })
-        .andWhere('fk_user_id = :userId', { userId: ctx.user_id })
-        .andWhere("type = 'LIKE'")
-        .execute();
-
-      setTimeout(() => {
-        searchSync.update(post.id).catch(console.error);
-      }, 0);
-
-      return post;
     },
     postView: async (parent: any, { id }: { id: string }, ctx) => {
       const postReadRepo = getRepository(PostRead);
@@ -1355,5 +1347,14 @@ type LikePostResponse = {
   likePost: {
     id: string;
     liked: boolean;
+    likes: number;
+  };
+};
+
+type UnlikePostResponse = {
+  unlikePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
   };
 };
