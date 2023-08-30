@@ -1228,7 +1228,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       try {
         const cookies = ctx.cookies;
-        const accessToken = cookies.get('access_token');
+        const accessToken = cookies.get('access_token') ?? '';
 
         const res = await Axios.post<AxiosResponse<LikePostResponse>>(
           endpoint,
@@ -1271,7 +1271,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       try {
         const cookies = ctx.cookies;
-        const accessToken = cookies.get('access_token');
+        const accessToken = cookies.get('access_token') ?? '';
 
         const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
           endpoint,
