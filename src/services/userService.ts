@@ -86,7 +86,7 @@ const userService = {
     const code = cache.generateKey.changeEmailKey(id);
     const data = JSON.stringify({ userId: user.id, email: email.toLowerCase() });
 
-    const template = createChangeEmail(user.username, email, code);
+    const template = createChangeEmail(user.username, email, id);
 
     try {
       if (process.env.NODE_ENV === 'development') {
@@ -107,7 +107,7 @@ const userService = {
     return true;
   },
   async confirmChangeEmail(loggedUserId: string, code: string): Promise<boolean> {
-    const metadata = await cache.client?.get(code);
+    const metadata = await cache.client?.get(cache.generateKey.changeEmailKey(code));
 
     if (!metadata) {
       throw new ApolloError('Data not found', 'BAD_REQUEST');

@@ -601,17 +601,17 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       } else {
         const rows = (await getManager().query(
           `
-          select posts.id, posts.title, SUM(score) as score  from post_scores
+          select posts.id, posts.title, SUM(post_scores.score) as legacy_score  from post_scores
           inner join posts on post_scores.fk_post_id = posts.id
           where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
           and posts.released_at > now() - interval '${selectedTimeframe[1] * 1.5} days'
           group by posts.id
-          order by score desc, posts.id desc
+          order by legacy_score desc, posts.id desc
           offset $1
           limit $2
         `,
           [offset, limit]
-        )) as { id: string; score: number }[];
+        )) as { id: string; legacy_score: number }[];
 
         ids = rows.map(row => row.id);
         lruCache.set(cacheKey, ids);
