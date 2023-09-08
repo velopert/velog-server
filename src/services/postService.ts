@@ -2,6 +2,7 @@ import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
 import userService from './userService';
 import removeMd from 'remove-markdown';
+import { escapeForUrl } from '../lib/utils';
 
 const postService = {
   async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
@@ -37,6 +38,85 @@ const postService = {
     });
 
     return posts.map(this.serialize);
+  },
+
+  // @todo: should be implemented on tag service
+  async getOriginTag(name: string) {
+    const filtered = escapeForUrl(name).toLowerCase();
+    const tag = await db.tag.findFirst({
+      where: {
+        name_filtered: filtered,
+      },
+    });
+    if (!tag) return null;
+    if (tag.is_alias) {
+      const alias = await db.tagAlias.findFirst({
+        where: {
+          fk_tag_id: tag.id,
+        },
+      });
+      if (!alias) return;
+      const originTag = await db.tag.findFirst({
+        where: {
+          id: alias.fk_alias_tag_id,
+        },
+      });
+      return originTag;
+    }
+    return tag;
+  },
+
+  async findPostsByTag({ tagName, cursor, userId, userself }: GetPostsByTagParams) {
+    const originTag = await this.getOriginTag(tagName);
+    if (!originTag) throw new Error('Invalid Tag');
+    const cursorPost = cursor
+      ? await db.post.findUnique({
+          where: { id: cursor },
+        })
+      : null;
+
+    const posts = await db.postTag.findMany({
+      where: {
+        fk_tag_id: originTag.id,
+        Post: {
+          is_temp: false,
+          ...(cursorPost
+            ? {
+                released_at: {
+                  lt: cursorPost.released_at!,
+                },
+              }
+            : {}),
+          ...(userId
+            ? { fk_user_id: userId, ...(userself ? {} : { is_private: false }) }
+            : { is_private: false }),
+        },
+      },
+      include: {
+        Post: {
+          include: {
+            postTags: {
+              include: {
+                tag: true,
+              },
+            },
+            user: true,
+          },
+        },
+      },
+      orderBy: {
+        Post: {
+          released_at: 'desc',
+        },
+      },
+      take: 20,
+    });
+
+    const serialized = posts.map(p => this.serialize(p.Post!));
+
+    console.log(serialized);
+
+    return serialized;
   },
 
   async findPostById(id: string) {
@@ -84,6 +164,7 @@ const postService = {
         ),
       body: post.body!,
       tags: post.postTags.map(pt => pt.tag!.name!),
+      fk_user_id: post.fk_user_id,
     };
   },
 };
@@ -106,4 +187,12 @@ export type SerializedPost = {
   short_description: string;
   body: string | null;
   tags: (string | null)[];
+};
+
+type GetPostsByTagParams = {
+  tagName: string;
+  cursor?: string;
+  limit?: number;
+  userId?: string;
+  userself: boolean;
 };

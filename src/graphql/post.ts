@@ -463,7 +463,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         : null;
 
       if (tag) {
-        return PostsTags.getPostsByTag({
+        return postService.findPostsByTag({
           limit,
           cursor,
           tagName: tag,
