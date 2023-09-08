@@ -114,8 +114,6 @@ const postService = {
 
     const serialized = posts.map(p => this.serialize(p.Post!));
 
-    console.log(serialized);
-
     return serialized;
   },
 
