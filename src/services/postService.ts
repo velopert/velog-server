@@ -163,6 +163,8 @@ const postService = {
       body: post.body!,
       tags: post.postTags.map(pt => pt.tag!.name!),
       fk_user_id: post.fk_user_id,
+      url_slug: post.url_slug,
+      likes: post.likes,
     };
   },
 };
