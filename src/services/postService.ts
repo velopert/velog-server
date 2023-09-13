@@ -154,6 +154,7 @@ const postService = {
       updated_at: post.updated_at!,
       short_description:
         post.short_description ??
+        (post.meta as any)?.short_description ??
         removeMd(
           (post.body ?? '')
             .replace(/```([\s\S]*?)```/g, '')
