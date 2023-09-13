@@ -43,6 +43,7 @@ import imageService from '../services/imageService';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
+import userFollowService from '../services/userFollowService';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -98,6 +99,7 @@ export const typeDef = gql`
     linked_posts: LinkedPosts
     last_read_at: Date
     recommended_posts: [Post]
+    followed: Boolean
   }
   type SearchResult {
     count: Int
@@ -386,6 +388,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         previous,
         next,
       };
+    },
+    followed: async (parent: Post, _, ctx) => {
+      if (!ctx.user_id) return false;
+      return await userFollowService.isFollowed(ctx.user_id, parent.fk_user_id);
     },
   },
   Query: {
