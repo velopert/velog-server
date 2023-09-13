@@ -131,6 +131,8 @@ const userService = {
 
     return true;
   },
+  async followUser(loggedUserId: string, followUserId: string) {},
+  async unfollowUser(loggedUserId: string, followUserId: string) {},
 };
 
 export default userService;

@@ -1207,90 +1207,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     likePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      const LIKE_POST_MUTATION = `
-        mutation likePost {
-          likePost(input: { postId: "${args.id}"}) {
-            id
-            liked
-            likes
-          }
-        }
-      `;
-
-      const endpoint =
-        process.env.NODE_ENV === 'development'
-          ? `http://${process.env.API_V3_HOST}/graphql`
-          : `https://${process.env.API_V3_HOST}/graphql`;
-
-      try {
-        const cookies = ctx.cookies;
-        const accessToken = cookies.get('access_token') ?? '';
-
-        const res = await Axios.post<AxiosResponse<LikePostResponse>>(
-          endpoint,
-          {
-            operationName: 'likePost',
-            query: LIKE_POST_MUTATION,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        return res.data.data.likePost;
-      } catch (error) {
-        throw new ApolloError('Failed to like post');
-      }
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await postService.likePost(args.id, ctx.cookies);
     },
     unlikePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      const UNLIKE_POST_MUTATION = `
-        mutation unlikePost {
-          unlikePost(input: { postId: "${args.id}"}) {
-            id
-            liked
-            likes
-          }
-        }
-      `;
-
-      const endpoint =
-        process.env.NODE_ENV === 'development'
-          ? `http://${process.env.API_V3_HOST}/graphql`
-          : `https://${process.env.API_V3_HOST}/graphql`;
-
-      try {
-        const cookies = ctx.cookies;
-        const accessToken = cookies.get('access_token') ?? '';
-
-        const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
-          endpoint,
-          {
-            operationName: 'unlikePost',
-            query: UNLIKE_POST_MUTATION,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        return res.data.data.unlikePost;
-      } catch (error) {
-        throw new ApolloError('Failed to like post');
-      }
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await postService.unlikePost(args.id, ctx.cookies);
     },
     postView: async (parent: any, { id }: { id: string }, ctx) => {
       const postReadRepo = getRepository(PostRead);
@@ -1341,20 +1263,4 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
   },
-};
-
-type LikePostResponse = {
-  likePost: {
-    id: string;
-    liked: boolean;
-    likes: number;
-  };
-};
-
-type UnlikePostResponse = {
-  unlikePost: {
-    id: string;
-    liked: boolean;
-    likes: number;
-  };
 };

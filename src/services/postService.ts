@@ -2,6 +2,8 @@ import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
 import userService from './userService';
 import removeMd from 'remove-markdown';
+import Axios, { AxiosResponse } from 'axios';
+import Cookies from 'cookies';
 
 const postService = {
   async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
@@ -86,6 +88,73 @@ const postService = {
       tags: post.postTags.map(pt => pt.tag!.name!),
     };
   },
+  async likePost(postId: string, cookies: Cookies) {
+    const LIKE_POST_MUTATION = `
+        mutation likePost {
+          likePost(input: { postId: "${postId}"}) {
+            id
+            liked
+            likes
+          }
+        }
+      `;
+
+    const endpoint =
+      process.env.NODE_ENV === 'development'
+        ? `http://${process.env.API_V3_HOST}/graphql`
+        : `https://${process.env.API_V3_HOST}/graphql`;
+
+    const accessToken = cookies.get('access_token') ?? '';
+
+    const res = await Axios.post<AxiosResponse<LikePostResponse>>(
+      endpoint,
+      {
+        operationName: 'likePost',
+        query: LIKE_POST_MUTATION,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    return res.data.data.likePost;
+  },
+  async unlikePost(postId: string, cookies: Cookies) {
+    const UNLIKE_POST_MUTATION = `
+        mutation unlikePost {
+          unlikePost(input: { postId: "${postId}"}) {
+            id
+            liked
+            likes
+          }
+        }
+      `;
+
+    const endpoint =
+      process.env.NODE_ENV === 'development'
+        ? `http://${process.env.API_V3_HOST}/graphql`
+        : `https://${process.env.API_V3_HOST}/graphql`;
+
+    const accessToken = cookies.get('access_token') ?? '';
+
+    const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
+      endpoint,
+      {
+        operationName: 'unlikePost',
+        query: UNLIKE_POST_MUTATION,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return res.data.data.unlikePost;
+  },
 };
 
 export default postService;
@@ -106,4 +175,20 @@ export type SerializedPost = {
   short_description: string;
   body: string | null;
   tags: (string | null)[];
+};
+
+type LikePostResponse = {
+  likePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
+  };
+};
+
+type UnlikePostResponse = {
+  unlikePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
+  };
 };

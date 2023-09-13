@@ -63,6 +63,8 @@ export const typeDef = gql`
     acceptIntegration: String!
     initiateChangeEmail(email: String!): Boolean
     confirmChangeEmail(code: String!): Boolean
+    follow(follow_user_id: ID): User
+    unfollow(follow_user_id: ID): User
   }
 `;
 
@@ -292,6 +294,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     confirmChangeEmail: async (_, args: { code: string }, ctx) => {
       if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
       return await userService.confirmChangeEmail(ctx.user_id, args.code);
+    },
+    follow: async (_, args: { follow_user_id: string }, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await userService.followUser(ctx.user_id, args.follow_user_id);
+    },
+    unfollow: async (_, args: { follow_user_id: string }, ctx) => {
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await userService.unfollowUser(ctx.user_id, args.follow_user_id);
     },
   },
 };
