@@ -145,6 +145,19 @@ const postService = {
       user: User;
     }
   ) {
+    const shortDescription = (() => {
+      if (post.short_description) return post.short_description;
+      const sd = (post.meta as any)?.short_description;
+      if (sd) return sd;
+      const removed = removeMd(
+        (post.body ?? '')
+          .replace(/```([\s\S]*?)```/g, '')
+          .replace(/~~~([\s\S]*?)~~~/g, '')
+          .slice(0, 500)
+      );
+      return removed.slice(0, 200) + (removed.length > 200 ? '...' : '');
+    })();
+
     return {
       id: post.id,
       url: `https://velog.io/@${post.user.username}/${encodeURI(post.url_slug ?? '')}`,
@@ -152,15 +165,7 @@ const postService = {
       thumbnail: post.thumbnail,
       released_at: post.released_at!,
       updated_at: post.updated_at!,
-      short_description:
-        post.short_description ??
-        (post.meta as any)?.short_description ??
-        removeMd(
-          (post.body ?? '')
-            .replace(/```([\s\S]*?)```/g, '')
-            .replace(/~~~([\s\S]*?)~~~/g, '')
-            .slice(0, 500)
-        ),
+      short_description: shortDescription,
       body: post.body!,
       tags: post.postTags.map(pt => pt.tag!.name!),
       fk_user_id: post.fk_user_id,
