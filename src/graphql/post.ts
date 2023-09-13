@@ -209,7 +209,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     short_description: (parent: Post) => {
       if ((parent as any).short_description) return (parent as any).short_description;
 
-      if (parent.meta.short_description) {
+      if (parent.meta?.short_description) {
         return parent.meta.short_description;
       }
 
