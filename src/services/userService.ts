@@ -161,7 +161,7 @@ const userService = {
 
       return res.data.data.follow;
     } catch (error: any) {
-      console.log(error.response.data.errors);
+      console.log('follow error:', error.response.data.errors);
       return false;
     }
   },
@@ -193,7 +193,7 @@ const userService = {
 
       return res.data.data.unFollow;
     } catch (error: any) {
-      console.log(error.response.data.errors);
+      console.log('unfollow error:', error.response.data.errors);
       return false;
     }
   },
