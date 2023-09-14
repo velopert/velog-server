@@ -178,7 +178,7 @@ const postService = {
   },
   async likePost(postId: string, cookies: Cookies) {
     const LIKE_POST_MUTATION = `
-        mutation likePost {
+        mutation LikePost {
           likePost(input: { postId: "${postId}"}) {
             id
             liked
@@ -212,7 +212,7 @@ const postService = {
   },
   async unlikePost(postId: string, cookies: Cookies) {
     const UNLIKE_POST_MUTATION = `
-        mutation unlikePost {
+        mutation UnLikePost {
           unlikePost(input: { postId: "${postId}"}) {
             id
             liked

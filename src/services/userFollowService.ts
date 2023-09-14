@@ -11,7 +11,7 @@ const userFollowService = {
     });
   },
   async isFollowed(userId: string, followUserId: string): Promise<boolean> {
-    return !!this.findFollowRelationship(userId, followUserId);
+    return !!(await this.findFollowRelationship(userId, followUserId));
   },
 };
 

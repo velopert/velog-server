@@ -63,8 +63,8 @@ export const typeDef = gql`
     acceptIntegration: String!
     initiateChangeEmail(email: String!): Boolean
     confirmChangeEmail(code: String!): Boolean
-    follow(follow_user_id: ID): User
-    unfollow(follow_user_id: ID): User
+    follow(follow_user_id: ID): Boolean
+    unfollow(follow_user_id: ID): Boolean
   }
 `;
 
