@@ -109,6 +109,7 @@ export const consumeUser: Middleware = async (ctx: Context, next) => {
   if (ctx.path.includes('/auth/logout')) return next(); // ignore when logging out
 
   let accessToken: string | undefined = ctx.cookies.get('access_token');
+
   const refreshToken: string | undefined = ctx.cookies.get('refresh_token');
 
   const { authorization } = ctx.request.headers;
