@@ -197,7 +197,7 @@ const postService = {
     const res = await Axios.post<AxiosResponse<LikePostResponse>>(
       endpoint,
       {
-        operationName: 'likePost',
+        operationName: 'LikePost',
         query: LIKE_POST_MUTATION,
       },
       {
@@ -231,7 +231,7 @@ const postService = {
     const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
       endpoint,
       {
-        operationName: 'unlikePost',
+        operationName: 'UnLikePost',
         query: UNLIKE_POST_MUTATION,
       },
       {
