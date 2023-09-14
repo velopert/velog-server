@@ -1,3 +1,4 @@
+import { GetPostsByTagParams } from './../entity/PostsTags';
 import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
 import userService from './userService';
@@ -262,4 +263,20 @@ export type SerializedPost = {
   short_description: string;
   body: string | null;
   tags: (string | null)[];
+};
+
+type LikePostResponse = {
+  likePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
+  };
+};
+
+type UnlikePostResponse = {
+  unlikePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
+  };
 };
