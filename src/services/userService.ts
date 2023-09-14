@@ -165,9 +165,9 @@ const userService = {
       return false;
     }
   },
-  async unfollowUser(followUserId: string, cookies: Cookies) {
+  async unFollowUser(followUserId: string, cookies: Cookies) {
     try {
-      const query = 'mutation UnFollow ($input: UnfollowInput!) {\n\tunfollow(input: $input) \n}';
+      const query = 'mutation UnFollow ($input: UnFollowInput!) {\n\tunFollow(input: $input) \n}';
 
       const accessToken = cookies.get('access_token') ?? '';
 
@@ -176,7 +176,7 @@ const userService = {
           ? `http://${process.env.API_V3_HOST}/graphql`
           : `https://${process.env.API_V3_HOST}/graphql`;
 
-      const res = await Axios.post<AxiosResponse<{ unfollow: boolean }>>(
+      const res = await Axios.post<AxiosResponse<{ unFollow: boolean }>>(
         endpoint,
         {
           operationName: 'UnFollow',
@@ -191,7 +191,7 @@ const userService = {
         }
       );
 
-      return res.data.data.unfollow;
+      return res.data.data.unFollow;
     } catch (error: any) {
       console.log(error.response.data.errors);
       return false;
