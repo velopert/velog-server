@@ -7,6 +7,8 @@ import shortid from 'shortid';
 import cache from '../cache';
 import { createChangeEmail } from '../etc/emailTemplates';
 import sendMail from '../lib/sendMail';
+import Cookies from 'cookies';
+import Axios, { AxiosError, AxiosResponse } from 'axios';
 
 const userService = {
   async getPublicProfileById(userId: string) {
@@ -130,6 +132,70 @@ const userService = {
     cache.client?.del(code);
 
     return true;
+  },
+  async followUser(followUserId: string, cookies: Cookies) {
+    try {
+      const query = 'mutation Follow ($input: FollowInput!) {\n\tfollow(input: $input) \n}';
+
+      const accessToken = cookies.get('access_token') ?? '';
+
+      const endpoint =
+        process.env.NODE_ENV === 'development'
+          ? `http://${process.env.API_V3_HOST}/graphql`
+          : `https://${process.env.API_V3_HOST}/graphql`;
+
+      const res = await Axios.post<AxiosResponse<{ follow: boolean }>>(
+        endpoint,
+        {
+          operationName: 'Follow',
+          query: query,
+          variables: { input: { followUserId: followUserId } },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      return res.data.data.follow;
+    } catch (error: any) {
+      console.log('follow error:', error.response.data.errors);
+      return false;
+    }
+  },
+  async unFollowUser(followUserId: string, cookies: Cookies) {
+    try {
+      const query = 'mutation UnFollow ($input: UnFollowInput!) {\n\tunFollow(input: $input) \n}';
+
+      const accessToken = cookies.get('access_token') ?? '';
+
+      const endpoint =
+        process.env.NODE_ENV === 'development'
+          ? `http://${process.env.API_V3_HOST}/graphql`
+          : `https://${process.env.API_V3_HOST}/graphql`;
+
+      const res = await Axios.post<AxiosResponse<{ unFollow: boolean }>>(
+        endpoint,
+        {
+          operationName: 'UnFollow',
+          query: query,
+          variables: { input: { followUserId: followUserId } },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      return res.data.data.unFollow;
+    } catch (error: any) {
+      console.log('unfollow error:', error.response.data.errors);
+      return false;
+    }
   },
 };
 

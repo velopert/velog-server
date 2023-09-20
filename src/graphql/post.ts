@@ -43,6 +43,7 @@ import imageService from '../services/imageService';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
+import userFollowService from '../services/userFollowService';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -98,6 +99,7 @@ export const typeDef = gql`
     linked_posts: LinkedPosts
     last_read_at: Date
     recommended_posts: [Post]
+    followed: Boolean
   }
   type SearchResult {
     count: Int
@@ -207,7 +209,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return parent.user;
     },
     short_description: (parent: Post) => {
-      if (parent.meta.short_description) {
+      if ((parent as any).short_description) return (parent as any).short_description;
+
+      if (parent.meta?.short_description) {
         return parent.meta.short_description;
       }
 
@@ -387,6 +391,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         next,
       };
     },
+    followed: async (parent: Post, _, ctx) => {
+      if (!ctx.user_id) return false;
+      return await userFollowService.isFollowed(ctx.user_id, parent.fk_user_id);
+    },
   },
   Query: {
     post: async (parent: any, { id, username, url_slug }: any, ctx: any) => {
@@ -463,7 +471,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         : null;
 
       if (tag) {
-        return PostsTags.getPostsByTag({
+        return postService.findPostsByTag({
           limit,
           cursor,
           tagName: tag,
@@ -1207,90 +1215,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     likePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      const LIKE_POST_MUTATION = `
-        mutation likePost {
-          likePost(input: { postId: "${args.id}"}) {
-            id
-            liked
-            likes
-          }
-        }
-      `;
-
-      const endpoint =
-        process.env.NODE_ENV === 'development'
-          ? `http://${process.env.API_V3_HOST}/graphql`
-          : `https://${process.env.API_V3_HOST}/graphql`;
-
-      try {
-        const cookies = ctx.cookies;
-        const accessToken = cookies.get('access_token') ?? '';
-
-        const res = await Axios.post<AxiosResponse<LikePostResponse>>(
-          endpoint,
-          {
-            operationName: 'likePost',
-            query: LIKE_POST_MUTATION,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        return res.data.data.likePost;
-      } catch (error) {
-        throw new ApolloError('Failed to like post');
-      }
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await postService.likePost(args.id, ctx.cookies);
     },
     unlikePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      const UNLIKE_POST_MUTATION = `
-        mutation unlikePost {
-          unlikePost(input: { postId: "${args.id}"}) {
-            id
-            liked
-            likes
-          }
-        }
-      `;
-
-      const endpoint =
-        process.env.NODE_ENV === 'development'
-          ? `http://${process.env.API_V3_HOST}/graphql`
-          : `https://${process.env.API_V3_HOST}/graphql`;
-
-      try {
-        const cookies = ctx.cookies;
-        const accessToken = cookies.get('access_token') ?? '';
-
-        const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
-          endpoint,
-          {
-            operationName: 'unlikePost',
-            query: UNLIKE_POST_MUTATION,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-
-        return res.data.data.unlikePost;
-      } catch (error) {
-        throw new ApolloError('Failed to like post');
-      }
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await postService.unlikePost(args.id, ctx.cookies);
     },
     postView: async (parent: any, { id }: { id: string }, ctx) => {
       const postReadRepo = getRepository(PostRead);
@@ -1341,20 +1271,4 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
   },
-};
-
-type LikePostResponse = {
-  likePost: {
-    id: string;
-    liked: boolean;
-    likes: number;
-  };
-};
-
-type UnlikePostResponse = {
-  unlikePost: {
-    id: string;
-    liked: boolean;
-    likes: number;
-  };
 };
