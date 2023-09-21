@@ -1259,13 +1259,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const post = await postRepo.findOne(id);
       if (!post) return false;
 
-      const postScoreRepo = getRepository(PostScore);
       if (post.views % 10 === 0) {
-        const score = new PostScore();
-        score.fk_post_id = id;
-        score.type = 'READ';
-        score.score = 0.25;
-        await postScoreRepo.save(score);
+        const endpoint =
+          process.env.NODE_ENV === 'development'
+            ? `http://${process.env.API_V3_HOST}`
+            : `https://${process.env.API_V3_HOST}`;
+
+        await Axios.patch(`${endpoint}/api/posts/v3/score/${post.id}`);
       }
 
       return true;
