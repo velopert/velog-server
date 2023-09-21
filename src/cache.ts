@@ -44,9 +44,18 @@ class Cache {
       changeEmailKey: (code: string) => `changeEmailCode:${code}`,
     };
   }
+
+  getQueueName(name: QueueName) {
+    const mapper = {
+      feed: 'feedQueue',
+    };
+    return mapper[name];
+  }
 }
 
 const cache = new Cache();
 cache.connect();
 
 export default cache;
+
+type QueueName = 'feed';

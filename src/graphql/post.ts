@@ -881,6 +881,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             post: serializedPost,
           });
         });
+
+        const queueName = cache.getQueueName('feed');
+        const queueInfo = {
+          writer_id: ctx.user_id,
+          post_id: post.id,
+        };
+        cache.client!.lpush(queueName, JSON.stringify(queueInfo));
       }
 
       purgeRecentPosts();
