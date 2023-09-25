@@ -871,6 +871,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       if (!data.is_temp && !data.is_private) {
         setImmediate(async () => {
+          if (process.env.NODE_ENV !== 'production') return;
           if (!ctx.user_id) return;
           const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
           if (!isIntegrated) return;
@@ -884,8 +885,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
         const queueName = cache.getQueueName('feed');
         const queueInfo = {
-          writer_id: ctx.user_id,
-          post_id: post.id,
+          fk_follower_id: ctx.user_id,
+          fk_post_id: post.id,
         };
         cache.client!.lpush(queueName, JSON.stringify(queueInfo));
       }
