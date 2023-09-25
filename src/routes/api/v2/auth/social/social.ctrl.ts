@@ -41,7 +41,6 @@ const {
   GOOGLE_SECRET,
   CLIENT_HOST,
   CLIENT_V2_HOST,
-  CLIENT_V3_HOST,
 } = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
