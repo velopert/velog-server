@@ -58,5 +58,3 @@ const cache = new Cache();
 cache.connect();
 
 export default cache;
-
-type QueueName = 'feed';
