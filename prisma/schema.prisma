@@ -578,8 +578,8 @@ model FollowUser {
   created_at           DateTime @default(now()) @db.Timestamptz(6)
   updated_at           DateTime @default(now()) @db.Timestamptz(6)
 
-  follower  User @relation("follower_relation", fields: [fk_following_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  following User @relation("following_relation", fields: [fk_follower_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  following User @relation("following_relation", fields: [fk_following_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  follower  User @relation("follower_relation", fields: [fk_follower_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@index([fk_following_user_id])
   @@index([fk_follower_user_id])
