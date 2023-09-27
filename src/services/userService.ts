@@ -94,32 +94,32 @@ const userService = {
       throw new ApolloError('Email already exists', 'ALEADY_EXISTS');
     }
 
-    const id = shortid.generate();
-    const code = cache.generateKey.changeEmailKey(id);
+    const code = shortid.generate();
+    const key = cache.generateKey.changeEmailKey(code);
     const data = JSON.stringify({ userId: user.id, email: email.toLowerCase() });
-
-    const template = createChangeEmail(user.username, email, id);
+    const template = createChangeEmail(user.username, email, code);
 
     try {
       if (process.env.NODE_ENV === 'development') {
         console.log(`Login URL: http://${CLIENT_V2_HOST}/email-change?code=${code}`);
-      } else {
-        await sendMail({
-          to: email,
-          from: 'verify@velog.io',
-          ...template,
-        });
       }
+      await sendMail({
+        to: email,
+        from: 'verify@velog.io',
+        ...template,
+      });
     } catch (e) {
       throw e;
     }
 
-    cache.client?.set(code, data, 'EX', 60 * 30); // 30 minute
+    cache.client?.set(key, data, 'EX', 60 * 30); // 30 minute
 
     return true;
   },
   async confirmChangeEmail(loggedUserId: string, code: string): Promise<boolean> {
-    const metadata = await cache.client?.get(cache.generateKey.changeEmailKey(code));
+    console.log(code);
+    const key = cache.generateKey.changeEmailKey(code);
+    const metadata = await cache.client?.get(key);
 
     if (!metadata) {
       throw new ApolloError('Data not found', 'BAD_REQUEST');
@@ -137,10 +137,8 @@ const userService = {
       throw new ApolloError('User not found', 'NOT_FOUND');
     }
 
-    // Needs Sync time
     await userService.updateUser(loggedUserId, { email });
-    cache.client?.del(code);
-
+    cache.client?.del(key);
     return true;
   },
   async followUser(followUserId: string, cookies: Cookies) {
