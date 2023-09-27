@@ -117,7 +117,6 @@ const userService = {
     return true;
   },
   async confirmChangeEmail(loggedUserId: string, code: string): Promise<boolean> {
-    console.log(code);
     const key = cache.generateKey.changeEmailKey(code);
     const metadata = await cache.client?.get(key);
 
