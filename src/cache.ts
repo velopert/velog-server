@@ -1,6 +1,6 @@
 import Redis from 'ioredis';
 
-type CacheGenerateKey = {
+type GenerateCacheKey = {
   recommendedPostKey: (postId: string) => string;
   postCacheKey: (username: string, postUrlSlug: string) => string;
   userCacheKey: (username: string) => string;
@@ -36,7 +36,7 @@ class Cache {
     return Promise.resolve();
   }
 
-  get generateKey(): CacheGenerateKey {
+  get generateKey(): GenerateCacheKey {
     return {
       recommendedPostKey: (postId: string) => `${postId}:recommend`,
       postCacheKey: (username: string, postUrlSlug: string) => `ssr:/@${username}/${postUrlSlug}`,
