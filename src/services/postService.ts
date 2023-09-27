@@ -7,6 +7,12 @@ import { escapeForUrl } from '../lib/utils';
 import Axios, { AxiosResponse } from 'axios';
 import Cookies from 'cookies';
 
+const { API_V3_HOST } = process.env;
+
+if (!API_V3_HOST) {
+  throw new Error('API_V3_HOST ENV is required');
+}
+
 const postService = {
   async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
     const cursorPost = cursor
@@ -189,8 +195,8 @@ const postService = {
 
     const endpoint =
       process.env.NODE_ENV === 'development'
-        ? `http://${process.env.API_V3_HOST}/graphql`
-        : `https://${process.env.API_V3_HOST}/graphql`;
+        ? `http://${API_V3_HOST}/graphql`
+        : `https://${API_V3_HOST}/graphql`;
 
     const accessToken = cookies.get('access_token') ?? '';
 
@@ -223,8 +229,8 @@ const postService = {
 
     const endpoint =
       process.env.NODE_ENV === 'development'
-        ? `http://${process.env.API_V3_HOST}/graphql`
-        : `https://${process.env.API_V3_HOST}/graphql`;
+        ? `http://${API_V3_HOST}/graphql`
+        : `https://${API_V3_HOST}/graphql`;
 
     const accessToken = cookies.get('access_token') ?? '';
 
