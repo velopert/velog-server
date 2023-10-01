@@ -43,6 +43,7 @@ import imageService from '../services/imageService';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
+import { checkBlockList } from '../lib/checkBlockList';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -818,6 +819,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         }
       }
 
+      if (checkBlockList(ctx.user_id)) {
+        post.is_private = true;
+      }
+
       let processedUrlSlug = escapeForUrl(data.url_slug);
       const urlSlugDuplicate = await postRepo.findOne({
         where: {
@@ -1098,6 +1103,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await urlSlugHistoryRepo.save(urlSlugHistory);
       }
       post.url_slug = processedUrlSlug;
+
+      if (checkBlockList(ctx.user_id)) {
+        post.is_private = true;
+      }
 
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
       await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
