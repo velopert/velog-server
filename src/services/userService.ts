@@ -186,7 +186,7 @@ const userService = {
       const res = await Axios.post<AxiosResponse<{ unfollow: boolean }>>(
         endpoint,
         {
-          operationName: 'unfollow',
+          operationName: 'Unfollow',
           query: query,
           variables: { input: { followUserId: followUserId } },
         },
