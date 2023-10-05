@@ -9,7 +9,7 @@ import {
   JoinColumn,
   ManyToOne,
   getRepository,
-  getManager
+  getManager,
 } from 'typeorm';
 import User from './User';
 import Post from './Post';
@@ -17,7 +17,7 @@ import DataLoader from 'dataloader';
 import { normalize } from '../lib/utils';
 
 @Entity('comments', {
-  synchronize: false
+  synchronize: false,
 })
 export default class Comment {
   @PrimaryGeneratedColumn('uuid')
@@ -30,7 +30,7 @@ export default class Comment {
   likes!: number;
 
   @Column('uuid', {
-    nullable: true
+    nullable: true,
   })
   reply_to!: string;
 
@@ -62,10 +62,7 @@ export default class Comment {
   @JoinColumn({ name: 'fk_user_id' })
   user!: User;
 
-  @ManyToOne(
-    type => Post,
-    post => post.comments
-  )
+  @ManyToOne(type => Post, post => post.comments)
   @JoinColumn({ name: 'fk_post_id' })
   post!: Post;
 
@@ -81,7 +78,7 @@ export const createCommentsLoader = () =>
       .andWhere('level = 0')
       .andWhere('(deleted = false or has_replies = true)')
       .orderBy({
-        'comment.created_at': 'ASC'
+        'comment.created_at': 'ASC',
       })
       .getMany();
 

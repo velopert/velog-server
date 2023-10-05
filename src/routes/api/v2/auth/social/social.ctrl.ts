@@ -480,7 +480,7 @@ export const socialCallback: Middleware = async ctx => {
         }
       }
 
-      ctx.redirect(encodeURI(redirectUrl.concat(next)));
+      ctx.redirect(decodeURI(redirectUrl.concat(next)));
       return;
     }
 
@@ -505,7 +505,7 @@ export const socialCallback: Middleware = async ctx => {
         ? `http://${CLIENT_V2_HOST}/register?social=1`
         : `https://${CLIENT_V2_HOST}/register?social=1`;
 
-    ctx.redirect(encodeURI(redirectUrl));
+    ctx.redirect(decodeURI(redirectUrl));
   } catch (e) {
     ctx.throw('Internal Error', 500);
   }
