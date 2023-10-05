@@ -3,10 +3,16 @@
 .webpack
 node_modules
 ormconfig.json
+
+# env
+.env
+.env.*
 .env.development
+.env.production
+!.env.example
+
 dist
 .env.staging
-.env.production
 google-service-account.json
 cloudflare
 db

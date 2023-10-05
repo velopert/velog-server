@@ -1,8 +1,17 @@
+import { GetPostsByTagParams } from './../entity/PostsTags';
 import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
 import userService from './userService';
 import removeMd from 'remove-markdown';
 import { escapeForUrl } from '../lib/utils';
+import Axios, { AxiosResponse } from 'axios';
+import Cookies from 'cookies';
+
+const { API_V3_HOST } = process.env;
+
+if (!API_V3_HOST) {
+  throw new Error('API_V3_HOST ENV is required');
+}
 
 const postService = {
   async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
@@ -173,6 +182,73 @@ const postService = {
       likes: post.likes,
     };
   },
+  async likePost(postId: string, cookies: Cookies) {
+    const LIKE_POST_MUTATION = `
+        mutation LikePost {
+          likePost(input: { postId: "${postId}"}) {
+            id
+            liked
+            likes
+          }
+        }
+      `;
+
+    const endpoint =
+      process.env.NODE_ENV === 'development'
+        ? `http://${API_V3_HOST}/graphql`
+        : `https://${API_V3_HOST}/graphql`;
+
+    const accessToken = cookies.get('access_token') ?? '';
+
+    const res = await Axios.post<AxiosResponse<LikePostResponse>>(
+      endpoint,
+      {
+        operationName: 'LikePost',
+        query: LIKE_POST_MUTATION,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    return res.data.data.likePost;
+  },
+  async unlikePost(postId: string, cookies: Cookies) {
+    const UNLIKE_POST_MUTATION = `
+        mutation UnLikePost {
+          unlikePost(input: { postId: "${postId}"}) {
+            id
+            liked
+            likes
+          }
+        }
+      `;
+
+    const endpoint =
+      process.env.NODE_ENV === 'development'
+        ? `http://${API_V3_HOST}/graphql`
+        : `https://${API_V3_HOST}/graphql`;
+
+    const accessToken = cookies.get('access_token') ?? '';
+
+    const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
+      endpoint,
+      {
+        operationName: 'UnLikePost',
+        query: UNLIKE_POST_MUTATION,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    return res.data.data.unlikePost;
+  },
 };
 
 export default postService;
@@ -195,10 +271,18 @@ export type SerializedPost = {
   tags: (string | null)[];
 };
 
-type GetPostsByTagParams = {
-  tagName: string;
-  cursor?: string;
-  limit?: number;
-  userId?: string;
-  userself: boolean;
+type LikePostResponse = {
+  likePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
+  };
+};
+
+type UnlikePostResponse = {
+  unlikePost: {
+    id: string;
+    liked: boolean;
+    likes: number;
+  };
 };

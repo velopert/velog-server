@@ -39,7 +39,7 @@ const {
   FACEBOOK_SECRET,
   GOOGLE_ID,
   GOOGLE_SECRET,
-  CLIENT_HOST,
+  CLIENT_V2_HOST,
 } = process.env;
 
 if (!GITHUB_ID || !GITHUB_SECRET) {
@@ -420,7 +420,9 @@ export const socialCallback: Middleware = async ctx => {
       const tokens = await user.generateUserToken();
       setTokenCookie(ctx, tokens);
       const redirectUrl =
-        process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : `https://${CLIENT_HOST}`;
+        process.env.NODE_ENV === 'development'
+          ? `http://${CLIENT_V2_HOST}`
+          : `https://${CLIENT_V2_HOST}`;
 
       const state = ctx.query.state
         ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
@@ -438,7 +440,7 @@ export const socialCallback: Middleware = async ctx => {
         }
       }
 
-      ctx.redirect(encodeURI(redirectUrl.concat(next)));
+      ctx.redirect(decodeURI(redirectUrl.concat(next)));
       return;
     }
 
@@ -455,7 +457,9 @@ export const socialCallback: Middleware = async ctx => {
       const tokens = await user.generateUserToken();
       setTokenCookie(ctx, tokens);
       const redirectUrl =
-        process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : `https://${CLIENT_HOST}`;
+        process.env.NODE_ENV === 'development'
+          ? `http://${CLIENT_V2_HOST}`
+          : `https://${CLIENT_V2_HOST}`;
 
       const state = ctx.query.state
         ? (JSON.parse(ctx.query.state) as { next: string; integrateState?: string })
@@ -476,7 +480,7 @@ export const socialCallback: Middleware = async ctx => {
         }
       }
 
-      ctx.redirect(encodeURI(redirectUrl.concat(next)));
+      ctx.redirect(decodeURI(redirectUrl.concat(next)));
       return;
     }
 
@@ -498,9 +502,10 @@ export const socialCallback: Middleware = async ctx => {
 
     const redirectUrl =
       process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3000/register?social=1'
-        : 'https://velog.io/register?social=1';
-    ctx.redirect(encodeURI(redirectUrl));
+        ? `http://${CLIENT_V2_HOST}/register?social=1`
+        : `https://${CLIENT_V2_HOST}/register?social=1`;
+
+    ctx.redirect(decodeURI(redirectUrl));
   } catch (e) {
     ctx.throw('Internal Error', 500);
   }

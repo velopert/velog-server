@@ -9,7 +9,7 @@ import {
   JoinColumn,
   ManyToOne,
   getRepository,
-  getManager
+  getManager,
 } from 'typeorm';
 import Tag from './Tag';
 import Post from './Post';
@@ -26,7 +26,7 @@ type RawTagData = {
   posts_count: string;
 };
 
-type GetPostsByTagParams = {
+export type GetPostsByTagParams = {
   tagName: string;
   cursor?: string;
   limit?: number;
@@ -35,7 +35,7 @@ type GetPostsByTagParams = {
 };
 
 @Entity('posts_tags', {
-  synchronize: false
+  synchronize: false,
 })
 export default class PostsTags {
   @PrimaryGeneratedColumn('uuid')
@@ -81,13 +81,13 @@ export default class PostsTags {
     // get current post tags
     const prevPostTags = await repo.find({
       where: {
-        fk_post_id: postId
-      }
+        fk_post_id: postId,
+      },
     });
 
     const normalized = {
       prev: normalize(prevPostTags, postTag => postTag.fk_tag_id),
-      current: normalize(uniqueTags)
+      current: normalize(uniqueTags),
     };
 
     // removes tags that are missing
@@ -239,7 +239,7 @@ export default class PostsTags {
     cursor,
     limit = 20,
     userId,
-    userself
+    userself,
   }: GetPostsByTagParams) {
     const tag = await TagAlias.getOriginTag(tagName);
     if (!tag) throw new Error('Invalid tag');

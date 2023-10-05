@@ -29,7 +29,7 @@ import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
 import { nextSpamFilter } from '../etc/spamFilter';
-import Axios from 'axios';
+import Axios, { AxiosResponse } from 'axios';
 import LRU from 'lru-cache';
 import { createLikeLog, createReadLog } from '../lib/bigQuery';
 import esClient from '../search/esClient';
@@ -43,6 +43,7 @@ import imageService from '../services/imageService';
 import { sendSlackMessage } from '../lib/sendSlackMessage';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
+import userFollowService from '../services/userFollowService';
 import { checkBlockList } from '../lib/checkBlockList';
 
 const lruCache = new LRU<string, string[]>({
@@ -99,6 +100,7 @@ export const typeDef = gql`
     linked_posts: LinkedPosts
     last_read_at: Date
     recommended_posts: [Post]
+    followed: Boolean
   }
   type SearchResult {
     count: Int
@@ -389,6 +391,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         previous,
         next,
       };
+    },
+    followed: async (parent: Post, _, ctx) => {
+      if (!ctx.user_id) return false;
+      return await userFollowService.isFollowed(ctx.user_id, parent.fk_user_id);
     },
   },
   Query: {
@@ -870,6 +876,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       if (!data.is_temp && !data.is_private) {
         setImmediate(async () => {
+          if (process.env.NODE_ENV !== 'production') return;
           if (!ctx.user_id) return;
           const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
           if (!isIntegrated) return;
@@ -880,6 +887,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             post: serializedPost,
           });
         });
+
+        const queueName = cache.getQueueName('feed');
+        const queueInfo = {
+          fk_follower_id: ctx.user_id,
+          fk_post_id: post.id,
+        };
+        cache.client!.lpush(queueName, JSON.stringify(queueInfo));
       }
 
       purgeRecentPosts();
@@ -1218,128 +1232,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return true;
     },
     likePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      createLikeLog({
-        ip: ctx.ip,
-        postId: args.id,
-        userId: ctx.user_id,
-      });
-
-      // find post
-      const postRepo = getRepository(Post);
-      const post = await postRepo.findOne(args.id);
-
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-
-      // check already liked
-      const postLikeRepo = getRepository(PostLike);
-      const alreadyLiked = await postLikeRepo.findOne({
-        where: {
-          fk_post_id: args.id,
-          fk_user_id: ctx.user_id,
-        },
-      });
-
-      // exists
-      if (alreadyLiked) {
-        return post;
-      }
-
-      const postLike = new PostLike();
-      postLike.fk_post_id = args.id;
-      postLike.fk_user_id = ctx.user_id;
-
-      try {
-        await postLikeRepo.save(postLike);
-      } catch (e) {
-        return post;
-      }
-
-      const count = await postLikeRepo.count({
-        where: {
-          fk_post_id: args.id,
-        },
-      });
-
-      post.likes = count;
-
-      await postRepo.save(post);
-
-      const unscored = checkUnscore(post.body.concat(post.title));
-      if (!unscored) {
-        const postScoreRepo = getRepository(PostScore);
-        const score = new PostScore();
-        score.type = 'LIKE';
-        score.fk_post_id = args.id;
-        score.score = 5;
-        score.fk_user_id = ctx.user_id;
-        await postScoreRepo.save(score);
-      }
-
-      setTimeout(() => {
-        searchSync.update(post.id);
-      }, 0);
-
-      return post;
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await postService.likePost(args.id, ctx.cookies);
     },
     unlikePost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      // find post
-      const postRepo = getRepository(Post);
-      const post = await postRepo.findOne(args.id);
-
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-
-      // check already liked
-      const postLikeRepo = getRepository(PostLike);
-      const postLike = await postLikeRepo.findOne({
-        where: {
-          fk_post_id: args.id,
-          fk_user_id: ctx.user_id,
-        },
-      });
-
-      // not exists
-      if (!postLike) {
-        return post;
-      }
-
-      await postLikeRepo.remove(postLike);
-
-      const count = await postLikeRepo.count({
-        where: {
-          fk_post_id: args.id,
-        },
-      });
-
-      post.likes = count;
-
-      await postRepo.save(post);
-
-      const postScoreRepo = getRepository(PostScore);
-      await postScoreRepo
-        .createQueryBuilder()
-        .delete()
-        .where('fk_post_id = :postId', { postId: args.id })
-        .andWhere('fk_user_id = :userId', { userId: ctx.user_id })
-        .andWhere("type = 'LIKE'")
-        .execute();
-
-      setTimeout(() => {
-        searchSync.update(post.id).catch(console.error);
-      }, 0);
-
-      return post;
+      if (!ctx.user_id) throw new AuthenticationError('Not Logged In');
+      return await postService.unlikePost(args.id, ctx.cookies);
     },
     postView: async (parent: any, { id }: { id: string }, ctx) => {
       const postReadRepo = getRepository(PostRead);
@@ -1378,13 +1276,13 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const post = await postRepo.findOne(id);
       if (!post) return false;
 
-      const postScoreRepo = getRepository(PostScore);
       if (post.views % 10 === 0) {
-        const score = new PostScore();
-        score.fk_post_id = id;
-        score.type = 'READ';
-        score.score = 0.25;
-        await postScoreRepo.save(score);
+        const endpoint =
+          process.env.NODE_ENV === 'development'
+            ? `http://${process.env.API_V3_HOST}`
+            : `https://${process.env.API_V3_HOST}`;
+
+        await Axios.patch(`${endpoint}/api/posts/v3/score/${post.id}`);
       }
 
       return true;

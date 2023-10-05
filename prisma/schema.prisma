@@ -94,21 +94,6 @@ model EmailCert {
   @@map("email_cert")
 }
 
-model Feed {
-  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  fk_post_id String?  @db.Uuid
-  fk_user_id String?  @db.Uuid
-  reason     Json?
-  score      Int?     @default(1)
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  updated_at DateTime @default(now()) @db.Timestamptz(6)
-  Post       Post?    @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-
-  @@index([created_at], map: "feeds_created_at")
-  @@map("feeds")
-}
-
 model FollowTag {
   id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   fk_user_id String?  @db.Uuid
@@ -120,19 +105,6 @@ model FollowTag {
   User       User?    @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@map("follow_tag")
-}
-
-model FollowUser {
-  id                                         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  fk_user_id                                 String?  @db.Uuid
-  fk_follow_user_id                          String?  @db.Uuid
-  score                                      Int?
-  created_at                                 DateTime @default(now()) @db.Timestamptz(6)
-  updated_at                                 DateTime @default(now()) @db.Timestamptz(6)
-  users_follow_user_fk_follow_user_idTousers User?    @relation("follow_user_fk_follow_user_idTousers", fields: [fk_follow_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-  users_follow_user_fk_user_idTousers        User?    @relation("follow_user_fk_user_idTousers", fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
-
-  @@map("follow_user")
 }
 
 model Migrations {
@@ -519,34 +491,33 @@ model UserThumbnail {
 }
 
 model User {
-  id                                               String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  username                                         String                @unique @db.VarChar(255)
-  email                                            String?               @unique @db.VarChar(255)
-  created_at                                       DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at                                       DateTime              @default(now()) @db.Timestamptz(6)
-  is_certified                                     Boolean?              @default(false)
-  AdminUser                                        AdminUser[]
-  AuthToken                                        AuthToken[]
-  Category                                         Category[]
-  Comment                                          Comment[]
-  EmailCert                                        EmailCert[]
-  Feed                                             Feed[]
-  FollowTag                                        FollowTag[]
-  follow_user_follow_user_fk_follow_user_idTousers FollowUser[]          @relation("follow_user_fk_follow_user_idTousers")
-  follow_user_follow_user_fk_user_idTousers        FollowUser[]          @relation("follow_user_fk_user_idTousers")
-  PostImage                                        PostImage[]
-  PostLike                                         PostLike[]
-  PostReadLog                                      PostReadLog[]
-  PostRead                                         PostRead[]
-  PostScore                                        PostScore[]
-  Post                                             Post[]
-  Series                                           Series[]
-  SocialAccount                                    SocialAccount[]
-  UserImage                                        UserImage[]
-  UserImageCloudflare                              UserImageCloudflare[]
-  UserImageNext                                    UserImageNext[]
-  UserMeta                                         UserMeta[]
-
+  id                         String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  username                   String                       @unique @db.VarChar(255)
+  email                      String?                      @unique @db.VarChar(255)
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  is_certified               Boolean?                     @default(false)
+  AdminUser                  AdminUser[]
+  AuthToken                  AuthToken[]
+  Category                   Category[]
+  Comment                    Comment[]
+  EmailCert                  EmailCert[]
+  Feed                       Feed[]
+  FollowTag                  FollowTag[]
+  followers                  FollowUser[]                 @relation("follower_relation")
+  following                  FollowUser[]                 @relation("following_relation")
+  PostImage                  PostImage[]
+  PostLike                   PostLike[]
+  PostReadLog                PostReadLog[]
+  PostRead                   PostRead[]
+  PostScore                  PostScore[]
+  Post                       Post[]
+  Series                     Series[]
+  SocialAccount              SocialAccount[]
+  UserImage                  UserImage[]
+  UserImageCloudflare        UserImageCloudflare[]
+  UserImageNext              UserImageNext[]
+  UserMeta                   UserMeta[]
   UserThumbnail              UserThumbnail[]
   VelogConfig                VelogConfig?
   UrlSlugHistory             UrlSlugHistory[]
@@ -598,4 +569,32 @@ model ExternalIntegrationHistory {
   @@index([fk_user_id])
   @@index([app_identifier])
   @@map("external_integration_histories")
+}
+
+model FollowUser {
+  id                   String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_following_user_id String   @db.Uuid
+  fk_follower_user_id  String   @db.Uuid
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  following User @relation("following_relation", fields: [fk_following_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  follower  User @relation("follower_relation", fields: [fk_follower_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([fk_following_user_id])
+  @@index([fk_follower_user_id])
+  @@map("follow_users")
+}
+
+model Feed {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  fk_post_id String   @db.Uuid
+  fk_user_id String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  post       Post     @relation(fields: [fk_post_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+  user       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@index([created_at], map: "feeds_created_at")
+  @@map("feeds")
 }
