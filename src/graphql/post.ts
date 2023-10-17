@@ -481,6 +481,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         });
       }
 
+      if (user && !temp_only) {
+        return postService.findPostsByUserId({
+          userId: user.id,
+          size: limit,
+          cursor: cursor,
+          isUserSelf: user.id === context.user_id,
+        });
+      }
+
       const query = getManager()
         .createQueryBuilder(Post, 'post')
         .limit(limit)
