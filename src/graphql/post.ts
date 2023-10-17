@@ -888,7 +888,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           });
         });
 
-        const queueName = cache.getQueueName('feed');
+        const queueName = cache.queueName.feed;
         const queueInfo = {
           fk_follower_id: ctx.user_id,
           fk_post_id: post.id,

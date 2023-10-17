@@ -1,15 +1,5 @@
 import Redis from 'ioredis';
 
-type GenerateCacheKey = {
-  recommendedPostKey: (postId: string) => string;
-  postCacheKey: (username: string, postUrlSlug: string) => string;
-  userCacheKey: (username: string) => string;
-  postSeriesKey: (username: string, seriesUrlSlug: string) => string;
-  changeEmailKey: (code: string) => string;
-};
-
-type QueueName = 'feed';
-
 class Cache {
   client: Redis.Redis | null = null;
 
@@ -46,11 +36,11 @@ class Cache {
       changeEmailKey: (code: string) => `changeEmailCode:${code}`,
     };
   }
-  getQueueName(name: QueueName): string {
-    const mapper = {
+
+  get queueName() {
+    return {
       feed: 'feedQueue',
     };
-    return mapper[name];
   }
 }
 
@@ -58,3 +48,13 @@ const cache = new Cache();
 cache.connect();
 
 export default cache;
+
+type GenerateCacheKey = {
+  recommendedPostKey: (postId: string) => string;
+  postCacheKey: (username: string, postUrlSlug: string) => string;
+  userCacheKey: (username: string) => string;
+  postSeriesKey: (username: string, seriesUrlSlug: string) => string;
+  changeEmailKey: (code: string) => string;
+};
+
+type QueueName = 'feed';
