@@ -888,12 +888,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           });
         });
 
-        const queueName = cache.queueName.feed;
-        const queueInfo = {
+        const queueName = cache.getQueueName('feed');
+        const queueData = {
           fk_follower_id: ctx.user_id,
           fk_post_id: post.id,
         };
-        cache.client!.lpush(queueName, JSON.stringify(queueInfo));
+        cache.client!.lpush(queueName, JSON.stringify(queueData));
       }
 
       purgeRecentPosts();
