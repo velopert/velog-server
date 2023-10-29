@@ -140,7 +140,7 @@ const userService = {
     cache.client?.del(key);
     return true;
   },
-  async followUser(followUserId: string, cookies: Cookies) {
+  async follow(followingUserId: string, cookies: Cookies) {
     try {
       const query = 'mutation Follow ($input: FollowInput!) {\n\tfollow(input: $input) \n}';
 
@@ -156,7 +156,7 @@ const userService = {
         {
           operationName: 'Follow',
           query: query,
-          variables: { input: { followUserId: followUserId } },
+          variables: { input: { followingUserId: followingUserId } },
         },
         {
           headers: {
@@ -172,7 +172,7 @@ const userService = {
       return false;
     }
   },
-  async unfollowUser(followUserId: string, cookies: Cookies) {
+  async unfollow(followingUserId: string, cookies: Cookies) {
     try {
       const query = 'mutation Unfollow ($input: UnfollowInput!) {\n\tunfollow(input: $input) \n}';
 
@@ -188,7 +188,7 @@ const userService = {
         {
           operationName: 'Unfollow',
           query: query,
-          variables: { input: { followUserId: followUserId } },
+          variables: { input: { followingUserId: followingUserId } },
         },
         {
           headers: {
