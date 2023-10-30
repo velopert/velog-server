@@ -888,9 +888,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           });
         });
 
-        const queueName = cache.getQueueName('feed');
+        const queueName = cache.queueName.feed;
         const queueData = {
-          fk_follower_id: ctx.user_id,
+          fk_following_id: ctx.user_id,
           fk_post_id: post.id,
         };
         cache.client!.lpush(queueName, JSON.stringify(queueData));
