@@ -17,6 +17,7 @@ class Cache {
     this.client = new Redis({
       maxRetriesPerRequest: 3,
       host: process.env.REDIS_HOST || 'localhost',
+      password: process.env.REDIS_PASSWORD,
     });
   }
 
