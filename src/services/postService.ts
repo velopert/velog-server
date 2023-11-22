@@ -49,6 +49,12 @@ const postService = {
     return posts.map(this.serialize);
   },
 
+  async findPostViewCountById(id: string) {
+    const post = await db.post.findUnique({ where: { id } });
+    if (!post) return 0;
+    return post?.views;
+  },
+
   // @todo: should be implemented on tag service
   async getOriginTag(name: string) {
     const filtered = escapeForUrl(name).toLowerCase();
