@@ -753,7 +753,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         throw new ApolloError('This post is not yours', 'NO_PERMISSION');
       }
 
-      const total = postService.findPostViewCountById(post_id);
+      const total = await postService.findPostViewCountById(post_id);
       return {
         total,
         count_by_day: [],
