@@ -752,8 +752,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (post.fk_user_id !== ctx.user_id) {
         throw new ApolloError('This post is not yours', 'NO_PERMISSION');
       }
-      const stats = await PostRead.getStats(post_id);
-      return stats;
+
+      const total = postService.findPostViewCountById(post_id);
+      return {
+        total,
+        count_by_day: [],
+      };
+      // const stats = await PostRead.getStats(post_id);
+      // return stats;
     },
   },
   Mutation: {
