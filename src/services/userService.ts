@@ -1,5 +1,5 @@
 import Joi from 'joi';
-import type { User, Prisma } from '@prisma/client';
+import type { User, Prisma, FollowUser } from '@prisma/client';
 import db from '../lib/db';
 import { validateArgs } from '../lib/utils';
 import { ApolloError, AuthenticationError } from 'apollo-server-koa';
@@ -203,6 +203,20 @@ const userService = {
       console.log('unfollow error:', error.response.data.errors);
       return false;
     }
+  },
+  async findFollowRelationship(
+    followingUserId: string,
+    signedUserId: string
+  ): Promise<FollowUser | null> {
+    return await db.followUser.findFirst({
+      where: {
+        fk_following_user_id: followingUserId,
+        fk_follower_user_id: signedUserId,
+      },
+    });
+  },
+  async isFollowed(followingUserId: string, signedUserId: string): Promise<boolean> {
+    return !!(await this.findFollowRelationship(followingUserId, signedUserId));
   },
 };
 

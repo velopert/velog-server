@@ -23,6 +23,7 @@ export const typeDef = gql`
     velog_config: VelogConfig
     series_list: [Series]
     user_meta: UserMeta
+    is_followed: Boolean
   }
   type UserProfile {
     id: ID!
@@ -116,6 +117,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
       const userMetaRepo = getRepository(UserMeta);
       return userMetaRepo.findOne({ fk_user_id: user_id });
+    },
+    is_followed: async (parent: User, _, ctx) => {
+      if (!ctx.user_id) return false;
+      return await userService.isFollowed(parent.id, ctx.user_id);
     },
   },
   Query: {

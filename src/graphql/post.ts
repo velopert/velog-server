@@ -1,15 +1,7 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import {
-  getRepository,
-  getManager,
-  LessThan,
-  Not,
-  MoreThan,
-  UsingJoinColumnIsNotAllowedError,
-} from 'typeorm';
-import PostScore from '../entity/PostScore';
+import { getRepository, getManager, LessThan, Not, MoreThan } from 'typeorm';
 import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import PostsTags from '../entity/PostsTags';
@@ -35,15 +27,11 @@ import { createLikeLog, createReadLog } from '../lib/bigQuery';
 import esClient from '../search/esClient';
 import { buildFallbackRecommendedPosts, buildRecommendedPostsQuery } from '../search/buildQuery';
 import { pickRandomItems } from '../etc/pickRandomItems';
-import { shuffleArray } from '../etc/shuffleArray';
-import checkUnscore from '../etc/checkUnscore';
 import geoipCountry from 'geoip-country';
 import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 import imageService from '../services/imageService';
-import { sendSlackMessage } from '../lib/sendSlackMessage';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
-import userFollowService from '../services/userFollowService';
 import { checkBlockList } from '../lib/checkBlockList';
 
 const lruCache = new LRU<string, string[]>({
@@ -100,7 +88,6 @@ export const typeDef = gql`
     linked_posts: LinkedPosts
     last_read_at: Date
     recommended_posts: [Post]
-    followed: Boolean
   }
   type SearchResult {
     count: Int
@@ -391,10 +378,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         previous,
         next,
       };
-    },
-    followed: async (parent: Post, _, ctx) => {
-      if (!ctx.user_id) return false;
-      return await userFollowService.isFollowed(ctx.user_id, parent.fk_user_id);
     },
   },
   Query: {
