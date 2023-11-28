@@ -464,6 +464,15 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         });
       }
 
+      if (user && !temp_only) {
+        return postService.findPostsByUserId({
+          userId: user.id,
+          size: limit,
+          cursor: cursor,
+          isUserSelf: user.id === context.user_id,
+        });
+      }
+
       const query = getManager()
         .createQueryBuilder(Post, 'post')
         .limit(limit)
@@ -726,8 +735,14 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (post.fk_user_id !== ctx.user_id) {
         throw new ApolloError('This post is not yours', 'NO_PERMISSION');
       }
-      const stats = await PostRead.getStats(post_id);
-      return stats;
+
+      const total = await postService.findPostViewCountById(post_id);
+      return {
+        total,
+        count_by_day: [],
+      };
+      // const stats = await PostRead.getStats(post_id);
+      // return stats;
     },
   },
   Mutation: {

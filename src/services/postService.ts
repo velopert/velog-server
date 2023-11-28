@@ -14,7 +14,7 @@ if (!API_V3_HOST) {
 }
 
 const postService = {
-  async findPublicPostsByUserId({ userId, size, cursor }: FindPostParams) {
+  async findPostsByUserId({ userId, size, cursor, isUserSelf = false }: FindPostParams) {
     const cursorPost = cursor
       ? await db.post.findUnique({
           where: {
@@ -28,7 +28,7 @@ const postService = {
     const posts = await db.post.findMany({
       where: {
         fk_user_id: userId,
-        is_private: false,
+        ...(isUserSelf ? {} : { is_private: false }),
         is_temp: false,
         released_at: cursorPost?.released_at ? { lt: cursorPost.released_at } : undefined,
       },
@@ -47,6 +47,12 @@ const postService = {
     });
 
     return posts.map(this.serialize);
+  },
+
+  async findPostViewCountById(id: string) {
+    const post = await db.post.findUnique({ where: { id } });
+    if (!post) return 0;
+    return post?.views;
   },
 
   // @todo: should be implemented on tag service
@@ -257,6 +263,7 @@ type FindPostParams = {
   userId: string;
   size: number;
   cursor?: string;
+  isUserSelf?: boolean;
 };
 
 export type SerializedPost = {

@@ -57,18 +57,18 @@ export default class PostRead {
         fk_post_id: postId,
       },
     });
-    const countByDay: { count: string; day: string }[] = await getManager().query(
-      `select count(id) as count, date_trunc('day'::text, timezone('KST'::text, created_at)) as day from (
-        select * from post_reads 
-        where fk_post_id = $1
-      ) as t
-  group by day
-  order by day desc`,
-      [postId]
-    );
+    //   const countByDay: { count: string; day: string }[] = await getManager().query(
+    //     `select count(id) as count, date_trunc('day'::text, timezone('KST'::text, created_at)) as day from (
+    //       select * from post_reads
+    //       where fk_post_id = $1
+    //     ) as t
+    // group by day
+    // order by day desc`,
+    //     [postId]
+    //   );
     return {
       total,
-      count_by_day: countByDay.map(c => ({ day: new Date(c.day), count: parseInt(c.count) })),
+      count_by_day: [],
     };
   }
 }

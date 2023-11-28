@@ -55,7 +55,7 @@ codenary.get('/posts', async ctx => {
     return;
   }
 
-  const posts = await postService.findPublicPostsByUserId({
+  const posts = await postService.findPostsByUserId({
     userId: user_id,
     size: size ? parseInt(size) : 20,
     cursor,
