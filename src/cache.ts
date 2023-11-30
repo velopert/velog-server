@@ -39,7 +39,7 @@ class Cache {
 
   get queueName() {
     return {
-      feed: 'feedQueue',
+      feed: 'queue:feed',
     };
   }
 }
