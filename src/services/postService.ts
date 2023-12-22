@@ -193,7 +193,7 @@ const postService = {
         mutation LikePost {
           likePost(input: { postId: "${postId}"}) {
             id
-            liked
+            is_liked
             likes
           }
         }
@@ -227,7 +227,7 @@ const postService = {
         mutation UnLikePost {
           unlikePost(input: { postId: "${postId}"}) {
             id
-            liked
+            is_liked
             likes
           }
         }
