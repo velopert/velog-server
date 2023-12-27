@@ -15,18 +15,18 @@ export const typeDef = gql`
     url: String!
   }
   extend type Query {
-    bannerTypeAds(writer_username: String!): [Ad!]!
+    bannerAds(writer_username: String!): [Ad!]!
   }
 `;
 
 export const resolvers: IResolvers<any, ApolloContext> = {
   Query: {
-    bannerTypeAds: async (_, { writer_username }: BannerTypeAdsArgs) => {
+    bannerAds: async (_, { writer_username }: BannerAdsArgs) => {
       return await adService.getBannerTypeAdList(writer_username);
     },
   },
 };
 
-type BannerTypeAdsArgs = {
+type BannerAdsArgs = {
   writer_username: string;
 };

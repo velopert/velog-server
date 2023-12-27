@@ -1,4 +1,4 @@
-import Axios from 'axios';
+import Axios, { AxiosResponse } from 'axios';
 
 const { API_V3_HOST } = process.env;
 
@@ -8,10 +8,6 @@ if (!API_V3_HOST) {
 
 const adService = {
   async getBannerTypeAdList(writerUsername: string) {
-    const input = {
-      writer_username: writerUsername,
-    };
-
     const GET_AD_LIST = `
     query ads {
       ads(input: {writer_username: "${writerUsername}", limit: 2, type: "banner" }) {
@@ -20,32 +16,43 @@ const adService = {
         body
         image
         url
-        start_date
       }
     }
     `;
-
-    console.log(GET_AD_LIST);
 
     const endpoint =
       process.env.NODE_ENV === 'development'
         ? `http://${API_V3_HOST}/graphql`
         : `https://${API_V3_HOST}/graphql`;
-    try {
-      console.log('endpoint', endpoint);
 
-      const res = await Axios.post(endpoint, {
+    const { data } = await Axios.post<AxiosResponse<GetAdListResponse>>(
+      endpoint,
+      {
         operationName: 'ads',
         query: GET_AD_LIST,
-      });
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-      console.log(GET_AD_LIST);
-    } catch (error) {
-      console.log('error', error);
-    }
-
-    return [];
+    return data.data.ads;
   },
 };
 
 export default adService;
+
+type GetAdListResponse = {
+  ads: {
+    id: string;
+    type: string;
+    url: string;
+    start_date: Date;
+    end_date: Date;
+    title: string;
+    body: string;
+    image: string;
+  };
+};
