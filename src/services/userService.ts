@@ -141,14 +141,8 @@ const userService = {
     cache.client?.del(key);
     return true;
   },
-  async follow(followingUserId: string, postId: string, cookies: Cookies) {
+  async follow(followingUserId: string, cookies: Cookies) {
     try {
-      const post = await postService.findPostById(postId);
-
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-
       const query = 'mutation Follow ($input: FollowInput!) {\n\tfollow(input: $input) \n}';
 
       const accessToken = cookies.get('access_token') ?? '';
@@ -173,20 +167,14 @@ const userService = {
         }
       );
 
-      return { id: post.id };
+      return { id: followingUserId, is_followed: true };
     } catch (error: any) {
       console.log('follow error:', error.response.data.errors);
       return false;
     }
   },
-  async unfollow(followingUserId: string, postId: string, cookies: Cookies) {
+  async unfollow(followingUserId: string, cookies: Cookies) {
     try {
-      const post = await postService.findPostById(postId);
-
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-
       const query = 'mutation Unfollow ($input: UnfollowInput!) {\n\tunfollow(input: $input) \n}';
 
       const accessToken = cookies.get('access_token') ?? '';
@@ -211,7 +199,7 @@ const userService = {
         }
       );
 
-      return { id: post.id };
+      return { id: followingUserId, is_followed: false };
     } catch (error: any) {
       console.log('unfollow error:', error.response.data.errors);
       return false;
