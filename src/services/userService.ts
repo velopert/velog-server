@@ -9,6 +9,7 @@ import { createChangeEmail } from '../etc/emailTemplates';
 import sendMail from '../lib/sendMail';
 import Cookies from 'cookies';
 import Axios, { AxiosError, AxiosResponse } from 'axios';
+import postService from './postService';
 
 const { API_V3_HOST, CLIENT_V2_HOST } = process.env;
 
@@ -166,7 +167,7 @@ const userService = {
         }
       );
 
-      return res.data.data.follow;
+      return { id: followingUserId, is_followed: true };
     } catch (error: any) {
       console.log('follow error:', error.response.data.errors);
       return false;
@@ -198,7 +199,7 @@ const userService = {
         }
       );
 
-      return res.data.data.unfollow;
+      return { id: followingUserId, is_followed: false };
     } catch (error: any) {
       console.log('unfollow error:', error.response.data.errors);
       return false;
