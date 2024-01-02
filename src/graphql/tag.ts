@@ -7,6 +7,7 @@ import AdminUser from '../entity/AdminUser';
 import TagAlias from '../entity/TagAlias';
 import User from '../entity/User';
 import Post from '../entity/Post';
+import tagsService from '../services/tagsService';
 
 export const typeDef = gql`
   type Tag {
@@ -42,8 +43,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
   Tag: {
     posts_count: async (parent: Tag & { posts_count?: number }, _: any, ctx) => {
       if (parent.posts_count) return parent.posts_count;
-      return PostsTags.getPostsCount(parent.id);
-    }
+      return tagsService.getPostsCount(parent.id);
+    },
   },
   Query: {
     tag: async (parent: any, { name }: { name: string }, ctx) => {
@@ -54,7 +55,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       {
         sort,
         cursor,
-        limit
+        limit,
       }: { sort: 'alphabetical' | 'trending'; cursor?: string; limit?: number },
       ctx
     ) => {
@@ -78,7 +79,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const postsCount = await getRepository(Post).count({
         fk_user_id: user.id,
         is_temp: false,
-        ...(userself ? {} : { is_private: false })
+        ...(userself ? {} : { is_private: false }),
       });
 
       // prevents wrong tags conflict with public tag posts_count
@@ -87,9 +88,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       // transform id for user tag
       return {
         tags: transformedTags,
-        posts_count: postsCount
+        posts_count: postsCount,
       };
-    }
+    },
   },
   Mutation: {
     mergeTag: async (parent: any, { selected, merge_to }: MergeTagParams, ctx) => {
@@ -127,6 +128,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       await tagAliasRepo.save(tagAlias);
 
       return true;
-    }
-  }
+    },
+  },
 };

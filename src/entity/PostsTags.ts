@@ -16,6 +16,7 @@ import Post from './Post';
 import DataLoader from 'dataloader';
 import { groupById, normalize } from '../lib/utils';
 import TagAlias from './TagAlias';
+import tagsService from '../services/tagsService';
 
 type RawTagData = {
   id: string;
@@ -106,20 +107,21 @@ export default class PostsTags {
   }
 
   static async getPostsCount(tagId: string): Promise<number> {
-    const rawData = await getManager().query(
-      `select posts_count from (
-        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags
-        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
-        inner join posts on posts.id = fk_post_id
-        where posts.is_private = false
-        and posts.is_temp = false
-        group by tag_id
-      ) as q1
-      where tag_id = $1`,
-      [tagId]
-    );
-    if (rawData.length === 0) return 0;
-    return rawData[0].posts_count;
+    return tagsService.getPostsCount(tagId);
+    // const rawData = await getManager().query(
+    //   `select posts_count from (
+    //     select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags
+    //     left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
+    //     inner join posts on posts.id = fk_post_id
+    //     where posts.is_private = false
+    //     and posts.is_temp = false
+    //     group by tag_id
+    //   ) as q1
+    //   where tag_id = $1`,
+    //   [tagId]
+    // );
+    // if (rawData.length === 0) return 0;
+    // return rawData[0].posts_count;
   }
 
   static async getUserTags(
