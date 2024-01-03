@@ -90,6 +90,8 @@ const postService = {
         })
       : null;
 
+    console.log(`findPostsByTag: ${tagName} ${cursorPost ? cursorPost.released_at : ''}`);
+
     const posts = await db.postTag.findMany({
       where: {
         fk_tag_id: originTag.id,
