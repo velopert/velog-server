@@ -192,48 +192,51 @@ export default class PostsTags {
     return tags;
   }
 
-  static async getTrendingTags(cursor?: string, limit: number = 60): Promise<RawTagData> {
-    const cursorPostsCount = cursor ? await this.getPostsCount(cursor) : 0;
-    const manager = getManager();
-    if (!cursor) {
-      const tags = await manager.query(
-        `
-      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
-        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
-        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
-        inner join posts on posts.id = fk_post_id
-        where posts.is_private = false
-        and posts.is_temp = false
-        group by tag_id
-      ) as q1
-      inner join tags on q1.tag_id = tags.id
-      order by posts_count desc, tags.id
-      limit $1
-      `,
-        [limit]
-      );
-      return tags;
-    }
+  static async getTrendingTags(cursor?: string, limit: number = 60): Promise<any> {
+    // Temporarily disable trending tags due to performance issue
+    return [];
+    // const cursorPostsCount = cursor ? await this.getPostsCount(cursor) : 0;
+    // const manager = getManager();
 
-    const tags = await manager.query(
-      `
-      select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
-        select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags 
-        left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
-        inner join posts on posts.id = fk_post_id
-        where posts.is_private = false
-        and posts.is_temp = false
-        group by tag_id
-      ) as q1
-      inner join tags on q1.tag_id = tags.id
-      where posts_count <= $2
-      and id != $1
-      and not (id < $1 and posts_count = $2)
-      order by posts_count desc, tags.id
-      limit $3`,
-      [cursor, cursorPostsCount, limit]
-    );
-    return tags;
+    // if (!cursor) {
+    //   const tags = await manager.query(
+    //     `
+    //   select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+    //     select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags
+    //     left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
+    //     inner join posts on posts.id = fk_post_id
+    //     where posts.is_private = false
+    //     and posts.is_temp = false
+    //     group by tag_id
+    //   ) as q1
+    //   inner join tags on q1.tag_id = tags.id
+    //   order by posts_count desc, tags.id
+    //   limit $1
+    //   `,
+    //     [limit]
+    //   );
+    //   return tags;
+    // }
+
+    // const tags = await manager.query(
+    //   `
+    //   select tags.id, tags.name, tags.created_at, tags.description, tags.thumbnail, posts_count from (
+    //     select count(fk_post_id) as posts_count, coalesce(tag_alias.fk_alias_tag_id, posts_tags.fk_tag_id) as tag_id from posts_tags
+    //     left join tag_alias on posts_tags.fk_tag_id = tag_alias.fk_tag_id
+    //     inner join posts on posts.id = fk_post_id
+    //     where posts.is_private = false
+    //     and posts.is_temp = false
+    //     group by tag_id
+    //   ) as q1
+    //   inner join tags on q1.tag_id = tags.id
+    //   where posts_count <= $2
+    //   and id != $1
+    //   and not (id < $1 and posts_count = $2)
+    //   order by posts_count desc, tags.id
+    //   limit $3`,
+    //   [cursor, cursorPostsCount, limit]
+    // );
+    // return tags;
   }
 
   static async getPostsByTag({
