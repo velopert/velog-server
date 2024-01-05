@@ -1,16 +1,24 @@
 import Redis from 'ioredis';
 
-class Cache {
+interface CacheService {
+  connect: () => void;
+  remove: (...keys: string[]) => Promise<number>;
+  disconnect: () => void;
+  readBlackList: () => Promise<string[]>;
+}
+
+class Cache implements CacheService {
   client: Redis.Redis | null = null;
 
-  connect(): void {
+  public connect(): void {
     this.client = new Redis({
       maxRetriesPerRequest: 3,
       host: process.env.REDIS_HOST || 'localhost',
     });
+    console.log(`Redis server connected URL: ${process.env.REDIS_HOST}`);
   }
 
-  remove(...keys: string[]): Promise<number> {
+  public remove(...keys: string[]): Promise<number> {
     if (!this.client) {
       this.connect();
     }
@@ -26,6 +34,20 @@ class Cache {
     return Promise.resolve();
   }
 
+  public async readBlackList(): Promise<string[]> {
+    if (!this.client) {
+      this.connect();
+    }
+
+    try {
+      const keyname = this.setName.blackList;
+      const list = await this.client?.smembers(keyname);
+      return list ?? [];
+    } catch (error) {
+      throw error;
+    }
+  }
+
   get generateKey(): GenerateCacheKey {
     return {
       recommendedPostKey: (postId: string) => `${postId}:recommend`,
@@ -37,9 +59,15 @@ class Cache {
     };
   }
 
-  get queueName() {
+  get queueName(): Record<QueueName, string> {
     return {
       feed: 'queue:feed',
+    };
+  }
+
+  private get setName(): Record<SetName, string> {
+    return {
+      blackList: 'set:blackList',
     };
   }
 }
@@ -58,3 +86,5 @@ type GenerateCacheKey = {
 };
 
 type QueueName = 'feed';
+
+type SetName = 'blackList';
