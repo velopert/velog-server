@@ -249,7 +249,8 @@ export const socialRegister: Middleware = async ctx => {
 
     // create social account
     const socialAccount = new SocialAccount();
-    socialAccount.access_token = decoded.accessToken;
+    // tempoarily slice the token
+    socialAccount.access_token = decoded.accessToken.slice(0, 255);
     socialAccount.provider = decoded.provider;
     socialAccount.fk_user_id = user.id;
     socialAccount.social_id = decoded.profile.uid.toString();
