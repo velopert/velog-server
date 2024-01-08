@@ -822,8 +822,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           console.log(e);
         }
       }
-
-      if (checkBlockList(ctx.user_id)) {
+      const isBlockList = await checkBlockList(ctx.user_id);
+      if (isBlockList) {
         post.is_private = true;
       }
 
@@ -1116,7 +1116,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
       post.url_slug = processedUrlSlug;
 
-      if (checkBlockList(ctx.user_id)) {
+      const isBlockList = await checkBlockList(ctx.user_id);
+      if (isBlockList) {
         post.is_private = true;
       }
 
