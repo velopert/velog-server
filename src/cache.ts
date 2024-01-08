@@ -4,7 +4,7 @@ interface CacheService {
   connect: () => void;
   remove: (...keys: string[]) => Promise<number>;
   disconnect: () => void;
-  readBlackList: () => Promise<string[]>;
+  readBlockList: () => Promise<string[]>;
 }
 
 class Cache implements CacheService {
@@ -34,13 +34,13 @@ class Cache implements CacheService {
     return Promise.resolve();
   }
 
-  public async readBlackList(): Promise<string[]> {
+  public async readBlockList(): Promise<string[]> {
     if (!this.client) {
       this.connect();
     }
 
     try {
-      const keyname = this.setName.blackList;
+      const keyname = this.setName.blockList;
       const list = await this.client?.smembers(keyname);
       return list ?? [];
     } catch (error) {
@@ -67,7 +67,7 @@ class Cache implements CacheService {
 
   private get setName(): Record<SetName, string> {
     return {
-      blackList: 'set:blackList',
+      blockList: 'set:blockList',
     };
   }
 }
@@ -87,4 +87,4 @@ type GenerateCacheKey = {
 
 type QueueName = 'feed';
 
-type SetName = 'blackList';
+type SetName = 'blockList';
