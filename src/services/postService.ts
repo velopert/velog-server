@@ -112,11 +112,6 @@ const postService = {
       include: {
         Post: {
           include: {
-            postTags: {
-              include: {
-                tag: true,
-              },
-            },
             user: true,
           },
         },
@@ -156,7 +151,7 @@ const postService = {
 
   serialize(
     post: Post & {
-      postTags: (PostTag & {
+      postTags?: (PostTag & {
         tag: Tag | null;
       })[];
       user: User;
@@ -184,7 +179,7 @@ const postService = {
       updated_at: post.updated_at!,
       short_description: shortDescription,
       body: post.body!,
-      tags: post.postTags.map(pt => pt.tag!.name!),
+      tags: post.postTags?.map(pt => pt.tag!.name!) ?? [],
       fk_user_id: post.fk_user_id,
       url_slug: post.url_slug,
       likes: post.likes,
