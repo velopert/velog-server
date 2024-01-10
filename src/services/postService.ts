@@ -101,7 +101,7 @@ const postService = {
     and posts.is_temp = false and posts.is_private = false
     and posts.released_at < ${cursorPost.released_at}
     order by posts.released_at desc
-    limit 10`;
+    limit 20`;
       const ids = result.map(r => r.fk_post_id);
       const posts = await db.post.findMany({
         where: {
@@ -126,7 +126,7 @@ const postService = {
       where pt.fk_tag_id = uuid(${originTag.id})
       and posts.is_temp = false and posts.is_private = false
       order by posts.released_at desc
-      limit 10`;
+      limit 20`;
       const ids = result.map(r => r.fk_post_id);
       const posts = await db.post.findMany({
         where: {
