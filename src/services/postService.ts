@@ -92,6 +92,61 @@ const postService = {
 
     console.log(`findPostsByTag: ${tagName} ${cursorPost ? cursorPost.released_at : ''}`);
 
+    if (cursorPost) {
+      const result = await db.$queryRaw<
+        { fk_post_id: string }[]
+      >`select pt.fk_post_id from posts_tags pt 
+    inner join posts on posts.id = pt.fk_post_id 
+    where pt.fk_tag_id = uuid(${originTag.id})
+    and posts.is_temp = false and posts.is_private = false
+    and posts.released_at < ${cursorPost.released_at}
+    order by posts.released_at desc
+    limit 10`;
+      const ids = result.map(r => r.fk_post_id);
+      const posts = await db.post.findMany({
+        where: {
+          id: {
+            in: ids,
+          },
+        },
+        include: {
+          user: true,
+        },
+        orderBy: {
+          released_at: 'desc',
+        },
+      });
+      const serialized = posts.map(p => this.serialize(p));
+      return serialized;
+    } else {
+      const result = await db.$queryRaw<
+        { fk_post_id: string }[]
+      >`select pt.fk_post_id from posts_tags pt 
+      inner join posts on posts.id = pt.fk_post_id 
+      where pt.fk_tag_id = uuid(${originTag.id})
+      and posts.is_temp = false and posts.is_private = false
+      order by posts.released_at desc
+      limit 10`;
+      const ids = result.map(r => r.fk_post_id);
+      const posts = await db.post.findMany({
+        where: {
+          id: {
+            in: ids,
+          },
+        },
+        include: {
+          user: true,
+        },
+        orderBy: {
+          released_at: 'desc',
+        },
+      });
+      const serialized = posts.map(p => this.serialize(p));
+      return serialized;
+    }
+
+    /**
+
     const posts = await db.postTag.findMany({
       where: {
         fk_tag_id: originTag.id,
@@ -127,6 +182,8 @@ const postService = {
     const serialized = posts.map(p => this.serialize(p.Post!));
 
     return serialized;
+
+     */
   },
 
   async findPostById(id: string) {
