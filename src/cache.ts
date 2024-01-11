@@ -34,6 +34,11 @@ class Cache implements CacheService {
     return Promise.resolve();
   }
 
+  public async createFeed(queueData: CreateFeedArgs): Promise<void> {
+    const queueName = this.queueName.feed;
+    cache.client!.lpush(queueName, JSON.stringify(queueData));
+  }
+
   public async readBlockList(): Promise<string[]> {
     if (!this.client) {
       this.connect();
@@ -88,3 +93,8 @@ type GenerateCacheKey = {
 type QueueName = 'feed';
 
 type SetName = 'blockList';
+
+type CreateFeedArgs = {
+  fk_following_id: string;
+  fk_post_id: string;
+};

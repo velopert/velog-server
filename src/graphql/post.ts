@@ -886,12 +886,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           });
         });
 
-        const queueName = cache.queueName.feed;
         const queueData = {
           fk_following_id: ctx.user_id,
           fk_post_id: post.id,
         };
-        cache.client!.lpush(queueName, JSON.stringify(queueData));
+        await cache.createFeed(queueData);
       }
 
       purgeRecentPosts();
@@ -1146,6 +1145,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             post: serializedPost,
           });
         });
+
+        const queueData = {
+          fk_following_id: ctx.user_id,
+          fk_post_id: post.id,
+        };
+        await cache.createFeed(queueData);
       }
 
       if (!post.is_private && is_private) {
