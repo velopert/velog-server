@@ -1,7 +1,6 @@
 import { GetPostsByTagParams } from './../entity/PostsTags';
 import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
-import userService from './userService';
 import removeMd from 'remove-markdown';
 import { escapeForUrl } from '../lib/utils';
 import Axios, { AxiosResponse } from 'axios';

@@ -5,6 +5,7 @@ import * as comment from './comment';
 import * as series from './series';
 import * as tag from './tag';
 import * as ad from './ad';
+import * as notification from './notification';
 import { gql, IResolvers, makeExecutableSchema } from 'apollo-server-koa';
 
 const typeDef = gql`
@@ -34,6 +35,7 @@ const schema = makeExecutableSchema({
     series.typeDef,
     tag.typeDef,
     ad.typeDef,
+    notification.typeDef,
   ],
   resolvers: merge(
     resolvers,
@@ -42,7 +44,8 @@ const schema = makeExecutableSchema({
     comment.resolvers,
     series.resolvers,
     tag.resolvers,
-    ad.resolvers
+    ad.resolvers,
+    notification.resovlers
   ),
 });
 
