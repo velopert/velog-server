@@ -14,6 +14,7 @@ import { commentSpamFilter } from '../etc/spamFilter';
 import Axios from 'axios';
 import checkUnscore from '../etc/checkUnscore';
 import { purgePost } from '../lib/graphcdn';
+import { notificationService } from '../services/notificationService';
 
 const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
@@ -113,6 +114,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
       }
+      const user = await getRepository(User).findOne(ctx.user_id, { relations: ['profile'] });
+
+      if (!user) {
+        throw new ApolloError('User not found', 'NOT_FOUND');
+      }
+
       const { post_id, comment_id, text } = args as WriteCommentArgs;
       const post = await getRepository(Post).findOne(post_id, { relations: ['user'] });
       if (!post) {
@@ -275,6 +282,29 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       try {
         await purgePost(post.id);
       } catch (e) {}
+
+      if (post.user.id !== ctx.user_id) {
+        console.log('hello');
+        await notificationService.createNotification<'comment'>({
+          type: 'comment',
+          fk_user_id: post.user.id,
+          action_id: comment.id,
+          actor_id: ctx.user_id,
+          action: {
+            actor_display_name: user.profile.display_name,
+            actor_thumbnail: user.profile.thumbnail || '',
+            actor_username: user.username,
+            comment_id: comment.id,
+            comment_text: comment.text,
+            post_id: post.id,
+            post_title: post.title,
+            post_url_slug: post.url_slug,
+            post_writer_username: post.user.username,
+            type: 'comment',
+          },
+          cookies: ctx.cookies,
+        });
+      }
 
       return comment;
     },
