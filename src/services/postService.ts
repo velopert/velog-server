@@ -5,6 +5,7 @@ import removeMd from 'remove-markdown';
 import { escapeForUrl } from '../lib/utils';
 import Axios, { AxiosResponse } from 'axios';
 import Cookies from 'cookies';
+import { getEndpoint } from '../lib/getEndpoint';
 
 const { API_V3_HOST } = process.env;
 
@@ -252,10 +253,7 @@ const postService = {
         }
       `;
 
-    const endpoint =
-      process.env.NODE_ENV === 'development'
-        ? `http://${API_V3_HOST}/graphql`
-        : `https://${API_V3_HOST}/graphql`;
+    const endpoint = getEndpoint();
 
     const accessToken = cookies.get('access_token') ?? '';
 
@@ -286,10 +284,7 @@ const postService = {
         }
       `;
 
-    const endpoint =
-      process.env.NODE_ENV === 'development'
-        ? `http://${API_V3_HOST}/graphql`
-        : `https://${API_V3_HOST}/graphql`;
+    const endpoint = getEndpoint();
 
     const accessToken = cookies.get('access_token') ?? '';
 

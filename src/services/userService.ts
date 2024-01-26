@@ -10,6 +10,7 @@ import sendMail from '../lib/sendMail';
 import Cookies from 'cookies';
 import Axios, { AxiosError, AxiosResponse } from 'axios';
 import postService from './postService';
+import { getEndpoint } from '../lib/getEndpoint';
 
 const { API_V3_HOST, CLIENT_V2_HOST } = process.env;
 
@@ -147,10 +148,7 @@ const userService = {
 
       const accessToken = cookies.get('access_token') ?? '';
 
-      const endpoint =
-        process.env.NODE_ENV === 'development'
-          ? `http://${API_V3_HOST}/graphql`
-          : `https://${API_V3_HOST}/graphql`;
+      const endpoint = getEndpoint();
 
       const res = await Axios.post<AxiosResponse<{ follow: boolean }>>(
         endpoint,
@@ -179,10 +177,7 @@ const userService = {
 
       const accessToken = cookies.get('access_token') ?? '';
 
-      const endpoint =
-        process.env.NODE_ENV === 'development'
-          ? `http://${API_V3_HOST}/graphql`
-          : `https://${API_V3_HOST}/graphql`;
+      const endpoint = getEndpoint();
 
       const res = await Axios.post<AxiosResponse<{ unfollow: boolean }>>(
         endpoint,

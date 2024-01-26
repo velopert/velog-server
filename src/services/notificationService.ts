@@ -84,7 +84,6 @@ export const notificationService = {
       }
     );
 
-    console.log('res', res);
     return res.data;
   },
   notificationActionValidate(type: NotificationType, action: any): boolean {
