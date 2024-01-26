@@ -3,8 +3,20 @@ import Cookies from 'cookies';
 import { getEndpoint } from '../lib/getEndpoint';
 import Axios, { AxiosResponse } from 'axios';
 import { ApolloError } from 'apollo-server-koa';
+import db from '../lib/db';
 
 export const notificationService = {
+  async findByAction({ fkUserId, actorId, type, actionId }: findByActionArgs) {
+    const notification = await db.notification.findFirst({
+      where: {
+        fk_user_id: fkUserId,
+        actor_id: actorId,
+        action_id: actionId,
+        type,
+      },
+    });
+    return notification;
+  },
   async notificationCount(cookies: Cookies) {
     const NOTIFICATION_COUNT_QUERY = `
     query NotificationCount {
@@ -31,14 +43,14 @@ export const notificationService = {
 
     return res.data.data.notificationCount;
   },
-  async createNotification<T extends NotificationType>({
+  async createNotification({
     type,
     fk_user_id,
     actor_id,
     action,
     action_id,
     cookies,
-  }: CreateNotificationArgs<T>) {
+  }: CreateNotificationArgs) {
     const validate = this.notificationActionValidate(type, action);
 
     if (!validate) {
@@ -59,10 +71,7 @@ export const notificationService = {
         fk_user_id,
         actor_id,
         action_id,
-        // graphql union type
-        action: {
-          [type]: action,
-        },
+        action,
       },
     };
 
@@ -128,28 +137,33 @@ export const notificationService = {
   },
 };
 
+type findByActionArgs = {
+  fkUserId: string;
+  actorId: string;
+  actionId: string;
+  type: NotificationType;
+};
+
 type NotificationCountResponse = {
   notificationCount: number;
 };
 
 export type NotificationType = 'comment' | 'postLike' | 'follower';
 
-export type CreateNotificationArgs<T = NotificationType> = {
+export type CreateNotificationArgs = {
   type: NotificationType;
   fk_user_id: string;
   actor_id?: string;
   action_id?: string;
   cookies: Cookies;
-  action: T extends 'comment'
-    ? CommentNotificationAction
-    : NotificationType extends 'follower'
-    ? FollowerNotificationAction
-    : NotificationType extends 'postLike'
-    ? PostLikeNotificationAction
-    : unknown;
+  action: {
+    comment?: CommentNotificationActionInput;
+    follower?: FollowerNotificationActionInput;
+    postLike?: PostLikeNotificationActionInput;
+  };
 };
 
-export type CommentNotificationAction = {
+export type CommentNotificationActionInput = {
   actor_display_name: string;
   actor_thumbnail: string;
   actor_username: string;
@@ -162,7 +176,7 @@ export type CommentNotificationAction = {
   type: 'comment';
 };
 
-export type FollowerNotificationAction = {
+export type FollowerNotificationActionInput = {
   actor_display_name: string;
   actor_thumbnail: string;
   actor_user_id: string;
@@ -171,7 +185,7 @@ export type FollowerNotificationAction = {
   type: 'follower';
 };
 
-export type PostLikeNotificationAction = {
+export type PostLikeNotificationActionInput = {
   actor_display_name: string;
   actor_thumbnail: string;
   actor_username: string;

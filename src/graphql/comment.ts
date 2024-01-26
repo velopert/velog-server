@@ -14,7 +14,11 @@ import { commentSpamFilter } from '../etc/spamFilter';
 import Axios from 'axios';
 import checkUnscore from '../etc/checkUnscore';
 import { purgePost } from '../lib/graphcdn';
-import { notificationService } from '../services/notificationService';
+import {
+  CommentNotificationActionInput,
+  notificationService,
+} from '../services/notificationService';
+import db from '../lib/db';
 
 const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
@@ -283,27 +287,51 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
+      // create notification
       if (post.user.id !== ctx.user_id) {
-        console.log('hello');
-        await notificationService.createNotification<'comment'>({
+        const notification = await notificationService.findByAction({
+          fkUserId: post.user.id,
+          actionId: comment.id,
+          actorId: ctx.user_id,
           type: 'comment',
-          fk_user_id: post.user.id,
-          action_id: comment.id,
-          actor_id: ctx.user_id,
-          action: {
-            actor_display_name: user.profile.display_name,
-            actor_thumbnail: user.profile.thumbnail || '',
-            actor_username: user.username,
-            comment_id: comment.id,
-            comment_text: comment.text,
-            post_id: post.id,
-            post_title: post.title,
-            post_url_slug: post.url_slug,
-            post_writer_username: post.user.username,
-            type: 'comment',
-          },
-          cookies: ctx.cookies,
         });
+
+        if (notification) {
+          await db.notification.update({
+            where: {
+              id: notification.id,
+            },
+            data: {
+              is_deleted: false,
+            },
+          });
+        }
+
+        if (!notification) {
+          try {
+            await notificationService.createNotification({
+              type: 'comment',
+              fk_user_id: post.user.id,
+              action_id: comment.id,
+              actor_id: ctx.user_id,
+              action: {
+                comment: {
+                  actor_display_name: user.profile.display_name,
+                  actor_thumbnail: user.profile.thumbnail || '',
+                  actor_username: user.username,
+                  comment_id: comment.id,
+                  comment_text: comment.text,
+                  post_id: post.id,
+                  post_title: post.title,
+                  post_url_slug: post.url_slug,
+                  post_writer_username: post.user.username,
+                  type: 'comment',
+                },
+              },
+              cookies: ctx.cookies,
+            });
+          } catch (_) {}
+        }
       }
 
       return comment;
@@ -354,6 +382,24 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
+      const notification = await notificationService.findByAction({
+        fkUserId: post.user.id,
+        actionId: comment.id,
+        actorId: ctx.user_id,
+        type: 'comment',
+      });
+
+      if (notification) {
+        await db.notification.update({
+          where: {
+            id: notification.id,
+          },
+          data: {
+            is_deleted: true,
+          },
+        });
+      }
+
       return true;
     },
     editComment: async (parent: any, { id, text }: any, ctx) => {
@@ -368,8 +414,41 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (ctx.user_id !== comment.fk_user_id) {
         throw new ApolloError('No permission');
       }
+
       comment.text = text;
       await commentRepo.save(comment);
+
+      const postRepo = getRepository(Post);
+      const post = await postRepo.findOne({
+        relations: ['user'],
+      });
+
+      // update notification
+      if (post) {
+        const notification = await notificationService.findByAction({
+          fkUserId: post.user.id,
+          actionId: comment.id,
+          actorId: ctx.user_id,
+          type: 'comment',
+        });
+
+        if (notification) {
+          const action: CommentNotificationActionInput = {
+            ...(notification.action as CommentNotificationActionInput),
+            comment_text: text,
+          };
+
+          await db.notification.update({
+            where: {
+              id: notification.id,
+            },
+            data: {
+              action,
+            },
+          });
+        }
+      }
+
       return comment;
     },
   },
