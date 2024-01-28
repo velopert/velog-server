@@ -289,7 +289,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // create notification
       if (post.user.id !== ctx.user_id) {
-        const notification = await notificationService.findByAction({
+        const notification = await notificationService.findByUniqueKey({
           fkUserId: post.user.id,
           actionId: comment.id,
           actorId: ctx.user_id,
@@ -382,7 +382,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
-      const notification = await notificationService.findByAction({
+      const notification = await notificationService.findByUniqueKey({
         fkUserId: post.user.id,
         actionId: comment.id,
         actorId: ctx.user_id,
@@ -425,7 +425,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // update notification
       if (post) {
-        const notification = await notificationService.findByAction({
+        const notification = await notificationService.findByUniqueKey({
           fkUserId: post.user.id,
           actionId: comment.id,
           actorId: ctx.user_id,

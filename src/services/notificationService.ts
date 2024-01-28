@@ -6,7 +6,7 @@ import { ApolloError } from 'apollo-server-koa';
 import db from '../lib/db';
 
 export const notificationService = {
-  async findByAction({ fkUserId, actorId, type, actionId }: findByActionArgs) {
+  async findByUniqueKey({ fkUserId, actorId, type, actionId }: findByActionArgs) {
     const notification = await db.notification.findFirst({
       where: {
         fk_user_id: fkUserId,
