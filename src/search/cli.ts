@@ -115,7 +115,6 @@ async function updatePost() {
 
   const tags = await tagsLoader.load(post!.id);
   post!.tags = tags;
-  console.log(post);
 }
 
 async function deletePost() {

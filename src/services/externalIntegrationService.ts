@@ -80,6 +80,7 @@ const externalInterationService = {
     return decoded;
   },
   async notifyWebhook(params: NotifyParams) {
+    if (process.env.NODE_ENV !== 'production') return;
     const webhook = process.env.CODENARY_WEBHOOK;
     if (!webhook) return;
     Axios.post(webhook, params, {
