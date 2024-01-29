@@ -526,103 +526,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       return posts;
     },
     recentPosts: async (parent: any, { cursor, limit = 20 }: PostsArgs, context) => {
-      if (limit > 100) {
-        throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
-      }
-
-      const query = getManager()
-        .createQueryBuilder(Post, 'post')
-        .limit(limit)
-        .orderBy('post.released_at', 'DESC')
-        .addOrderBy('post.id', 'DESC')
-        .leftJoinAndSelect('post.user', 'user');
-
-      if (!context.user_id) {
-        query.where('is_private = false');
-      } else {
-        query.where('(is_private = false OR post.fk_user_id = :user_id)', {
-          user_id: context.user_id,
-        });
-      }
-      // .where('is_private = false');
-
-      query.andWhere('is_temp = false');
-
-      // pagination
-      if (cursor) {
-        const post = await getRepository(Post).findOne({
-          id: cursor,
-        });
-        if (!post) {
-          throw new ApolloError('invalid cursor');
-        }
-        query.andWhere('post.released_at < :date', {
-          date: post.released_at,
-          id: post.id,
-        });
-        query.orWhere('post.released_at = :date AND post.id < :id', {
-          date: post.released_at,
-          id: post.id,
-        });
-      }
-
-      const posts = await query.getMany();
-      return posts;
+      return [];
     },
     trendingPosts: async (parent: any, { offset = 0, limit = 20, timeframe = 'month' }, ctx) => {
-      const timeframes: [string, number][] = [
-        ['day', 1],
-        ['week', 7],
-        ['month', 30],
-        ['year', 365],
-      ];
-      const selectedTimeframe = timeframes.find(([text]) => text === timeframe);
-      if (!selectedTimeframe) {
-        throw new ApolloError('Invalid timeframe', 'BAD_REQUEST');
-      }
-
-      if (timeframe === 'year') {
-        console.log('trendingPosts - year', { offset, limit, ip: ctx.ip });
-      }
-      if (timeframe === 'year' && offset > 1000) {
-        console.log('Detected GraphQL Abuse', ctx.ip);
-        return [];
-      }
-
-      if (limit > 100) {
-        throw new ApolloError('Limit is too high', 'BAD_REQUEST');
-      }
-
-      let ids: string[] = [];
-      const cacheKey = `trending-${selectedTimeframe[0]}-${offset}-${limit}`;
-
-      const cachedIds = lruCache.get(cacheKey);
-      if (cachedIds) {
-        ids = cachedIds;
-      } else {
-        const rows = (await getManager().query(
-          `
-          select posts.id, posts.title, SUM(post_scores.score) as legacy_score  from post_scores
-          inner join posts on post_scores.fk_post_id = posts.id
-          where post_scores.created_at > now() - interval '${selectedTimeframe[1]} days'
-          and posts.released_at > now() - interval '${selectedTimeframe[1] * 1.5} days'
-          group by posts.id
-          order by legacy_score desc, posts.id desc
-          offset $1
-          limit $2
-        `,
-          [offset, limit]
-        )) as { id: string; legacy_score: number }[];
-
-        ids = rows.map(row => row.id);
-        lruCache.set(cacheKey, ids);
-      }
-
-      const posts = await getRepository(Post).findByIds(ids);
-      const normalized = normalize(posts);
-      const ordered = ids.map(id => normalized[id]);
-
-      return ordered;
+      return [];
     },
     searchPosts: async (parent: any, { keyword, offset, limit = 20, username }: any, ctx) => {
       if (limit > 100) {
