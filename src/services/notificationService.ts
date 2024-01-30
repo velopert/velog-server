@@ -97,14 +97,6 @@ export const notificationService = {
   },
   notificationActionValidate(type: NotificationType, action: any): boolean {
     const schema = {
-      follower: Joi.object().keys({
-        follower_id: Joi.string().uuid().required(),
-        follower_user_id: Joi.string().uuid().required(),
-        actor_display_name: Joi.string().required(),
-        actor_username: Joi.string().required(),
-        actor_thumbnail: Joi.string().required().allow(''),
-        type: Joi.string().valid('follower').required(),
-      }),
       comment: Joi.object().keys({
         comment_id: Joi.string().uuid().required(),
         post_id: Joi.string().uuid().required(),
@@ -114,25 +106,29 @@ export const notificationService = {
         comment_text: Joi.string().required(),
         actor_display_name: Joi.string().required(),
         actor_username: Joi.string().required(),
-        actor_thumbnail: Joi.string().required(),
+        actor_thumbnail: Joi.string().allow('').required(),
         type: Joi.string().valid('comment').required(),
       }),
-      postLike: Joi.object().keys({
-        post_like_id: Joi.string().uuid().required(),
+      commentReply: Joi.object().keys({
+        comment_id: Joi.string().uuid().required(),
+        parent_comment_text: Joi.string().required(),
         post_id: Joi.string().uuid().required(),
-        post_title: Joi.string().required(),
         post_url_slug: Joi.string().required(),
         post_writer_username: Joi.string().required(),
+        reply_comment_text: Joi.string().required(),
         actor_display_name: Joi.string().required(),
         actor_username: Joi.string().required(),
-        actor_thumbnail: Joi.string().required(),
-        type: Joi.string().valid('postLike').required(),
+        actor_thumbnail: Joi.string().allow('').required(),
+        type: Joi.string().valid('commentReply').required(),
       }),
     };
 
-    const validation = Joi.validate(action, schema[type]);
+    const validation = Joi.validate(action[type], schema[type]);
 
-    if (validation.error) return false;
+    if (validation.error) {
+      console.log('notification validation error', validation.error);
+      return false;
+    }
     return true;
   },
 };
@@ -148,7 +144,12 @@ type NotificationCountResponse = {
   notificationCount: number;
 };
 
-export type NotificationType = 'comment' | 'postLike' | 'follower';
+type NotificationActionInput = {
+  comment?: CommentNotificationActionInput;
+  commentReply?: CommentReplyNotificationActionInput;
+};
+
+export type NotificationType = 'comment' | 'commentReply';
 
 export type CreateNotificationArgs = {
   type: NotificationType;
@@ -156,11 +157,7 @@ export type CreateNotificationArgs = {
   actor_id?: string;
   action_id?: string;
   cookies: Cookies;
-  action: {
-    comment?: CommentNotificationActionInput;
-    follower?: FollowerNotificationActionInput;
-    postLike?: PostLikeNotificationActionInput;
-  };
+  action: NotificationActionInput;
 };
 
 export type CommentNotificationActionInput = {
@@ -176,7 +173,20 @@ export type CommentNotificationActionInput = {
   type: 'comment';
 };
 
-export type FollowerNotificationActionInput = {
+export type CommentReplyNotificationActionInput = {
+  comment_id: string;
+  parent_comment_text: string;
+  post_id: string;
+  post_url_slug: string;
+  post_writer_username: string;
+  reply_comment_text: string;
+  actor_display_name: string;
+  actor_username: string;
+  actor_thumbnail: string;
+  type: 'commentReply';
+};
+
+export type FollowNotificationActionInput = {
   actor_display_name: string;
   actor_thumbnail: string;
   actor_user_id: string;

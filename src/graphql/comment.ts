@@ -16,6 +16,7 @@ import checkUnscore from '../etc/checkUnscore';
 import { purgePost } from '../lib/graphcdn';
 import {
   CommentNotificationActionInput,
+  CommentReplyNotificationActionInput,
   notificationService,
 } from '../services/notificationService';
 import db from '../lib/db';
@@ -164,7 +165,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       if (comment_id) {
-        const commentTarget = await commentRepo.findOne(comment_id);
+        const commentTarget = await commentRepo.findOne(comment_id, {
+          relations: ['user'],
+        });
         if (!commentTarget) {
           throw new ApolloError('Target comment is not found', 'NOT_FOUND');
         }
@@ -287,45 +290,60 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
-      // create notification
+      // create comment notification
       if (post.user.id !== ctx.user_id) {
-        const notification = await notificationService.findByUniqueKey({
-          fkUserId: post.user.id,
-          actionId: comment.id,
-          actorId: ctx.user_id,
-          type: 'comment',
+        try {
+          await notificationService.createNotification({
+            type: 'comment',
+            fk_user_id: post.user.id,
+            action_id: comment.id,
+            actor_id: ctx.user_id,
+            action: {
+              comment: {
+                actor_display_name: user.profile.display_name,
+                actor_thumbnail: user.profile.thumbnail || '',
+                actor_username: user.username,
+                comment_id: comment.id,
+                comment_text: comment.text,
+                post_id: post.id,
+                post_title: post.title,
+                post_url_slug: post.url_slug,
+                post_writer_username: post.user.username,
+                type: 'comment',
+              },
+            },
+            cookies: ctx.cookies,
+          });
+        } catch (error) {
+          console.log('err', error);
+        }
+      }
+
+      // create comment reply notification
+      if (comment_id) {
+        const commentTarget = await commentRepo.findOne(comment_id, {
+          relations: ['user'],
         });
 
-        if (notification) {
-          await db.notification.update({
-            where: {
-              id: notification.id,
-            },
-            data: {
-              is_deleted: false,
-            },
-          });
-        }
-
-        if (!notification) {
+        if (commentTarget && commentTarget?.user.id !== ctx.user_id) {
           try {
             await notificationService.createNotification({
-              type: 'comment',
-              fk_user_id: post.user.id,
+              type: 'commentReply',
+              fk_user_id: commentTarget.user.id,
               action_id: comment.id,
               actor_id: ctx.user_id,
               action: {
-                comment: {
+                commentReply: {
+                  type: 'commentReply',
+                  parent_comment_text: commentTarget.text,
+                  reply_comment_text: comment.text,
                   actor_display_name: user.profile.display_name,
                   actor_thumbnail: user.profile.thumbnail || '',
                   actor_username: user.username,
                   comment_id: comment.id,
-                  comment_text: comment.text,
                   post_id: post.id,
-                  post_title: post.title,
                   post_url_slug: post.url_slug,
                   post_writer_username: post.user.username,
-                  type: 'comment',
                 },
               },
               cookies: ctx.cookies,
@@ -382,17 +400,37 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
-      const notification = await notificationService.findByUniqueKey({
+      // remove notification
+      const comemntNotification = await notificationService.findByUniqueKey({
         fkUserId: post.user.id,
         actionId: comment.id,
         actorId: ctx.user_id,
         type: 'comment',
       });
 
-      if (notification) {
+      if (comemntNotification) {
         await db.notification.update({
           where: {
-            id: notification.id,
+            id: comemntNotification.id,
+          },
+          data: {
+            is_deleted: true,
+          },
+        });
+      }
+
+      // remove notification
+      const commentReplyNotificaiton = await notificationService.findByUniqueKey({
+        fkUserId: post.user.id,
+        actionId: comment.id,
+        actorId: ctx.user_id,
+        type: 'commentReply',
+      });
+
+      if (commentReplyNotificaiton) {
+        await db.notification.update({
+          where: {
+            id: commentReplyNotificaiton.id,
           },
           data: {
             is_deleted: true,
@@ -425,22 +463,45 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // update notification
       if (post) {
-        const notification = await notificationService.findByUniqueKey({
+        const commentNotification = await notificationService.findByUniqueKey({
           fkUserId: post.user.id,
           actionId: comment.id,
           actorId: ctx.user_id,
           type: 'comment',
         });
 
-        if (notification) {
+        if (commentNotification) {
           const action: CommentNotificationActionInput = {
-            ...(notification.action as CommentNotificationActionInput),
+            ...(commentNotification.action as CommentNotificationActionInput),
             comment_text: text,
           };
 
           await db.notification.update({
             where: {
-              id: notification.id,
+              id: commentNotification.id,
+            },
+            data: {
+              action,
+            },
+          });
+        }
+
+        const commentReplyNotification = await notificationService.findByUniqueKey({
+          fkUserId: post.user.id,
+          actionId: comment.id,
+          actorId: ctx.user_id,
+          type: 'commentReply',
+        });
+
+        if (commentReplyNotification) {
+          const action: CommentReplyNotificationActionInput = {
+            ...(commentReplyNotification.action as CommentReplyNotificationActionInput),
+            reply_comment_text: text,
+          };
+
+          await db.notification.update({
+            where: {
+              id: commentReplyNotification.id,
             },
             data: {
               action,

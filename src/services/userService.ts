@@ -144,7 +144,11 @@ const userService = {
   },
   async follow(followingUserId: string, cookies: Cookies) {
     try {
-      const query = 'mutation Follow ($input: FollowInput!) {\n\tfollow(input: $input) \n}';
+      const FOLLOW_MUTATION = `
+        mutation Follow ($input: FollowInput!) {
+          follow(input: $input)
+        }
+      `;
 
       const accessToken = cookies.get('access_token') ?? '';
 
@@ -154,8 +158,8 @@ const userService = {
         endpoint,
         {
           operationName: 'Follow',
-          query: query,
-          variables: { input: { followingUserId: followingUserId } },
+          query: FOLLOW_MUTATION,
+          variables: { input: { followingUserId } },
         },
         {
           headers: {
@@ -173,7 +177,11 @@ const userService = {
   },
   async unfollow(followingUserId: string, cookies: Cookies) {
     try {
-      const query = 'mutation Unfollow ($input: UnfollowInput!) {\n\tunfollow(input: $input) \n}';
+      const UNFOLLOW_MUTATION = `
+        mutation Unfollow ($input: UnfollowInput!) {
+          unfollow(input: $input)
+        }
+      `;
 
       const accessToken = cookies.get('access_token') ?? '';
 
@@ -183,8 +191,8 @@ const userService = {
         endpoint,
         {
           operationName: 'Unfollow',
-          query: query,
-          variables: { input: { followingUserId: followingUserId } },
+          query: UNFOLLOW_MUTATION,
+          variables: { input: { followingUserId } },
         },
         {
           headers: {

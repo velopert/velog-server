@@ -244,8 +244,8 @@ const postService = {
   },
   async likePost(postId: string, cookies: Cookies) {
     const LIKE_POST_MUTATION = `
-        mutation LikePost {
-          likePost(input: { postId: "${postId}"}) {
+        mutation LikePost($input: LikePostInput!) {
+          likePost(input: $input) {
             id
             is_liked
             likes
@@ -256,27 +256,35 @@ const postService = {
     const endpoint = getEndpoint();
 
     const accessToken = cookies.get('access_token') ?? '';
-
-    const res = await Axios.post<AxiosResponse<LikePostResponse>>(
-      endpoint,
-      {
-        operationName: 'LikePost',
-        query: LIKE_POST_MUTATION,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          authorization: `Bearer ${accessToken}`,
+    try {
+      const res = await Axios.post<AxiosResponse<LikePostResponse>>(
+        endpoint,
+        {
+          operationName: 'LikePost',
+          query: LIKE_POST_MUTATION,
+          variables: {
+            input: {
+              postId,
+            },
+          },
         },
-      }
-    );
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
-    return res.data.data.likePost;
+      return res.data.data.likePost;
+    } catch (error) {
+      console.log(error);
+    }
   },
   async unlikePost(postId: string, cookies: Cookies) {
     const UNLIKE_POST_MUTATION = `
-        mutation UnLikePost {
-          unlikePost(input: { postId: "${postId}"}) {
+        mutation UnLikePost($input: UnlikePostInput!) {
+          unlikePost(input: $input) {
             id
             is_liked
             likes
@@ -288,20 +296,29 @@ const postService = {
 
     const accessToken = cookies.get('access_token') ?? '';
 
-    const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
-      endpoint,
-      {
-        operationName: 'UnLikePost',
-        query: UNLIKE_POST_MUTATION,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          authorization: `Bearer ${accessToken}`,
+    try {
+      const res = await Axios.post<AxiosResponse<UnlikePostResponse>>(
+        endpoint,
+        {
+          operationName: 'UnLikePost',
+          query: UNLIKE_POST_MUTATION,
+          variables: {
+            input: {
+              postId,
+            },
+          },
         },
-      }
-    );
-    return res.data.data.unlikePost;
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      return res.data.data.unlikePost;
+    } catch (error) {
+      console.log('error', error);
+    }
   },
 };
 
