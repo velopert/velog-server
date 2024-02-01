@@ -214,6 +214,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       try {
         // send email to commenter
         const p1 = (async () => {
+          if (process.env.NODE_ENV !== 'production') return;
           if (!post.user.email) return;
           const userMeta = await getRepository(UserMeta).findOne({ fk_user_id: post.user.id });
           if (!userMeta?.email_notification) return;
@@ -243,6 +244,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
         // send email to parent comment user
         const p2 = (async () => {
+          if (process.env.NODE_ENV !== 'production') return;
           if (!comment_id || !commenter) return;
           const parentComment = await getRepository(Comment).findOne(comment_id, {
             relations: ['user'],
@@ -290,35 +292,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
-      // create comment notification
-      if (post.user.id !== ctx.user_id) {
-        try {
-          await notificationService.createNotification({
-            type: 'comment',
-            fk_user_id: post.user.id,
-            action_id: comment.id,
-            actor_id: ctx.user_id,
-            action: {
-              comment: {
-                actor_display_name: user.profile.display_name,
-                actor_thumbnail: user.profile.thumbnail || '',
-                actor_username: user.username,
-                comment_id: comment.id,
-                comment_text: comment.text,
-                post_id: post.id,
-                post_title: post.title,
-                post_url_slug: post.url_slug,
-                post_writer_username: post.user.username,
-                type: 'comment',
-              },
-            },
-            cookies: ctx.cookies,
-          });
-        } catch (error) {
-          console.log('err', error);
-        }
-      }
-
+      let isNotificationCreated = false;
       // create comment reply notification
       if (comment_id) {
         const commentTarget = await commentRepo.findOne(comment_id, {
@@ -348,7 +322,37 @@ export const resolvers: IResolvers<any, ApolloContext> = {
               },
               cookies: ctx.cookies,
             });
+            isNotificationCreated = true;
           } catch (_) {}
+        }
+      }
+
+      // create comment notification
+      if (!isNotificationCreated && post.user.id !== ctx.user_id) {
+        try {
+          await notificationService.createNotification({
+            type: 'comment',
+            fk_user_id: post.user.id,
+            action_id: comment.id,
+            actor_id: ctx.user_id,
+            action: {
+              comment: {
+                actor_display_name: user.profile.display_name,
+                actor_thumbnail: user.profile.thumbnail || '',
+                actor_username: user.username,
+                comment_id: comment.id,
+                comment_text: comment.text,
+                post_id: post.id,
+                post_title: post.title,
+                post_url_slug: post.url_slug,
+                post_writer_username: post.user.username,
+                type: 'comment',
+              },
+            },
+            cookies: ctx.cookies,
+          });
+        } catch (error) {
+          console.log('err', error);
         }
       }
 
@@ -470,7 +474,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           type: 'comment',
         });
 
-        if (commentNotification) {
+        if (commentNotification && !commentNotification.is_deleted) {
           const action: CommentNotificationActionInput = {
             ...(commentNotification.action as CommentNotificationActionInput),
             comment_text: text,
@@ -493,7 +497,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           type: 'commentReply',
         });
 
-        if (commentReplyNotification) {
+        if (commentReplyNotification && !commentReplyNotification.is_deleted) {
           const action: CommentReplyNotificationActionInput = {
             ...(commentReplyNotification.action as CommentReplyNotificationActionInput),
             reply_comment_text: text,
