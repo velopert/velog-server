@@ -1,4 +1,5 @@
 import Axios, { AxiosResponse } from 'axios';
+import { getEndpoint } from '../lib/getEndpoint';
 
 const { API_V3_HOST } = process.env;
 
@@ -20,10 +21,7 @@ const adService = {
     }
     `;
 
-    const endpoint =
-      process.env.NODE_ENV === 'development'
-        ? `http://${API_V3_HOST}/graphql`
-        : `https://${API_V3_HOST}/graphql`;
+    const endpoint = getEndpoint();
 
     const { data } = await Axios.post<AxiosResponse<GetAdListResponse>>(
       endpoint,

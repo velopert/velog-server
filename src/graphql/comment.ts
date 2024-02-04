@@ -14,6 +14,12 @@ import { commentSpamFilter } from '../etc/spamFilter';
 import Axios from 'axios';
 import checkUnscore from '../etc/checkUnscore';
 import { purgePost } from '../lib/graphcdn';
+import {
+  CommentNotificationActionInput,
+  CommentReplyNotificationActionInput,
+  notificationService,
+} from '../services/notificationService';
+import db from '../lib/db';
 
 const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
 
@@ -113,6 +119,12 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (!ctx.user_id) {
         throw new AuthenticationError('Not Logged In');
       }
+      const user = await getRepository(User).findOne(ctx.user_id, { relations: ['profile'] });
+
+      if (!user) {
+        throw new ApolloError('User not found', 'NOT_FOUND');
+      }
+
       const { post_id, comment_id, text } = args as WriteCommentArgs;
       const post = await getRepository(Post).findOne(post_id, { relations: ['user'] });
       if (!post) {
@@ -153,7 +165,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       if (comment_id) {
-        const commentTarget = await commentRepo.findOne(comment_id);
+        const commentTarget = await commentRepo.findOne(comment_id, {
+          relations: ['user'],
+        });
         if (!commentTarget) {
           throw new ApolloError('Target comment is not found', 'NOT_FOUND');
         }
@@ -200,6 +214,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       try {
         // send email to commenter
         const p1 = (async () => {
+          if (process.env.NODE_ENV !== 'production') return;
           if (!post.user.email) return;
           const userMeta = await getRepository(UserMeta).findOne({ fk_user_id: post.user.id });
           if (!userMeta?.email_notification) return;
@@ -229,6 +244,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
         // send email to parent comment user
         const p2 = (async () => {
+          if (process.env.NODE_ENV !== 'production') return;
           if (!comment_id || !commenter) return;
           const parentComment = await getRepository(Comment).findOne(comment_id, {
             relations: ['user'],
@@ -275,6 +291,70 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       try {
         await purgePost(post.id);
       } catch (e) {}
+
+      let isNotificationCreated = false;
+      // create comment reply notification
+      if (comment_id) {
+        const commentTarget = await commentRepo.findOne(comment_id, {
+          relations: ['user'],
+        });
+
+        if (commentTarget && commentTarget?.user.id !== ctx.user_id) {
+          try {
+            await notificationService.createNotification({
+              type: 'commentReply',
+              fk_user_id: commentTarget.user.id,
+              action_id: comment.id,
+              actor_id: ctx.user_id,
+              action: {
+                commentReply: {
+                  type: 'commentReply',
+                  parent_comment_text: commentTarget.text,
+                  reply_comment_text: comment.text,
+                  actor_display_name: user.profile.display_name,
+                  actor_thumbnail: user.profile.thumbnail || '',
+                  actor_username: user.username,
+                  comment_id: comment.id,
+                  post_id: post.id,
+                  post_url_slug: post.url_slug,
+                  post_writer_username: post.user.username,
+                },
+              },
+              cookies: ctx.cookies,
+            });
+            isNotificationCreated = true;
+          } catch (_) {}
+        }
+      }
+
+      // create comment notification
+      if (!isNotificationCreated && post.user.id !== ctx.user_id) {
+        try {
+          await notificationService.createNotification({
+            type: 'comment',
+            fk_user_id: post.user.id,
+            action_id: comment.id,
+            actor_id: ctx.user_id,
+            action: {
+              comment: {
+                actor_display_name: user.profile.display_name,
+                actor_thumbnail: user.profile.thumbnail || '',
+                actor_username: user.username,
+                comment_id: comment.id,
+                comment_text: comment.text,
+                post_id: post.id,
+                post_title: post.title,
+                post_url_slug: post.url_slug,
+                post_writer_username: post.user.username,
+                type: 'comment',
+              },
+            },
+            cookies: ctx.cookies,
+          });
+        } catch (error) {
+          console.log('err', error);
+        }
+      }
 
       return comment;
     },
@@ -324,6 +404,44 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         await purgePost(post.id);
       } catch (e) {}
 
+      // remove notification
+      const comemntNotification = await notificationService.findByUniqueKey({
+        fkUserId: post.user.id,
+        actionId: comment.id,
+        actorId: ctx.user_id,
+        type: 'comment',
+      });
+
+      if (comemntNotification) {
+        await db.notification.update({
+          where: {
+            id: comemntNotification.id,
+          },
+          data: {
+            is_deleted: true,
+          },
+        });
+      }
+
+      // remove notification
+      const commentReplyNotificaiton = await notificationService.findByUniqueKey({
+        fkUserId: post.user.id,
+        actionId: comment.id,
+        actorId: ctx.user_id,
+        type: 'commentReply',
+      });
+
+      if (commentReplyNotificaiton) {
+        await db.notification.update({
+          where: {
+            id: commentReplyNotificaiton.id,
+          },
+          data: {
+            is_deleted: true,
+          },
+        });
+      }
+
       return true;
     },
     editComment: async (parent: any, { id, text }: any, ctx) => {
@@ -338,8 +456,64 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (ctx.user_id !== comment.fk_user_id) {
         throw new ApolloError('No permission');
       }
+
       comment.text = text;
       await commentRepo.save(comment);
+
+      const postRepo = getRepository(Post);
+      const post = await postRepo.findOne({
+        relations: ['user'],
+      });
+
+      // update notification
+      if (post) {
+        const commentNotification = await notificationService.findByUniqueKey({
+          fkUserId: post.user.id,
+          actionId: comment.id,
+          actorId: ctx.user_id,
+          type: 'comment',
+        });
+
+        if (commentNotification && !commentNotification.is_deleted) {
+          const action: CommentNotificationActionInput = {
+            ...(commentNotification.action as CommentNotificationActionInput),
+            comment_text: text,
+          };
+
+          await db.notification.update({
+            where: {
+              id: commentNotification.id,
+            },
+            data: {
+              action,
+            },
+          });
+        }
+
+        const commentReplyNotification = await notificationService.findByUniqueKey({
+          fkUserId: post.user.id,
+          actionId: comment.id,
+          actorId: ctx.user_id,
+          type: 'commentReply',
+        });
+
+        if (commentReplyNotification && !commentReplyNotification.is_deleted) {
+          const action: CommentReplyNotificationActionInput = {
+            ...(commentReplyNotification.action as CommentReplyNotificationActionInput),
+            reply_comment_text: text,
+          };
+
+          await db.notification.update({
+            where: {
+              id: commentReplyNotification.id,
+            },
+            data: {
+              action,
+            },
+          });
+        }
+      }
+
       return comment;
     },
   },

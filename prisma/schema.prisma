@@ -524,6 +524,7 @@ model User {
   ExternalIntegration        ExternalIntegration[]
   ExternalIntegrationHistory ExternalIntegrationHistory[]
   userProfile                UserProfile?
+  Notification               Notification[]
 
   @@index([email], map: "users_email")
   @@index([username], map: "users_username")
@@ -597,4 +598,38 @@ model Feed {
 
   @@index([created_at], map: "feeds_created_at")
   @@map("feeds")
+}
+
+model Ad {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  title       String   @db.VarChar(255)
+  body        String   @db.Text
+  image       String   @db.VarChar(500)
+  type        String   @db.VarChar(50)
+  start_date  DateTime @db.Timestamptz(6)
+  end_date    DateTime @db.Timestamptz(6)
+  is_disabled Boolean  @default(false)
+  url         String   @db.VarChar(512)
+
+  @@map("ads")
+}
+
+model Notification {
+  id         String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type       String    @db.VarChar(50)
+  fk_user_id String    @db.Uuid
+  actor_id   String?   @db.Uuid
+  action     Json      @default("{}")
+  action_id  String?   @db.Uuid
+  is_read    Boolean   @default(false)
+  is_deleted Boolean   @default(false)
+  read_at    DateTime?
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  user       User      @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([fk_user_id, type, actor_id, action_id])
+  @@index([actor_id])
+  @@index([action_id])
+  @@index([fk_user_id])
+  @@map("notifications")
 }

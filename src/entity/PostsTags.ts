@@ -75,8 +75,6 @@ export default class PostsTags {
       return acc;
     }, []);
 
-    console.log(uniqueTags);
-
     const repo = getRepository(PostsTags);
 
     // get current post tags

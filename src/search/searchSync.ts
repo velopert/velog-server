@@ -7,6 +7,7 @@ import { createTagsLoader } from '../entity/PostsTags';
 const tagsLoader = createTagsLoader();
 
 async function update(id: string) {
+  if (process.env.NODE_ENV !== 'production') return;
   const postRepo = getRepository(Post);
   const post = await postRepo
     .createQueryBuilder('post')
@@ -30,6 +31,7 @@ async function update(id: string) {
 }
 
 function remove(id: string) {
+  if (process.env.NODE_ENV !== 'production') return;
   return esClient.delete({
     id,
     index: 'posts',

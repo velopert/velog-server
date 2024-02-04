@@ -729,6 +729,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           console.log(e);
         }
       }
+
       const isBlockList = await checkBlockList(ctx.user_id, user?.username);
       if (isBlockList) {
         post.is_private = true;
@@ -781,7 +782,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       if (!data.is_temp && !data.is_private) {
         setImmediate(async () => {
-          if (process.env.NODE_ENV !== 'production') return;
           if (!ctx.user_id) return;
           const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
           if (!isIntegrated) return;
