@@ -119,14 +119,15 @@ const postService = {
       const serialized = posts.map(p => this.serialize(p));
       return serialized;
     } else {
-      const result = await db.$queryRaw<
-        { fk_post_id: string }[]
-      >`select pt.fk_post_id from posts_tags pt 
-      inner join posts on posts.id = pt.fk_post_id 
-      where pt.fk_tag_id = uuid(${originTag.id})
-      and posts.is_temp = false and posts.is_private = false
-      order by posts.released_at desc
-      limit 20`;
+      // const result = await db.$queryRaw<
+      //   { fk_post_id: string }[]
+      // >`select pt.fk_post_id from posts_tags pt
+      // inner join posts on posts.id = pt.fk_post_id
+      // where pt.fk_tag_id = uuid(${originTag.id})
+      // and posts.is_temp = false and posts.is_private = false
+      // order by posts.released_at desc
+      // limit 20`;
+      const result = [] as { fk_post_id: string }[];
       const ids = result.map(r => r.fk_post_id);
       const posts = await db.post.findMany({
         where: {
