@@ -19,8 +19,8 @@ export const notificationService = {
   },
   async notificationCount(cookies: Cookies) {
     const NOTIFICATION_COUNT_QUERY = `
-    query NotificationCount {
-      notificationCount
+    query NotNoticeNotificationCount {
+      notNoticeNotificationCount
     }
     `;
 
@@ -30,7 +30,7 @@ export const notificationService = {
     const res = await Axios.post<AxiosResponse<NotificationCountResponse>>(
       endpoint,
       {
-        operationName: 'NotificationCount',
+        operationName: 'NotNoticeNotificationCount',
         query: NOTIFICATION_COUNT_QUERY,
       },
       {
