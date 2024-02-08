@@ -41,7 +41,7 @@ export const notificationService = {
       }
     );
 
-    return res.data.data.notificationCount;
+    return res.data.data.notNoticeNotificationCount;
   },
   async createNotification({
     type,
@@ -141,7 +141,7 @@ type findByActionArgs = {
 };
 
 type NotificationCountResponse = {
-  notificationCount: number;
+  notNoticeNotificationCount: number;
 };
 
 type NotificationActionInput = {
