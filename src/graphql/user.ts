@@ -24,6 +24,7 @@ export const typeDef = gql`
     series_list: [Series]
     user_meta: UserMeta
     is_followed: Boolean
+    is_trusted: Boolean
   }
   type UserProfile {
     id: ID!
@@ -121,6 +122,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     is_followed: async (parent: User, _, ctx) => {
       if (!ctx.user_id) return false;
       return await userService.isFollowed(parent.id, ctx.user_id);
+    },
+    is_trusted: async (parent: User, _, ctx) => {
+      if (!parent.id) return false;
+      return await userService.checkTrust(parent.id);
     },
   },
   Query: {
