@@ -33,6 +33,8 @@ import imageService from '../services/imageService';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
 import { checkBlockList } from '../lib/checkBlockList';
+import userService from '../services/userService';
+import { verifyTurnstileToken } from '../lib/turnstile';
 
 const lruCache = new LRU<string, string[]>({
   max: 150,
@@ -125,6 +127,7 @@ export const typeDef = gql`
       thumbnail: String
       meta: JSON
       series_id: ID
+      token: String
     ): Post
     editPost(
       id: ID!
@@ -138,6 +141,7 @@ export const typeDef = gql`
       meta: JSON
       is_private: Boolean
       series_id: ID
+      token: String
     ): Post
     createPostHistory(
       post_id: ID!
@@ -173,6 +177,7 @@ type WritePostArgs = {
   meta: any;
   series_id?: string;
   is_private: boolean;
+  token: string | null;
 };
 
 type CreatePostHistoryArgs = {
@@ -181,6 +186,7 @@ type CreatePostHistoryArgs = {
   body: string;
   is_markdown: boolean;
 };
+
 type EditPostArgs = WritePostArgs & {
   id: string;
 };
@@ -730,9 +736,28 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         }
       }
 
+      // check block list
       const isBlockList = await checkBlockList(ctx.user_id, user?.username);
       if (isBlockList) {
         post.is_private = true;
+      }
+
+      // check bot
+      if (!data.is_private || !data.is_temp) {
+        const isTrustUser = await userService.checkTrust(ctx.user_id);
+        if (!isTrustUser && !data.token) {
+          throw new ApolloError(
+            'A Turnstile token is required for users who are not trusted',
+            'NO_PERMISSION'
+          );
+        }
+
+        if (!isTrustUser) {
+          const isVerified = await verifyTurnstileToken(data.token!);
+          if (!isVerified) {
+            post.is_private = true;
+          }
+        }
       }
 
       let processedUrlSlug = escapeForUrl(data.url_slug);
@@ -878,6 +903,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         url_slug,
         tags,
         is_private,
+        token,
       } = args as EditPostArgs;
       const postRepo = getRepository(Post);
       const seriesRepo = getRepository(Series);
@@ -1025,6 +1051,24 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const isBlockList = await checkBlockList(ctx.user_id, user?.username);
       if (isBlockList) {
         post.is_private = true;
+      }
+
+      // check bot
+      if (!is_private || !is_temp) {
+        const isTrustUser = await userService.checkTrust(ctx.user_id);
+        if (!isTrustUser && !token) {
+          throw new ApolloError(
+            'A Turnstile token is required for users who are not trusted',
+            'NO_PERMISSION'
+          );
+        }
+
+        if (!isTrustUser) {
+          const isVerified = await verifyTurnstileToken(token!);
+          if (!isVerified) {
+            post.is_private = true;
+          }
+        }
       }
 
       const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
