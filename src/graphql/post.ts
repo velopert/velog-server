@@ -743,16 +743,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       // check bot
-      if (!data.is_private || !data.is_temp) {
-        const isTrustUser = await userService.checkTrust(ctx.user_id);
-        if (!isTrustUser && !data.token) {
-          throw new ApolloError(
-            'A Turnstile token is required for users who are not trusted',
-            'NO_PERMISSION'
-          );
-        }
+      if (!data.is_private && !data.is_temp) {
+        const isTrustedUser = await userService.checkTrust(ctx.user_id);
+        if (!isTrustedUser) {
+          if (!data.token) {
+            throw new ApolloError(
+              'A Turnstile token is required for users who are not trusted',
+              'NO_PERMISSION'
+            );
+          }
 
-        if (!isTrustUser) {
           const isVerified = await verifyTurnstileToken(data.token!);
           if (!isVerified) {
             post.is_private = true;
@@ -1054,16 +1054,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
 
       // check bot
-      if (!is_private || !is_temp) {
-        const isTrustUser = await userService.checkTrust(ctx.user_id);
-        if (!isTrustUser && !token) {
-          throw new ApolloError(
-            'A Turnstile token is required for users who are not trusted',
-            'NO_PERMISSION'
-          );
-        }
+      if (!is_private && !is_temp) {
+        const isTrustedUser = await userService.checkTrust(ctx.user_id);
+        if (!isTrustedUser) {
+          if (!token) {
+            throw new ApolloError(
+              'A Turnstile token is required for users who are not trusted',
+              'NO_PERMISSION'
+            );
+          }
 
-        if (!isTrustUser) {
           const isVerified = await verifyTurnstileToken(token!);
           if (!isVerified) {
             post.is_private = true;
