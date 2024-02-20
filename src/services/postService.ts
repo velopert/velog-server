@@ -1,3 +1,4 @@
+import { WritePostResponse } from './../../../velog-client/src/lib/graphql/post';
 import { GetPostsByTagParams } from './../entity/PostsTags';
 import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
@@ -321,6 +322,90 @@ const postService = {
       console.log('error', error);
     }
   },
+
+  async write(args: WritePostArgs, cookies: Cookies) {
+    const WRITE_POST_MUTATION = `
+      mutation WritePost($input: WritePostInput!) {
+        writePost(input: $input) {
+          id
+          user {
+            id
+            username
+          }
+          url_slug
+        }
+      }
+    `;
+
+    const endpoint = getEndpoint();
+    const accessToken = cookies.get('access_token') ?? '';
+
+    try {
+      const res = await Axios.post<AxiosResponse<WritePostResponse>>(
+        endpoint,
+        {
+          operationName: 'WritePost',
+          query: WRITE_POST_MUTATION,
+          variables: {
+            input: {
+              ...args,
+            },
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      return res.data.data.writePost;
+    } catch (error) {
+      console.log('error', error);
+    }
+  },
+  async editPost(args: EditPostArgs, cookies: Cookies) {
+    const EDIT_POST_MUTATION = `
+      mutation EditPost($input: EditPostInput!) {
+        editPost(input: $input) {
+          id
+          user {
+            id
+            username
+          }
+          url_slug
+        }
+      }
+    `;
+
+    const endpoint = getEndpoint();
+    const accessToken = cookies.get('access_token') ?? '';
+    try {
+      const res = await Axios.post<AxiosResponse<EditPostResponse>>(
+        endpoint,
+        {
+          operationName: 'EditPost',
+          query: EDIT_POST_MUTATION,
+          variables: {
+            input: {
+              ...args,
+            },
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      return res.data.data.editPost;
+    } catch (error) {
+      console.log('error', error);
+    }
+  },
 };
 
 export default postService;
@@ -357,5 +442,45 @@ type UnlikePostResponse = {
     id: string;
     liked: boolean;
     likes: number;
+  };
+};
+
+type WritePostArgs = {
+  title: string;
+  body: string;
+  tags: string[];
+  is_markdown: boolean;
+  is_temp: boolean;
+  url_slug: string;
+  thumbnail: string | null;
+  meta: any;
+  series_id?: string;
+  is_private: boolean;
+  token: string | null;
+};
+
+type EditPostArgs = WritePostArgs & {
+  id: string;
+};
+
+type WritePostResponse = {
+  writePost: {
+    id: string;
+    user: {
+      id: string;
+      username: string;
+    };
+    url_slug: string;
+  };
+};
+
+type EditPostResponse = {
+  editPost: {
+    id: string;
+    user: {
+      id: string;
+      username: string;
+    };
+    url_slug: string;
   };
 };
