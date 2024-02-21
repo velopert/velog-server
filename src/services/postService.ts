@@ -1,4 +1,3 @@
-import { WritePostResponse } from './../../../velog-client/src/lib/graphql/post';
 import { GetPostsByTagParams } from './../entity/PostsTags';
 import { Post, PostTag, Tag, User } from '@prisma/client';
 import db from '../lib/db';
@@ -362,10 +361,10 @@ const postService = {
 
       return res.data.data.writePost;
     } catch (error) {
-      console.log('error', error);
+      console.log('write post error', error);
     }
   },
-  async editPost(args: EditPostArgs, cookies: Cookies) {
+  async edit(args: EditPostArgs, cookies: Cookies) {
     const EDIT_POST_MUTATION = `
       mutation EditPost($input: EditPostInput!) {
         editPost(input: $input) {
@@ -403,7 +402,7 @@ const postService = {
 
       return res.data.data.editPost;
     } catch (error) {
-      console.log('error', error);
+      console.log('edit post error', error);
     }
   },
 };
