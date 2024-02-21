@@ -2,15 +2,12 @@ import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
 import { getRepository, getManager, LessThan, Not, MoreThan } from 'typeorm';
-import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
+import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
-import PostsTags from '../entity/PostsTags';
-import Tag from '../entity/Tag';
 import UrlSlugHistory from '../entity/UrlSlugHistory';
 import Comment from '../entity/Comment';
 import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
-import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
 import keywordSearch from '../search/keywordSearch';
 import searchSync from '../search/searchSync';
@@ -20,26 +17,15 @@ import PostRead from '../entity/PostRead';
 import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
-import { nextSpamFilter } from '../etc/spamFilter';
-import Axios, { AxiosResponse } from 'axios';
-import LRU from 'lru-cache';
-import { createLikeLog, createReadLog } from '../lib/bigQuery';
+import Axios from 'axios';
+import { createReadLog } from '../lib/bigQuery';
 import esClient from '../search/esClient';
 import { buildFallbackRecommendedPosts, buildRecommendedPostsQuery } from '../search/buildQuery';
 import { pickRandomItems } from '../etc/pickRandomItems';
-import geoipCountry from 'geoip-country';
 import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 import imageService from '../services/imageService';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
-import { checkBlockList } from '../lib/checkBlockList';
-import userService from '../services/userService';
-import { verifyTurnstileToken } from '../lib/turnstile';
-
-const lruCache = new LRU<string, string[]>({
-  max: 150,
-  maxAge: 1000 * 60 * 60,
-});
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -660,10 +646,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
   },
   Mutation: {
     writePost: async (parent: any, args, ctx) => {
-      return postService.write(args, ctx.cookies);
+      return await postService.write(args, ctx.cookies);
     },
     editPost: async (parent: any, args, ctx) => {
-      return postService.edit(args, ctx.cookies);
+      return await postService.edit(args, ctx.cookies);
     },
     removePost: async (parent: any, args, ctx) => {
       const { id } = args as { id: string };
