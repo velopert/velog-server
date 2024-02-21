@@ -43,7 +43,7 @@
     "@types/tmp": "^0.1.0",
     "apollo-server-koa": "^2.9.3",
     "aws-sdk": "^2.455.0",
-    "axios": "^0.19.0",
+    "axios": "^0.28.0",
     "backblaze-b2": "^1.7.0",
     "class-transformer": "^0.2.3",
     "dataloader": "^1.4.0",
