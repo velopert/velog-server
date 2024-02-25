@@ -10,8 +10,8 @@ if (!API_V3_HOST) {
 const adService = {
   async getBannerTypeAdList(writerUsername: string) {
     const GET_AD_LIST = `
-    query ads {
-      ads(input: {writer_username: "${writerUsername}", limit: 2, type: "banner" }) {
+    query ads($input: AdsInput!) {
+      ads(input: $input) {
         id
         title
         body
@@ -21,13 +21,21 @@ const adService = {
     }
     `;
 
-    const endpoint = getEndpoint();
+    const variables = {
+      input: {
+        writer_username: writerUsername,
+        limit: 2,
+        type: 'banner',
+      },
+    };
 
+    const endpoint = getEndpoint();
     const { data } = await Axios.post<AxiosResponse<GetAdListResponse>>(
       endpoint,
       {
         operationName: 'ads',
         query: GET_AD_LIST,
+        variables,
       },
       {
         headers: {
