@@ -2,15 +2,12 @@ import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
 import { getRepository, getManager, LessThan, Not, MoreThan } from 'typeorm';
-import { normalize, escapeForUrl, checkEmpty } from '../lib/utils';
+import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
-import PostsTags from '../entity/PostsTags';
-import Tag from '../entity/Tag';
 import UrlSlugHistory from '../entity/UrlSlugHistory';
 import Comment from '../entity/Comment';
 import Series from '../entity/Series';
 import SeriesPosts, { subtractIndexAfter, appendToSeries } from '../entity/SeriesPosts';
-import generate from 'nanoid/generate';
 import PostLike from '../entity/PostLike';
 import keywordSearch from '../search/keywordSearch';
 import searchSync from '../search/searchSync';
@@ -20,24 +17,15 @@ import PostRead from '../entity/PostRead';
 import hash from '../lib/hash';
 import cache from '../cache';
 import PostReadLog from '../entity/PostReadLog';
-import { nextSpamFilter } from '../etc/spamFilter';
-import Axios, { AxiosResponse } from 'axios';
-import LRU from 'lru-cache';
-import { createLikeLog, createReadLog } from '../lib/bigQuery';
+import Axios from 'axios';
+import { createReadLog } from '../lib/bigQuery';
 import esClient from '../search/esClient';
 import { buildFallbackRecommendedPosts, buildRecommendedPostsQuery } from '../search/buildQuery';
 import { pickRandomItems } from '../etc/pickRandomItems';
-import geoipCountry from 'geoip-country';
 import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 import imageService from '../services/imageService';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
-import { checkBlockList } from '../lib/checkBlockList';
-
-const lruCache = new LRU<string, string[]>({
-  max: 150,
-  maxAge: 1000 * 60 * 60,
-});
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -125,6 +113,7 @@ export const typeDef = gql`
       thumbnail: String
       meta: JSON
       series_id: ID
+      token: String
     ): Post
     editPost(
       id: ID!
@@ -138,6 +127,7 @@ export const typeDef = gql`
       meta: JSON
       is_private: Boolean
       series_id: ID
+      token: String
     ): Post
     createPostHistory(
       post_id: ID!
@@ -173,6 +163,7 @@ type WritePostArgs = {
   meta: any;
   series_id?: string;
   is_private: boolean;
+  token: string | null;
 };
 
 type CreatePostHistoryArgs = {
@@ -181,6 +172,7 @@ type CreatePostHistoryArgs = {
   body: string;
   is_markdown: boolean;
 };
+
 type EditPostArgs = WritePostArgs & {
   id: string;
 };
@@ -654,430 +646,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
   },
   Mutation: {
     writePost: async (parent: any, args, ctx) => {
-      const postRepo = getRepository(Post);
-      const seriesRepo = getRepository(Series);
-
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      const post = new Post();
-      const data = args as WritePostArgs;
-
-      if (checkEmpty(data.title)) {
-        throw new ApolloError('Title is empty', 'BAD_REQUEST');
-      }
-
-      post.fk_user_id = ctx.user_id;
-      post.title = data.title;
-      post.body = data.body;
-      post.is_temp = data.is_temp;
-      post.is_markdown = data.is_markdown;
-      post.meta = data.meta;
-      post.thumbnail = data.thumbnail;
-      post.is_private = data.is_private;
-
-      const allowList = ['KR', 'GB', ''];
-      const country = geoipCountry.lookup(ctx.ip)?.country ?? '';
-      const isForeign = !allowList.includes(country);
-      const blockList = ['IN', 'PK', 'CN', 'VN', 'TH', 'PH'];
-
-      const user = await getRepository(User).findOne(ctx.user_id, {
-        relations: ['profile'],
-      });
-
-      const extraText = data.tags
-        .join('')
-        .concat(user?.profile.short_bio ?? '', user?.profile.display_name ?? '');
-
-      if (
-        blockList.includes(country) ||
-        nextSpamFilter(data.body.concat(extraText), isForeign) ||
-        nextSpamFilter(data.title, isForeign, true)
-      ) {
-        post.is_private = true;
-        await Axios.post(slackUrl, {
-          text: `스팸 의심!\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}, country: ${country}`,
-        });
-      }
-
-      const recentPostCount = await postRepo.count({
-        where: {
-          fk_user_id: ctx.user_id,
-          released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
-          is_private: false,
-        },
-      });
-
-      if (recentPostCount >= 10) {
-        post.is_private = true;
-        const user = await getRepository(User).findOne(ctx.user_id);
-        try {
-          await postRepo.update(
-            {
-              fk_user_id: ctx.user_id,
-              released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
-            },
-            {
-              is_private: true,
-            }
-          );
-          await Axios.post(slackUrl, {
-            text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}\nip: ${ctx.ip}`,
-          });
-        } catch (e) {
-          console.log(e);
-        }
-      }
-
-      const isBlockList = await checkBlockList(ctx.user_id, user?.username);
-      if (isBlockList) {
-        post.is_private = true;
-      }
-
-      let processedUrlSlug = escapeForUrl(data.url_slug);
-      const urlSlugDuplicate = await postRepo.findOne({
-        where: {
-          fk_user_id: ctx.user_id,
-          url_slug: processedUrlSlug,
-        },
-      });
-      if (urlSlugDuplicate) {
-        const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
-        processedUrlSlug += `-${randomString}`;
-      }
-      if (processedUrlSlug === '') {
-        processedUrlSlug = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
-      }
-
-      post.url_slug = processedUrlSlug;
-
-      // Check series
-      let series: Series | undefined;
-      if (data.series_id && !data.is_temp) {
-        series = await seriesRepo.findOne(data.series_id);
-        if (!series) {
-          throw new ApolloError('Series not found', 'NOT_FOUND');
-        }
-        if (series.fk_user_id !== ctx.user_id) {
-          throw new ApolloError('This series is not yours', 'NO_PERMISSION');
-        }
-      }
-
-      const tagsData = await Promise.all(data.tags.map(Tag.findOrCreate));
-      await postRepo.save(post);
-
-      await PostsTags.syncPostTags(post.id, tagsData);
-
-      // Link to series
-      if (data.series_id && !data.is_temp) {
-        await appendToSeries(data.series_id, post.id);
-      }
-
-      post.tags = tagsData;
-
-      if (!data.is_temp) {
-        await searchSync.update(post.id);
-      }
-
-      if (!data.is_temp && !data.is_private) {
-        setImmediate(async () => {
-          if (!ctx.user_id) return;
-          const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
-          if (!isIntegrated) return;
-          const serializedPost = await postService.findPostById(post.id);
-          if (!serializedPost) return;
-          externalInterationService.notifyWebhook({
-            type: 'created',
-            post: serializedPost,
-          });
-        });
-
-        const queueData = {
-          fk_following_id: ctx.user_id,
-          fk_post_id: post.id,
-        };
-        await cache.createFeed(queueData);
-      }
-
-      purgeRecentPosts();
-      purgeUser(ctx.user_id);
-
-      setTimeout(async () => {
-        const images = await imageService.getImagesOf(post.id);
-        await imageService.trackImages(images, data.body);
-      }, 0);
-
-      return post;
-    },
-    createPostHistory: async (parent: any, args: CreatePostHistoryArgs, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      // check ownPost
-      const { post_id, title, body, is_markdown } = args;
-
-      const postRepo = getRepository(Post);
-      const post = await postRepo.findOne(post_id);
-
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-      if (post.fk_user_id !== ctx.user_id) {
-        throw new ApolloError('This post is not yours', 'NO_PERMISSION');
-      }
-
-      // create postHistory
-      const postHistoryRepo = getRepository(PostHistory);
-      const postHistory = new PostHistory();
-      Object.assign(postHistory, { title, body, is_markdown, fk_post_id: post_id });
-
-      await postHistoryRepo.save(postHistory);
-
-      const [data, count] = await postHistoryRepo.findAndCount({
-        where: {
-          fk_post_id: post_id,
-        },
-        order: {
-          created_at: 'DESC',
-        },
-      });
-
-      if (count > 10) {
-        await postHistoryRepo
-          .createQueryBuilder('post_history')
-          .delete()
-          .where('fk_post_id = :postId', {
-            postId: post_id,
-          })
-          .andWhere('created_at < :createdAt', { createdAt: data[9].created_at })
-          .execute();
-
-        setTimeout(() => {
-          searchSync.update(post.id).catch(console.error);
-        }, 0);
-      }
-
-      return postHistory;
+      return await postService.write(args, ctx.cookies);
     },
     editPost: async (parent: any, args, ctx) => {
-      if (!ctx.user_id) {
-        throw new AuthenticationError('Not Logged In');
-      }
-
-      const {
-        id,
-        title,
-        body,
-        is_temp,
-        is_markdown,
-        meta,
-        thumbnail,
-        series_id,
-        url_slug,
-        tags,
-        is_private,
-      } = args as EditPostArgs;
-      const postRepo = getRepository(Post);
-      const seriesRepo = getRepository(Series);
-      const seriesPostsRepo = getRepository(SeriesPosts);
-
-      const post = await postRepo.findOne(id, {
-        relations: ['user'],
-      });
-      if (!post) {
-        throw new ApolloError('Post not found', 'NOT_FOUND');
-      }
-      if (post.fk_user_id !== ctx.user_id) {
-        throw new ApolloError('This post is not yours', 'NO_PERMISSION');
-      }
-
-      const { username } = post.user;
-      const postCacheKey = `ssr:/@${username}/${post.url_slug}`;
-      const userVelogCacheKey = `ssr:/@${username}`;
-      const cacheKeys = [postCacheKey, userVelogCacheKey];
-
-      const prevSeriesPost = await seriesPostsRepo.findOne({
-        fk_post_id: post.id,
-      });
-
-      if (!prevSeriesPost && series_id) {
-        await appendToSeries(series_id, post.id);
-      }
-
-      if (prevSeriesPost && prevSeriesPost.fk_series_id !== series_id) {
-        if (series_id) {
-          // append series
-          const series = await seriesRepo.findOne({
-            id: series_id,
-          });
-          if (!series) {
-            throw new ApolloError('Series not found', 'NOT_FOUND');
-          }
-          if (series.fk_user_id !== ctx.user_id) {
-            throw new ApolloError('This series is not yours', 'NO_PERMISSION');
-          }
-          cacheKeys.push(`ssr:/@${username}/series/${series.url_slug}`);
-          await appendToSeries(series_id, post.id);
-        }
-        // remove series
-        await Promise.all([
-          subtractIndexAfter(prevSeriesPost.fk_series_id, prevSeriesPost.index),
-          seriesPostsRepo.remove(prevSeriesPost),
-        ]);
-      }
-
-      post.title = title;
-      post.body = body;
-      post.is_private = is_private;
-
-      if (!post.is_temp) {
-        const recentPostCount = await postRepo.count({
-          where: {
-            fk_user_id: ctx.user_id,
-            released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
-            is_private: false,
-          },
-        });
-
-        if (recentPostCount >= 10) {
-          post.is_private = true;
-          const user = await getRepository(User).findOne(ctx.user_id);
-          try {
-            await postRepo.update(
-              {
-                fk_user_id: ctx.user_id,
-                released_at: MoreThan(new Date(Date.now() - 1000 * 60 * 5)),
-              },
-              {
-                is_private: true,
-              }
-            );
-            await Axios.post(slackUrl, {
-              text: `스팸 의심!\n *User*: ${user?.username}\n*Count*: ${recentPostCount}\n*Title*:${post.title}`,
-            });
-          } catch (e) {
-            console.log(e);
-          }
-        }
-      }
-
-      if (post.is_temp && !is_temp) {
-        post.released_at = new Date();
-      }
-      post.is_temp = is_temp;
-      post.is_markdown = is_markdown;
-      post.meta = meta;
-      post.thumbnail = thumbnail;
-
-      const allowList = ['KR', 'GB', ''];
-      const country = geoipCountry.lookup(ctx.ip)?.country ?? '';
-      const isForeign = !allowList.includes(country);
-      const blockList = ['IN', 'PK', 'CN', 'VN', 'TH', 'PH'];
-
-      const user = await getRepository(User).findOne(ctx.user_id, {
-        relations: ['profile'],
-      });
-
-      const extraText = tags
-        .join('')
-        .concat(user?.profile.short_bio ?? '', user?.profile.display_name ?? '');
-
-      if (
-        blockList.includes(country) ||
-        nextSpamFilter(body.concat(extraText), isForeign) ||
-        nextSpamFilter(title, isForeign, true)
-      ) {
-        post.is_private = true;
-        await Axios.post(slackUrl, {
-          text: `스팸 의심 (수정) !\n *userId*: ${ctx.user_id}\ntitle: ${post.title}, ip: ${ctx.ip}, country: ${country}`,
-        });
-      }
-
-      // TODO: if url_slug changes, create url_slug_alias
-      let processedUrlSlug = escapeForUrl(url_slug);
-      const urlSlugDuplicate = await postRepo.findOne({
-        where: {
-          fk_user_id: ctx.user_id,
-          url_slug: processedUrlSlug,
-        },
-      });
-      if (urlSlugDuplicate && urlSlugDuplicate.id !== post.id) {
-        const randomString = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
-        processedUrlSlug += `-${randomString}`;
-      }
-      if (processedUrlSlug === '') {
-        processedUrlSlug = generate('abcdefghijklmnopqrstuvwxyz1234567890', 8);
-      }
-
-      if (post.url_slug !== processedUrlSlug) {
-        // url_slug
-        const urlSlugHistory = new UrlSlugHistory();
-        urlSlugHistory.fk_post_id = post.id;
-        urlSlugHistory.fk_user_id = ctx.user_id;
-        urlSlugHistory.url_slug = post.url_slug;
-        const urlSlugHistoryRepo = getRepository(UrlSlugHistory);
-        await urlSlugHistoryRepo.save(urlSlugHistory);
-      }
-      post.url_slug = processedUrlSlug;
-
-      const isBlockList = await checkBlockList(ctx.user_id, user?.username);
-      if (isBlockList) {
-        post.is_private = true;
-      }
-
-      const tagsData = await Promise.all(tags.map(Tag.findOrCreate));
-      await Promise.all([PostsTags.syncPostTags(post.id, tagsData), postRepo.save(post)]);
-
-      try {
-        await Promise.all([
-          is_temp ? null : searchSync.update(post.id),
-          cache.remove(...cacheKeys),
-          purgePost(post.id),
-        ]);
-      } catch (e) {
-        console.log(e);
-      }
-
-      if (!is_temp && !is_private) {
-        setImmediate(async () => {
-          if (!ctx.user_id) return;
-          const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
-          if (!isIntegrated) return;
-          const serializedPost = await postService.findPostById(post.id);
-          if (!serializedPost) return;
-          externalInterationService.notifyWebhook({
-            type: 'updated',
-            post: serializedPost,
-          });
-        });
-
-        const queueData = {
-          fk_following_id: ctx.user_id,
-          fk_post_id: post.id,
-        };
-        await cache.createFeed(queueData);
-      }
-
-      if (!post.is_private && is_private) {
-        setImmediate(async () => {
-          if (!ctx.user_id) return;
-          const isIntegrated = await externalInterationService.checkIntegrated(ctx.user_id);
-          if (!isIntegrated) return;
-          externalInterationService.notifyWebhook({
-            type: 'deleted',
-            post_id: post.id,
-          });
-        });
-      }
-
-      setTimeout(async () => {
-        const images = await imageService.getImagesOf(post.id);
-        await imageService.trackImages(images, body);
-      }, 0);
-
-      return post;
+      return await postService.edit(args, ctx.cookies);
     },
     removePost: async (parent: any, args, ctx) => {
       const { id } = args as { id: string };
