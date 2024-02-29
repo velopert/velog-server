@@ -646,10 +646,10 @@ export const resolvers: IResolvers<any, ApolloContext> = {
   },
   Mutation: {
     writePost: async (parent: any, args, ctx) => {
-      return await postService.write(args, ctx.cookies);
+      return await postService.write(args, ctx.cookies, ctx.ip);
     },
     editPost: async (parent: any, args, ctx) => {
-      return await postService.edit(args, ctx.cookies);
+      return await postService.edit(args, ctx.cookies, ctx.ip);
     },
     removePost: async (parent: any, args, ctx) => {
       const { id } = args as { id: string };
