@@ -322,7 +322,7 @@ const postService = {
     }
   },
 
-  async write(args: WritePostArgs, cookies: Cookies) {
+  async write(args: WritePostArgs, cookies: Cookies, ip: string) {
     const WRITE_POST_MUTATION = `
       mutation WritePost($input: WritePostInput!) {
         writePost(input: $input) {
@@ -355,6 +355,7 @@ const postService = {
           headers: {
             'Content-Type': 'application/json',
             authorization: `Bearer ${accessToken}`,
+            'X-Forwarded-For': ip,
           },
         }
       );
@@ -364,7 +365,7 @@ const postService = {
       console.log('write post error', error);
     }
   },
-  async edit(args: EditPostArgs, cookies: Cookies) {
+  async edit(args: EditPostArgs, cookies: Cookies, ip: string) {
     const EDIT_POST_MUTATION = `
       mutation EditPost($input: EditPostInput!) {
         editPost(input: $input) {
@@ -396,6 +397,7 @@ const postService = {
           headers: {
             'Content-Type': 'application/json',
             authorization: `Bearer ${accessToken}`,
+            'X-Forwarded-For': ip,
           },
         }
       );
