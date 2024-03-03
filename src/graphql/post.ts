@@ -26,6 +26,7 @@ import { purgeRecentPosts, purgeUser, purgePost } from '../lib/graphcdn';
 import imageService from '../services/imageService';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
+import postHistoryService, { CreatePostHistoryArgs } from '../services/postHistoryService';
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -164,17 +165,6 @@ type WritePostArgs = {
   series_id?: string;
   is_private: boolean;
   token: string | null;
-};
-
-type CreatePostHistoryArgs = {
-  post_id: string;
-  title: string;
-  body: string;
-  is_markdown: boolean;
-};
-
-type EditPostArgs = WritePostArgs & {
-  id: string;
 };
 
 const slackUrl = `https://hooks.slack.com/services/${process.env.SLACK_TOKEN}`;
@@ -650,6 +640,9 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     },
     editPost: async (parent: any, args, ctx) => {
       return await postService.edit(args, ctx.cookies, ctx.ip);
+    },
+    createPostHistory: async (parent: any, args, ctx) => {
+      return await postHistoryService.createPostHistory(args, ctx);
     },
     removePost: async (parent: any, args, ctx) => {
       const { id } = args as { id: string };
