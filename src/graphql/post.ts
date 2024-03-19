@@ -342,6 +342,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             current_user_id: ctx.user_id,
           })
           .orderBy('released_at', 'DESC')
+          .limit(1)
           .getOne(),
         postRepo
           .createQueryBuilder('posts')
@@ -353,6 +354,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
             current_user_id: ctx.user_id,
           })
           .orderBy('released_at', 'ASC')
+          .limit(1)
           .getOne(),
       ]);
 
