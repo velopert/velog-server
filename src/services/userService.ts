@@ -43,6 +43,14 @@ const userService = {
       thumbnail: user.userProfile!.thumbnail,
     };
   },
+  async findUserByUsername(username: string) {
+    const user = await db.user.findUnique({
+      where: {
+        username,
+      },
+    });
+    return user;
+  },
   async findUserById(id: string): Promise<User | null> {
     const user = await db.user.findUnique({
       where: {

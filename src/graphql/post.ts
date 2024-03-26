@@ -27,6 +27,7 @@ import imageService from '../services/imageService';
 import externalInterationService from '../services/externalIntegrationService';
 import postService from '../services/postService';
 import postHistoryService, { CreatePostHistoryArgs } from '../services/postHistoryService';
+import userService from '../services/userService';
 
 type ReadingListQueryParams = {
   type: 'LIKED' | 'READ';
@@ -428,6 +429,25 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       if (limit > 100) {
         throw new ApolloError('Max limit is 100', 'BAD_REQUEST');
       }
+
+      if (temp_only) {
+        if (!username) {
+          throw new ApolloError('username is missing', 'BAD_REQUEST');
+        }
+        if (!context.user_id) {
+          throw new ApolloError('Not logged in', 'NO_PERMISSION');
+        }
+        const user = await userService.findUserByUsername(username);
+        if (!user) {
+          throw new ApolloError('Invalid username', 'NOT_FOUND');
+        }
+        if (user.id !== context.user_id) {
+          throw new ApolloError('You have no permission to load temp posts', 'NO_PERMISSION');
+        }
+        return postService.findTempPosts(context.user_id, limit, cursor);
+      }
+
+      console.log('posts query', { cursor, limit, username, temp_only, tag });
 
       const userRepo = getRepository(User);
       const user = username

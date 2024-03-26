@@ -14,6 +14,37 @@ if (!API_V3_HOST) {
 }
 
 const postService = {
+  async findTempPosts(userId: string, limit: number, cursor?: string) {
+    const cursorPost = cursor
+      ? await db.post.findUnique({
+          where: {
+            id: cursor,
+          },
+        })
+      : null;
+
+    const posts = await db.post.findMany({
+      where: {
+        fk_user_id: userId,
+        is_temp: true,
+        released_at: cursorPost?.released_at ? { lt: cursorPost.released_at } : undefined,
+      },
+      include: {
+        postTags: {
+          include: {
+            tag: true,
+          },
+        },
+        user: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      take: limit,
+    });
+
+    return posts.map(this.serialize);
+  },
   async findPostsByUserId({ userId, size, cursor, isUserSelf = false }: FindPostParams) {
     const cursorPost = cursor
       ? await db.post.findUnique({
@@ -233,6 +264,7 @@ const postService = {
       url: `https://velog.io/@${post.user.username}/${encodeURI(post.url_slug ?? '')}`,
       title: post.title!,
       thumbnail: post.thumbnail,
+      created_at: post.created_at,
       released_at: post.released_at!,
       updated_at: post.updated_at!,
       short_description: shortDescription,
