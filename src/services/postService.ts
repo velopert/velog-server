@@ -348,6 +348,7 @@ const postService = {
           variables: {
             input: {
               ...args,
+              is_private: args.is_private || true,
             },
           },
         },
@@ -390,6 +391,7 @@ const postService = {
           variables: {
             input: {
               ...args,
+              is_private: args.is_private || true,
             },
           },
         },
