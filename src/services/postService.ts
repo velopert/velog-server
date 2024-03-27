@@ -382,7 +382,6 @@ const postService = {
     const endpoint = getEndpoint();
     const accessToken = cookies.get('access_token') ?? '';
     try {
-      console.log('args', args);
       const res = await Axios.post<AxiosResponse<EditPostResponse>>(
         endpoint,
         {
