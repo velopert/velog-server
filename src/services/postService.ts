@@ -416,6 +416,9 @@ const postService = {
     const endpoint = getEndpoint();
     const accessToken = cookies.get('access_token') ?? '';
     try {
+      if (args.is_private === null) {
+        console.log('nullable edit post input', args);
+      }
       const res = await Axios.post<AxiosResponse<EditPostResponse>>(
         endpoint,
         {
