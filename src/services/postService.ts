@@ -422,6 +422,7 @@ const postService = {
           variables: {
             input: {
               ...args,
+              is_private: args.is_private || false,
             },
           },
         },
