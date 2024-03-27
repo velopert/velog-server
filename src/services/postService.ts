@@ -273,6 +273,8 @@ const postService = {
       fk_user_id: post.fk_user_id,
       url_slug: post.url_slug,
       likes: post.likes,
+      is_private: post.is_private,
+      is_temp: post.is_temp,
     };
   },
   async likePost(postId: string, cookies: Cookies) {
