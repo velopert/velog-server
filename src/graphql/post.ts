@@ -1,7 +1,14 @@
 import { ApolloContext } from './../app';
 import { gql, IResolvers, ApolloError, AuthenticationError } from 'apollo-server-koa';
 import Post from '../entity/Post';
-import { getRepository, getManager, LessThan, Not, MoreThan } from 'typeorm';
+import {
+  getRepository,
+  getManager,
+  LessThan,
+  Not,
+  MoreThan,
+  UsingJoinColumnIsNotAllowedError,
+} from 'typeorm';
 import { normalize } from '../lib/utils';
 import removeMd from 'remove-markdown';
 import UrlSlugHistory from '../entity/UrlSlugHistory';
@@ -279,90 +286,92 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
     },
     linked_posts: async (parent: Post, args: any, ctx) => {
-      const seriesPostsRepo = getRepository(SeriesPosts);
+      const result = await postService.getLinkedPosts(parent.id, ctx.user_id);
+      return result;
+      // const seriesPostsRepo = getRepository(SeriesPosts);
 
-      const seriesPost = await seriesPostsRepo.findOne({
-        where: {
-          fk_post_id: parent.id,
-        },
-      });
+      // const seriesPost = await seriesPostsRepo.findOne({
+      //   where: {
+      //     fk_post_id: parent.id,
+      //   },
+      // });
 
-      // is in series: show prev & next series post
-      if (seriesPost) {
-        const { index } = seriesPost;
-        const seriesPosts = await seriesPostsRepo
-          .createQueryBuilder('series_posts')
-          .leftJoinAndSelect('series_posts.post', 'post')
-          .where('fk_series_id = :seriesId', { seriesId: seriesPost.fk_series_id })
-          .andWhere('(index = :prevIndex OR index = :nextIndex)', {
-            prevIndex: index - 1,
-            nextIndex: index + 1,
-          })
-          .orderBy('index', 'ASC')
-          .getMany();
+      // // is in series: show prev & next series post
+      // if (seriesPost) {
+      //   const { index } = seriesPost;
+      //   const seriesPosts = await seriesPostsRepo
+      //     .createQueryBuilder('series_posts')
+      //     .leftJoinAndSelect('series_posts.post', 'post')
+      //     .where('fk_series_id = :seriesId', { seriesId: seriesPost.fk_series_id })
+      //     .andWhere('(index = :prevIndex OR index = :nextIndex)', {
+      //       prevIndex: index - 1,
+      //       nextIndex: index + 1,
+      //     })
+      //     .orderBy('index', 'ASC')
+      //     .getMany();
 
-        // only one post is found
-        if (seriesPosts.length === 1) {
-          return seriesPosts[0].index > index // compare series index
-            ? {
-                next:
-                  seriesPosts[0].post.is_private && ctx.user_id !== seriesPosts[0].post.fk_user_id
-                    ? null
-                    : seriesPosts[0].post,
-                // is next post
-              }
-            : {
-                previous: seriesPosts[0].post, // is prev post
-              };
-        }
+      //   // only one post is found
+      //   if (seriesPosts.length === 1) {
+      //     return seriesPosts[0].index > index // compare series index
+      //       ? {
+      //           next:
+      //             seriesPosts[0].post.is_private && ctx.user_id !== seriesPosts[0].post.fk_user_id
+      //               ? null
+      //               : seriesPosts[0].post,
+      //           // is next post
+      //         }
+      //       : {
+      //           previous: seriesPosts[0].post, // is prev post
+      //         };
+      //   }
 
-        const result: Record<'previous' | 'next', Post | null> = {
-          previous: seriesPosts[0] && seriesPosts[0].post,
-          next: seriesPosts[1] && seriesPosts[1].post,
-        };
+      //   const result: Record<'previous' | 'next', Post | null> = {
+      //     previous: seriesPosts[0] && seriesPosts[0].post,
+      //     next: seriesPosts[1] && seriesPosts[1].post,
+      //   };
 
-        if (result.next?.is_private && result.next?.fk_user_id !== ctx.user_id) {
-          result.next = null;
-        }
+      //   if (result.next?.is_private && result.next?.fk_user_id !== ctx.user_id) {
+      //     result.next = null;
+      //   }
 
-        return result;
-      }
+      //   return result;
+      // }
 
-      // is not in series: show prev & next in time order
-      const postRepo = getRepository(Post);
+      // // is not in series: show prev & next in time order
+      // const postRepo = getRepository(Post);
 
-      // TODO: handle private & temp posts
+      // // TODO: handle private & temp posts
 
-      const [previous, next] = await Promise.all([
-        postRepo
-          .createQueryBuilder('posts')
-          .where('fk_user_id = :userId', { userId: parent.fk_user_id })
-          .andWhere('released_at < :releasedAt', { releasedAt: parent.released_at })
-          .andWhere('is_temp = false')
-          .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
-            current_user_id: ctx.user_id,
-          })
-          .orderBy('released_at', 'DESC')
-          .limit(1)
-          .getOne(),
-        postRepo
-          .createQueryBuilder('posts')
-          .where('fk_user_id = :userId', { userId: parent.fk_user_id })
-          .andWhere('released_at > :releasedAt', { releasedAt: parent.released_at })
-          .andWhere('id != :postId', { postId: parent.id })
-          .andWhere('is_temp = false')
-          .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
-            current_user_id: ctx.user_id,
-          })
-          .orderBy('released_at', 'ASC')
-          .limit(1)
-          .getOne(),
-      ]);
+      // const [previous, next] = await Promise.all([
+      //   postRepo
+      //     .createQueryBuilder('posts')
+      //     .where('fk_user_id = :userId', { userId: parent.fk_user_id })
+      //     .andWhere('released_at < :releasedAt', { releasedAt: parent.released_at })
+      //     .andWhere('is_temp = false')
+      //     .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
+      //       current_user_id: ctx.user_id,
+      //     })
+      //     .orderBy('released_at', 'DESC')
+      //     .limit(1)
+      //     .getOne(),
+      //   postRepo
+      //     .createQueryBuilder('posts')
+      //     .where('fk_user_id = :userId', { userId: parent.fk_user_id })
+      //     .andWhere('released_at > :releasedAt', { releasedAt: parent.released_at })
+      //     .andWhere('id != :postId', { postId: parent.id })
+      //     .andWhere('is_temp = false')
+      //     .andWhere('(is_private = false OR fk_user_id = :current_user_id)', {
+      //       current_user_id: ctx.user_id,
+      //     })
+      //     .orderBy('released_at', 'ASC')
+      //     .limit(1)
+      //     .getOne(),
+      // ]);
 
-      return {
-        previous,
-        next,
-      };
+      // return {
+      //   previous,
+      //   next,
+      // };
     },
   },
   Query: {

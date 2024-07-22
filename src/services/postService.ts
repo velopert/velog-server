@@ -445,6 +445,96 @@ const postService = {
       console.log('edit post error', error);
     }
   },
+
+  async getLinkedPosts(postId: string, callerUserId: string | null) {
+    const seriesPost = await db.seriesPost.findFirst({ where: { fk_post_id: postId } });
+
+    const post = await db.post.findUnique({
+      where: { id: postId },
+      select: { released_at: true, fk_user_id: true },
+    });
+    const isOwner = callerUserId === post?.fk_user_id;
+
+    if (!post || !post.released_at) {
+      return {
+        previous: null,
+        next: null,
+      };
+    }
+    if (seriesPost) {
+      const index = seriesPost.index ?? 0;
+      const linkedPosts = await db.seriesPost.findMany({
+        where: {
+          fk_series_id: seriesPost.fk_series_id,
+          index: {
+            in: [index - 1, index + 1],
+          },
+        },
+        include: {
+          Post: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+      const result = {
+        previous: linkedPosts.find(p => p.index === index - 1)?.Post ?? null,
+        next: linkedPosts.find(p => p.index === index + 1)?.Post ?? null,
+      };
+      if (!isOwner) {
+        if (result.previous?.is_private) {
+          result.previous = null;
+        }
+        if (result.next?.is_private) {
+          result.next = null;
+        }
+      }
+      return {
+        previous: result.previous ? this.serialize(result.previous) : null,
+        next: result.next ? this.serialize(result.next) : null,
+      };
+    }
+
+    const prevPostPromise = db.post.findFirst({
+      where: {
+        ...(isOwner ? {} : { is_private: false }),
+        is_temp: false,
+        fk_user_id: post.fk_user_id,
+        released_at: { lt: post.released_at },
+      },
+      take: 1,
+      orderBy: {
+        released_at: 'desc',
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    const nextPostPromise = db.post.findFirst({
+      where: {
+        ...(isOwner ? {} : { is_private: false }),
+        is_temp: false,
+        fk_user_id: post.fk_user_id,
+        released_at: { gt: post.released_at },
+      },
+      take: 1,
+      orderBy: {
+        released_at: 'asc',
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    const [prevPost, nextPost] = await Promise.all([prevPostPromise, nextPostPromise]);
+
+    return {
+      previous: prevPost ? this.serialize(prevPost) : null,
+      next: nextPost ? this.serialize(nextPost) : null,
+    };
+  },
 };
 
 export default postService;
