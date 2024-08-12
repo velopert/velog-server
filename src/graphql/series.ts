@@ -106,11 +106,11 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const repo = getRepository(SeriesPosts);
       const count = await repo.count({
         where: {
-          fk_series_id: parent.id
-        }
+          fk_series_id: parent.id,
+        },
       });
       return count;
-    }
+    },
   },
   Query: {
     series: async (parent: any, { id, username, url_slug }: any, ctx) => {
@@ -138,7 +138,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
         .orderBy('name')
         .getMany();
       return seriesList;
-    }
+    },
   },
   Mutation: {
     createSeries: async (parent: any, args, ctx) => {
@@ -150,8 +150,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const exists = await seriesRepo.findOne({
         where: {
           url_slug,
-          fk_user_id: ctx.user_id
-        }
+          fk_user_id: ctx.user_id,
+        },
       });
       if (exists) {
         throw new ApolloError('URL Slug already exists', 'ALREADY_EXISTS');
@@ -165,16 +165,16 @@ export const resolvers: IResolvers<any, ApolloContext> = {
     },
     appendToSeries: async (parent, args, ctx) => {
       const { series_id, post_id } = args as AppendToSeriesArgs;
-      await getSeriesIfValid(series_id, ctx.user_id);
+      const series = await getSeriesIfValid(series_id, ctx.user_id);
 
       const seriesPostsRepo = getRepository(SeriesPosts);
       const seriesPostsList = await seriesPostsRepo.find({
         where: {
-          fk_series_id: series_id
+          fk_series_id: series_id,
         },
         order: {
-          index: 'ASC'
-        }
+          index: 'ASC',
+        },
       });
       const exists = seriesPostsList.find(sp => sp.fk_post_id === post_id);
 
@@ -193,15 +193,22 @@ export const resolvers: IResolvers<any, ApolloContext> = {
 
       // save
       await seriesPostsRepo.save(seriesPosts);
+
+      // update series updated_at
+      series.updated_at = new Date();
+      const seriesRepo = getRepository(Series);
+      await seriesRepo.save(series);
+
       return nextIndex;
     },
     editSeries: async (parent, args, ctx) => {
       const { id, name, series_order } = args as EditSeriesArgs;
       const series = await getSeriesIfValid(id, ctx.user_id);
-      // update series name
+      // update series name and updated_at if needed
       if (name !== series.name) {
         const seriesRepo = getRepository(Series);
         series.name = name;
+        series.updated_at = new Date();
         await seriesRepo.save(series);
       }
 
@@ -210,8 +217,8 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       const seriesPostsRepo = getRepository(SeriesPosts);
       const seriesPosts = await seriesPostsRepo.find({
         where: {
-          fk_series_id: id
-        }
+          fk_series_id: id,
+        },
       });
 
       const valid =
@@ -231,7 +238,7 @@ export const resolvers: IResolvers<any, ApolloContext> = {
           // index mismatch
           acc.push({
             id: current,
-            index: index + 1
+            index: index + 1,
           });
           return acc;
         }
@@ -260,6 +267,6 @@ export const resolvers: IResolvers<any, ApolloContext> = {
       }
       await seriesRepo.remove(series);
       return true;
-    }
-  }
+    },
+  },
 };
