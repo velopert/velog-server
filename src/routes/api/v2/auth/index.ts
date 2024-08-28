@@ -262,7 +262,7 @@ auth.post('/register/local', async ctx => {
 
   const profile = new UserProfile();
   profile.fk_user_id = user.id;
-  profile.display_name = display_name;
+  profile.display_name = display_name.trim() ?? username;
   profile.short_bio = short_bio;
   await getRepository(UserProfile).save(profile);
 
