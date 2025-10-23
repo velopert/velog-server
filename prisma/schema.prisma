@@ -525,6 +525,7 @@ model User {
   ExternalIntegrationHistory ExternalIntegrationHistory[]
   userProfile                UserProfile?
   Notification               Notification[]
+  Report                     Report[]
 
   @@index([email], map: "users_email")
   @@index([username], map: "users_username")
@@ -632,4 +633,21 @@ model Notification {
   @@index([action_id])
   @@index([fk_user_id])
   @@map("notifications")
+}
+
+model Report {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type       String   @db.VarChar(64)
+  fk_user_id String   @db.Uuid
+  target_id  String   @db.Uuid
+  text       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  User       User     @relation(fields: [fk_user_id], references: [id], onDelete: Cascade, onUpdate: Restrict)
+
+  @@unique([type, fk_user_id, target_id])
+  @@index([created_at])
+  @@index([fk_user_id])
+  @@index([target_id])
+  @@map("reports")
 }
