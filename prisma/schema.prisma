@@ -637,7 +637,7 @@ model Notification {
 
 model Report {
   id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  type       String   @db.VarChar(50)
+  type       String   @db.VarChar(64)
   fk_user_id String   @db.Uuid
   target_id  String   @db.Uuid
   text       String
