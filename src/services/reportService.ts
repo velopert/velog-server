@@ -1,6 +1,3 @@
-import { Report, User } from '@prisma/client';
-import db from '../lib/db';
-import { escapeForUrl } from '../lib/utils';
 import Axios, { AxiosResponse } from 'axios';
 import { getEndpoint } from '../lib/getEndpoint';
 import Cookies from 'cookies';

@@ -2,15 +2,10 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  Index,
   UpdateDateColumn,
   CreateDateColumn,
-  OneToOne,
   JoinColumn,
   ManyToOne,
-  OneToMany,
-  ManyToMany,
-  JoinTable
 } from 'typeorm';
 import User from './User';
 
