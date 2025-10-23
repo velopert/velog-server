@@ -8,6 +8,7 @@ import PostLike from './PostLike';
 import PostRead from './PostRead';
 import PostScore from './PostScore';
 import PostsTags from './PostsTags';
+import Report from './Report';
 import Series from './Series';
 import SeriesPosts from './SeriesPosts';
 import SocialAccount from './SocialAccount';
@@ -34,6 +35,7 @@ const entities = [
   PostRead,
   PostScore,
   PostsTags,
+  Report,
   Series,
   SeriesPosts,
   SocialAccount,
