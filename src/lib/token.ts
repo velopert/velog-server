@@ -57,6 +57,11 @@ export function setTokenCookie(ctx: any, tokens: { accessToken: string; refreshT
       maxAge: 1000 * 60 * 60 * 24 * 30,
       domain: domain,
     });
+    ctx.cookies.set('is_logged_in', 'true', {
+      httpOnly: false,
+      maxAge: 1000 * 60 * 60 * 24 * 365,
+      domain: domain,
+    });
   });
 }
 
@@ -67,6 +72,10 @@ export function resetTokenCookie(ctx: Context) {
       domain,
     });
     ctx.cookies.set('refresh_token', '', {
+      maxAge: 0,
+      domain,
+    });
+    ctx.cookies.set('is_logged_in', '', {
       maxAge: 0,
       domain,
     });
