@@ -6,13 +6,17 @@ import { Item } from 'feed/lib/typings';
 import marked from 'marked';
 import VelogConfig from '../../entity/VelogConfig';
 
+function sanitize(unsanitized: string) {
+  return unsanitized.replace(/[\u001C-\u001F\u0008]/gu, '');
+}
+
 function convert(post: Post): Item {
   const { username } = post.user;
   const link = `https://velog.io/@${username}/${encodeURI(post.url_slug)}`;
   return {
     link,
-    title: post.title,
-    description: marked(post.body).replace(/[\u001C-\u001F\u0008]/gu, ''),
+    title: sanitize(post.title),
+    description: sanitize(marked(post.body)),
     id: link,
     date: post.released_at,
     author: [
