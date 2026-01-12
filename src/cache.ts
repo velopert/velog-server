@@ -14,6 +14,7 @@ class Cache implements CacheService {
     this.client = new Redis({
       maxRetriesPerRequest: 3,
       host: process.env.REDIS_HOST || 'localhost',
+      password: process.env.REDIS_PASSWORD,
     });
     console.log(`Redis server connected URL: ${process.env.REDIS_HOST}`);
   }
